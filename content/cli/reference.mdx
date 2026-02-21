@@ -1,0 +1,86 @@
+# CLI Command Reference
+
+This is a comprehensive reference for all commands and flags available in the Glubean CLI.
+
+## `glubean run`
+
+Runs tests within your project. If no target is provided, it defaults to the `testDir` specified in `deno.json` (usually `./tests/`).
+
+**Usage:**
+```bash
+glubean run [target] [options]
+```
+*(The `target` can be a specific file, directory, or glob pattern).*
+
+**Options:**
+- `--filter <string>`: Run only tests whose ID or name matches the given substring.
+- `--pick <string>`: For data-driven tests using `test.pick()`, select specific named examples (comma-separated).
+- `--tag <string>`: Run only tests matching specific tags (can be used multiple times).
+- `--tag-mode <and|or>`: When providing multiple tags, require all (`and`) or any (`or`). Default is `or`.
+- `--env-file <path>`: Load environment variables from a specific file. Defaults to `.env` (which also auto-loads `.env.secrets`).
+- `--log-file`: Write detailed logs to `<testfile>.log` (or `glubean-run.log` for multi-file runs).
+- `--pretty`: Pretty-print JSON in the log file (enabled by default in some setups).
+- `--verbose`: Show full HTTP request/response bodies, all assertions, and detailed metrics directly in the console output.
+- `--fail-fast`: Stop the entire test run immediately upon the first failure.
+- `--fail-after <N>`: Stop the test run after *N* test failures.
+- `--result-json [path]`: Write structured execution results to a JSON file (essential for CI and the VS Code extension). If no path is provided, writes to `glubean-run.result.json`.
+- `--reporter <format>[:<path>]`: Output format for CI integrations. Currently supports `junit` (e.g., `--reporter junit:results.xml`).
+- `--emit-full-trace`: Save full HTTP request/response pairs as `.trace.jsonc` files in `.glubean/traces/` for detailed local debugging.
+- `--inspect-brk [port]`: Enable the V8 Inspector to attach a debugger (e.g., Chrome DevTools) and break on the first line.
+
+---
+
+## `glubean init`
+
+Scaffolds a new test project in the current directory. It provides an interactive 3-step wizard to set up environments, git hooks, and GitHub Actions.
+
+**Usage:**
+```bash
+glubean init [options]
+```
+
+**Options:**
+- `--minimal`: Skip the wizard and scaffold a minimal project (explore directory only).
+- `--hooks`: Auto-install Git pre-commit and pre-push hooks.
+- `--github-actions`: Scaffold GitHub Actions workflows for CI.
+- `--base-url <url>`: Provide the initial API Base URL without being prompted.
+- `--overwrite`: Overwrite existing files (dangerous).
+- `--no-interactive`: Run silently, accepting defaults (useful for CI/scripting).
+
+---
+
+## `glubean context`
+
+Scans your project's tests, execution traces, and OpenAPI spec (if available) to generate an AI-optimized context file (`.glubean/ai-context.md`). This file is designed to be fed into AI tools like Cursor or Copilot to help them write better tests.
+
+**Usage:**
+```bash
+glubean context [options]
+```
+
+**Options:**
+- `--openapi <path>`: Explicitly provide the path to your OpenAPI spec (JSON or YAML). If omitted, the CLI searches for `openapi.json` or `openapi.yaml` in the project root.
+- `--out <path>`: Custom output path for the context file. Defaults to `.glubean/ai-context.md`.
+
+---
+
+## `glubean scan`
+
+Scans the project to discover all test metadata (`TestMeta`, `StepMeta`, tags, data dependencies) and writes it to `metadata.json`. This is used internally by the Glubean platform and VS Code extension to map out your test suite without executing it.
+
+**Usage:**
+```bash
+glubean scan [dir]
+```
+
+---
+
+## `glubean validate-metadata`
+
+Ensures that the `metadata.json` file is up-to-date with the actual code in the repository. Typically used in CI or pre-push hooks to ensure developers don't push code without running `glubean scan`.
+
+**Usage:**
+```bash
+glubean validate-metadata
+```
+*(Exits with code 1 if the metadata is stale).*

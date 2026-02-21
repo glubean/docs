@@ -1,0 +1,102 @@
+# Scenarios & Recipes
+
+The Glubean CLI is highly configurable. Here are common recipes for day-to-day scenarios, ranging from local debugging to CI/CD integrations.
+
+---
+
+## 1. Running Tests in CI (GitHub Actions / GitLab)
+
+When running in CI, you care about two things: exiting with a non-zero code on failure, and producing test reports that your CI system understands (like JUnit XML).
+
+**Recipe:**
+```bash
+# Run tests and generate both Glubean's structured JSON and a standard JUnit XML report
+glubean run --result-json test-results.json --reporter junit:test-results.xml
+```
+
+**Why it works:**
+- `--result-json` generates the structured payload that Glubean's cloud dashboard and VS Code extension understand.
+- `--reporter junit` generates an XML file that almost all CI systems (Jenkins, GitLab, GitHub Actions) parse natively to show visual test tabs.
+
+---
+
+## 2. Testing Against Different Environments
+
+A core philosophy of Glubean is running the exact same tests locally, in staging, and in production without changing code.
+
+**Recipe:**
+```bash
+# 1. Test against local dev (loads .env and .env.secrets by default)
+glubean run
+
+# 2. Test against staging
+glubean run --env-file .env.staging
+
+# 3. Test against production
+glubean run --env-file .env.prod
+```
+
+**Why it works:**
+The CLI automatically looks for the corresponding `.secrets` file. When you specify `--env-file .env.staging`, it loads `.env.staging` into `ctx.vars` and automatically attempts to load `.env.staging.secrets` into `ctx.secrets`.
+
+---
+
+## 3. Targeting Specific Tests and Data Examples
+
+When debugging, running the whole suite is slow. You often want to isolate a single test or a single edge case in a data-driven test.
+
+**Recipe: Running a specific test by ID or Name**
+```bash
+glubean run ./tests/users.test.ts --filter "create-user"
+```
+
+**Recipe: Running specific Data Examples (`test.pick`)**
+If you have a test using `test.pick()` with named examples (e.g., `normal`, `edge`, `invalid`), you can force the CLI to run only specific ones instead of picking randomly.
+```bash
+glubean run ./tests/users.test.ts --pick "edge,invalid"
+```
+
+**Recipe: Running by Tags**
+```bash
+# Run all smoke tests and critical tests (OR logic)
+glubean run --tag smoke --tag critical
+
+# Run tests that are BOTH auth AND smoke (AND logic)
+glubean run --tag auth --tag smoke --tag-mode and
+```
+
+---
+
+## 4. Deep Debugging Locally
+
+When a test fails and the default compact output isn't enough, you need to see exactly what HTTP requests were sent and what the API returned.
+
+**Recipe: Verbose Console Output**
+```bash
+glubean run ./tests/flaky.test.ts --verbose
+```
+*This prints full request/response bodies and every single assertion directly to your terminal.*
+
+**Recipe: Writing HTTP Traces to Disk**
+```bash
+glubean run ./tests/flaky.test.ts --emit-full-trace
+```
+*This saves human-readable `.trace.jsonc` files inside `.glubean/traces/` containing the exact HTTP pairs. It's excellent for diffing requests to see what changed between successful and failed runs.*
+
+---
+
+## 5. Generating Context for AI Agents (Cursor / Copilot)
+
+AI coding assistants are incredibly powerful, but they often hallucinate endpoints or write tests using the wrong SDK patterns. Glubean solves this by generating an optimized context file.
+
+**Recipe:**
+```bash
+# 1. Generate the AI context file
+glubean context --openapi ./docs/api-spec.json
+
+# 2. In Cursor Chat, type `@.glubean/ai-context.md` and ask:
+# "Write tests for the uncovered endpoints."
+```
+
+**Why it works:**
+The `glubean context` command analyzes your OpenAPI spec, compares it against the network traces of tests you've already run, and identifies exactly which endpoints are uncovered. It packages this, along with the schemas for those missing endpoints and SDK examples, into a single markdown file optimized for LLMs.
