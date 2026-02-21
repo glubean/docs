@@ -57,8 +57,9 @@ import { graphql } from "@glubean/graphql";
 const { gql } = configure({
   plugins: {
     gql: graphql({
-      endpoint: "GRAPHQL_URL",
+      endpoint: "{{GRAPHQL_URL}}",
       headers: { Authorization: "Bearer {{API_KEY}}" },
+      throwOnGraphQLErrors: true,
     }),
   },
 });
@@ -68,3 +69,7 @@ export const checkGraphql = test("graphql", async (ctx) => {
   const { data } = await gql.query(`{ me { id } }`);
 });
 ```
+
+For full plugin-specific docs:
+- [Auth Plugin](/sdk/auth-plugin)
+- [GraphQL Plugin](/sdk/graphql-plugin)

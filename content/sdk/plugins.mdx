@@ -1,84 +1,52 @@
 # Plugin System
 
-The Glubean SDK provides a powerful plugin system (`definePlugin` and `configure`) that allows you to extend the capabilities of the SDK with custom clients and logic.
+Glubean's plugin system lets you extend test capabilities without changing the core SDK.
 
 ## Purpose
-To cleanly encapsulate reusable configuration (like Authentication headers, Base URLs) and custom protocol clients (like GraphQL) so they can be easily shared across hundreds of tests.
 
-## Design Rationale
-- **Lazy Initialization:** In a testing monorepo, files are frequently scanned by the CLI to discover metadata. If a client tries to instantiate itself and read an environment variable at the top level of a file, the scanner might crash. The plugin system solves this by ensuring plugins are instantiated **lazily**—only when their properties are first accessed during actual test execution.
-- **Unified Context:** Plugins receive a `GlubeanRuntime` object, granting them full access to the runner's `vars`, `secrets`, and the pre-configured `http` client (meaning your plugins automatically inherit auto-tracing and metrics).
+- Encapsulate reusable clients/configuration
+- Keep initialization lazy and runtime-safe
+- Share typed utilities across many test files
 
-## Scenarios
+## How it works
 
-### Creating a Custom API Client
-If you interact with a specific service repeatedly, you can build a strongly-typed client plugin.
+1. Define a plugin factory with `definePlugin(...)`.
+2. Register it in `configure({ plugins: { ... } })`.
+3. Consume the plugin instance in tests.
+
+The plugin instance is lazily created on first access.
+
+## Custom plugin example
 
 ```typescript
-import { configure, test, definePlugin } from "@glubean/sdk";
+import { configure, definePlugin, test } from "@glubean/sdk";
 
-// 1. Define the plugin using definePlugin
-// This factory function receives the 'runtime' context lazily.
-export const myCustomClient = (opts: { endpointKey: string }) =>
+const myClient = (opts: { endpointKey: string }) =>
   definePlugin((runtime) => {
-    // Access vars and the base HTTP client from the runtime
-    const url = runtime.requireVar(opts.endpointKey);
-    
-    // Return an object, a class, or anything you want!
+    const baseUrl = runtime.requireVar(opts.endpointKey);
     return {
-      getAdminStatus: async () => {
-        return await runtime.http.get(`${url}/admin/status`).json();
-      }
+      getStatus: async () => runtime.http.get(`${baseUrl}/status`).json(),
     };
   });
 
-// 2. Register the plugin at the file/project level
-const { myClient } = configure({
+const { api } = configure({
   plugins: {
-    // Registers the plugin under the 'myClient' key
-    myClient: myCustomClient({ endpointKey: "INTERNAL_API_URL" }),
+    api: myClient({ endpointKey: "INTERNAL_API_URL" }),
   },
 });
 
-// 3. Use it securely in tests
-export const adminTest = test("admin-test", async (ctx) => {
-  // 'myClient' is instantiated right here, on first access.
-  const data = await myClient.getAdminStatus();
-  ctx.expect(data.healthy).toBe(true);
+export const health = test("internal-health", async (ctx) => {
+  const status = await api.getStatus();
+  ctx.expect(status.ok).toBe(true);
 });
 ```
 
-### GraphQL Support
-The most common use case for plugins is GraphQL. Glubean provides an official `@glubean/graphql` package built natively on this plugin architecture.
+## First-party plugins
 
-It securely injects secrets via template variables `{{key}}` and automatically parses GraphQL responses.
+- [Auth Plugin (`@glubean/auth`)](/sdk/auth-plugin)
+- [GraphQL Plugin (`@glubean/graphql`)](/sdk/graphql-plugin)
 
-```typescript
-import { configure, test } from "@glubean/sdk";
-import { graphql } from "@glubean/graphql";
+## Notes
 
-// Configure the GraphQL plugin
-const { gql } = configure({
-  plugins: {
-    gql: graphql({
-      endpoint: "{{graphql_url}}", // Resolved from ctx.vars at runtime
-      headers: { 
-        Authorization: "Bearer {{api_key}}" // Resolved from ctx.secrets at runtime
-      },
-      throwOnGraphQLErrors: true,
-    }),
-  },
-});
-
-export const getUser = test("get-user", async (ctx) => {
-  // Type-safe queries using the configured plugin
-  const { data } = await gql.query<{ user: { name: string } }>(
-    `query GetUser($id: ID!) { user(id: $id) { name } }`,
-    { variables: { id: "1" } },
-  );
-  
-  ctx.expect(data?.user.name).toBe("Alice");
-});
-```
-
-See the [`@glubean/graphql` documentation](https://jsr.io/@glubean/graphql) for full API details, `.gql` file loading, and standalone usage.
+- Plugin factories receive `GlubeanRuntime` with access to `runtime.http`, `runtime.requireVar`, `runtime.requireSecret`, and `runtime.resolveTemplate`.
+- Reserved keys (`vars`, `secrets`, `http`) cannot be used as plugin names in `configure({ plugins })`.

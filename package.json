@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev -p 4300",
     "build": "next build",
-    "start": "next start -p 4300"
+    "start": "next start -p 4300",
+    "check:links": "node scripts/check-doc-links.mjs",
+    "check:docs": "npm run check:links && npm run build"
   },
   "repository": {
     "type": "git",

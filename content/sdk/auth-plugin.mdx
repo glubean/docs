@@ -1,0 +1,141 @@
+# Auth Plugin (`@glubean/auth`)
+
+`@glubean/auth` provides first-party authentication helpers for common API test scenarios.
+
+> **Status:** Experimental (pre-1.0). API may evolve.
+
+## Install
+
+```typescript
+import { bearer } from "jsr:@glubean/auth";
+```
+
+Or in `deno.json` imports:
+
+```jsonc
+{
+  "imports": {
+    "@glubean/auth": "jsr:@glubean/auth"
+  }
+}
+```
+
+## Quick Start
+
+```typescript
+import { configure, test } from "@glubean/sdk";
+import { bearer } from "@glubean/auth";
+
+const { http } = configure({
+  http: bearer("base_url", "api_token"),
+});
+
+export const getUser = test("get-user", async (ctx) => {
+  const user = await http.get("/users/1").json<{ id: number }>();
+  ctx.expect(user.id).toBe(1);
+});
+```
+
+## Helpers
+
+### `bearer(prefixUrlVar, tokenSecret)`
+
+Adds `Authorization: Bearer <token>` using lazy template resolution.
+
+```typescript
+http: bearer("base_url", "api_token");
+```
+
+### `basicAuth(prefixUrlVar, usernameSecret, passwordSecret)`
+
+Adds `Authorization: Basic <base64(username:password)>`.
+
+```typescript
+import { basicAuth } from "@glubean/auth";
+
+const { http } = configure({
+  http: basicAuth("base_url", "username", "password"),
+});
+```
+
+### `apiKey(prefixUrlVar, headerOrParam, secretKey, location?)`
+
+Supports header mode (default) and query mode.
+
+```typescript
+import { apiKey } from "@glubean/auth";
+
+const { http: byHeader } = configure({
+  http: apiKey("base_url", "X-API-Key", "api_key_secret"),
+});
+
+const { http: byQuery } = configure({
+  http: apiKey("base_url", "api_key", "api_key_secret", "query"),
+});
+```
+
+### `oauth2.clientCredentials(options)`
+
+Fetches and caches access tokens for client credentials flow.
+
+```typescript
+import { oauth2 } from "@glubean/auth";
+
+const { http } = configure({
+  http: oauth2.clientCredentials({
+    prefixUrl: "base_url",
+    tokenUrl: "token_url",
+    clientId: "client_id",
+    clientSecret: "client_secret",
+    scope: "read:users",
+  }),
+});
+```
+
+### `oauth2.refreshToken(options)`
+
+Uses refresh token flow and retries after `401` with a refreshed token.
+
+```typescript
+const { http } = configure({
+  http: oauth2.refreshToken({
+    prefixUrl: "base_url",
+    tokenUrl: "token_url",
+    refreshToken: "refresh_token",
+    clientId: "client_id",
+    clientSecret: "client_secret",
+  }),
+});
+```
+
+### `withLogin(options)`
+
+Builder transform that performs login and injects `authedHttp` into subsequent steps.
+
+```typescript
+import { test } from "@glubean/sdk";
+import { withLogin } from "@glubean/auth";
+
+export const userFlow = test("user-flow")
+  .use(withLogin({
+    endpoint: "{{base_url}}/auth/login",
+    credentials: {
+      username: "{{username}}",
+      password: "{{password}}",
+    },
+    extractToken: (body) => body.access_token,
+    headerName: "Authorization",
+    headerPrefix: "Bearer ",
+  }))
+  .step("get profile", async (ctx, { authedHttp }) => {
+    const profile = await authedHttp.get("/me").json<{ email: string }>();
+    ctx.expect(profile.email).toBeDefined();
+  });
+```
+
+## Notes
+
+- Parameters like `base_url`, `api_token`, `client_secret` are **keys** that resolve at runtime via `ctx.vars` / `ctx.secrets`.
+- Prefer storing credentials/tokens in `.secrets` files.
+
+See package docs: [@glubean/auth on JSR](https://jsr.io/@glubean/auth)

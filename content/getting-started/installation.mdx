@@ -1,0 +1,37 @@
+# Install & Verify
+
+## Prerequisites
+
+- [Deno 2.x](https://deno.com)
+- VS Code, Cursor, or another compatible editor (optional, but recommended)
+
+## Recommended installation (cross-platform)
+
+Install CLI via Deno:
+
+```bash
+deno install -Agf -n glubean jsr:@glubean/cli
+```
+
+Then verify:
+
+```bash
+glubean --help
+```
+
+## Shell script installation (advanced)
+
+If your environment allows installer scripts:
+
+```bash
+curl -fsSLo /tmp/glubean-install.sh https://glubean.com/install.sh
+sh /tmp/glubean-install.sh
+```
+
+For security-sensitive environments, review the script before executing it and prefer pinning a known CLI version in internal setup scripts.
+
+## Extension setup
+
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Glubean.glubean) or the [VSIX releases](https://github.com/glubean/vscode/releases).
+
+The extension can auto-detect or auto-install required runtime dependencies, but teams with strict policies should use the explicit CLI installation above.

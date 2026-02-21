@@ -9,4 +9,6 @@ export default {
   'test-control': 'Test Lifecycle & Control',
   observability: 'Observability',
   plugins: 'Plugin System',
+  'auth-plugin': 'Auth Plugin',
+  'graphql-plugin': 'GraphQL Plugin',
 }

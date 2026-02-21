@@ -7,11 +7,12 @@ While you might primarily use the Glubean VS Code Extension during local develop
 ## Installation
 
 ```bash
-# macOS / Linux
-curl -fsSL https://glubean.com/install.sh | sh
-
-# Or via Deno (requires Deno 2.x)
+# Cross-platform via Deno (requires Deno 2.x)
 deno install -Agf -n glubean jsr:@glubean/cli
+
+# Optional script-based install
+curl -fsSLo /tmp/glubean-install.sh https://glubean.com/install.sh
+sh /tmp/glubean-install.sh
 ```
 
 ## Core Workflows
@@ -22,4 +23,4 @@ The CLI supports three main workflows:
 2. **Project Setup (`glubean init`)**: Scaffolding new test projects, setting up Git hooks, and configuring CI workflows.
 3. **AI Integration (`glubean context`)**: Generating context files (`.glubean/ai-context.md`) to feed to AI coding assistants like Cursor and Copilot.
 
-Explore the [Command Reference](./reference) for a full list of commands and flags, or check out the [Scenarios & Recipes](./recipes) to see how to use the CLI in real-world situations like CI/CD pipelines and multi-environment testing.
+Explore the [Command Reference](/cli/reference) for a full list of commands and flags, or check out the [Scenarios & Recipes](/cli/recipes) to see how to use the CLI in real-world situations like CI/CD pipelines and multi-environment testing.

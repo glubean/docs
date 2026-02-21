@@ -1,34 +1,32 @@
 # Glubean
 
-A code-first API testing and exploration tool built directly into your editor.
+Code-first API testing that runs the same way in editor and CI.
 
 [![GitHub](https://img.shields.io/badge/GitHub-glubean%2Fglubean-181717?logo=github)](https://github.com/glubean/glubean)
 
-## The Philosophy
+## Start Here
 
-### Code First
-GUIs and click-and-drag API testing tools are great for getting started, but they quickly become hard to version control, review, and maintain. Glubean believes that **tests should be code**. By using TypeScript, you get type safety, autocompletion, loops, variables, modularity, and the full power of your existing Git workflows (Pull Requests, code reviews).
+If you are new, follow this path:
 
-### Explore, then Migrate to Tests
-API development often starts with messy exploration: pinging an endpoint, tweaking a payload, and seeing what comes back. Glubean embraces this workflow. You can start by writing simple API calls in a scratchpad file just to explore your API, executing them right from your editor gutter.
+1. [Getting Started](/getting-started)
+2. [Install & Verify](/getting-started/installation)
+3. [Run Your First Test](/getting-started/first-test)
+4. [Connect CI](/getting-started/ci)
 
-Once you are happy with the request, you don't need to recreate it in a separate testing tool. Simply add an assertion (`ctx.expect(...)`) and move it to your test suite. Your exploration script instantly becomes a permanent, CI-ready regression test.
+## Use by Goal
 
-## How the Pieces Fit Together
+- **Set up quickly**: [Getting Started](/getting-started)
+- **Operate day-to-day**: [Guides](/guides)
+- **Look up commands and outputs**: [Reference](/reference)
 
-Glubean consists of three tightly integrated components:
+## Product Surfaces
 
-1. **[The SDK](/sdk)** (`@glubean/sdk`)
-   A TypeScript-first library that provides the `test()` API, the `ctx` context object (with a built-in HTTP client, tracing, logging, and assertions), and data-driven testing utilities. This is the language you use to write your tests.
+Glubean has three integrated surfaces:
 
-2. **[The CLI](/cli)** (`@glubean/cli`)
-   The execution engine. It runs the tests, handles filtering by tags or names, manages `.env` variables and secrets, and generates structured results (like JSON and JUnit). It is built for speed and is what powers your CI/CD pipelines.
+1. **[SDK](/sdk)** (`@glubean/sdk`) for writing tests.
+2. **[CLI](/cli)** (`@glubean/cli`) for execution and automation.
+3. **[VS Code Extension](/extension/quick-start)** for interactive local workflows.
 
-3. **[The VS Code Extension](/extension/quick-start)**
-   The visual developer experience. It parses your test files to provide gutter play buttons, a native Test Explorer sidebar, and rich visual panels for inspecting HTTP traces, diffing responses, and viewing test results. It runs the CLI under the hood, ensuring your local dev experience perfectly matches your CI environments.
+## Core Principle
 
-## Quick Links
-
-- [Extension Quick Start](/extension/quick-start)
-- [SDK Overview](/sdk)
-- [CLI Overview](/cli)
+Start in `explore/` for fast iteration, then move stable files into `tests/` for committed regression coverage and CI execution.

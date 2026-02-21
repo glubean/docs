@@ -14,16 +14,18 @@ The SDK is built around a few core principles:
 The SDK is divided into several logical areas. Explore the documentation to understand the purpose, design rationale, and scenarios for each.
 
 ### Test Structure & Organization
-- [Test API & Builder](./test-api) — `test()`, `.setup()`, `.step()`, `.teardown()`, `.use()`, `.group()`
-- [Data-Driven Tests](./data-driven) — `test.each()`, `test.pick()`, and data loaders (`fromCsv`, `fromYaml`)
-- [Configuration](./configuration) — File-level shared setup using `configure()`
+- [Test API & Builder](/sdk/test-api) — `test()`, `.setup()`, `.step()`, `.teardown()`, `.use()`, `.group()`
+- [Data-Driven Tests](/sdk/data-driven) — `test.each()`, `test.pick()`, and data loaders (`fromCsv`, `fromYaml`)
+- [Configuration](/sdk/configuration) — File-level shared setup using `configure()`
 
 ### The Test Context (`ctx`)
 Every test function receives a `ctx` object (`TestContext`). This context object is your gateway to making HTTP requests, reading variables, asserting conditions, and logging.
 
-- [HTTP Client](./http-client) — `ctx.http`
-- [Environment & Secrets](./env-and-secrets) — `ctx.vars`, `ctx.secrets`
-- [Assertions & Validation](./assertions) — `ctx.expect`, `ctx.assert`, `ctx.warn`, `ctx.validate`
-- [Test Lifecycle & Control](./test-control) — `ctx.skip`, `ctx.fail`, `ctx.setTimeout`, `ctx.pollUntil`, `ctx.retryCount`
-- [Observability](./observability) — `ctx.log`, `ctx.trace`, `ctx.metric`, `ctx.getMemoryUsage`
-- [Plugin System](./plugins) — Extending the SDK and integrating GraphQL
+- [HTTP Client](/sdk/http-client) — `ctx.http`
+- [Environment & Secrets](/sdk/env-and-secrets) — `ctx.vars`, `ctx.secrets`
+- [Assertions & Validation](/sdk/assertions) — `ctx.expect`, `ctx.assert`, `ctx.warn`, `ctx.validate`
+- [Test Lifecycle & Control](/sdk/test-control) — `ctx.skip`, `ctx.fail`, `ctx.setTimeout`, `ctx.pollUntil`, `ctx.retryCount`
+- [Observability](/sdk/observability) — `ctx.log`, `ctx.trace`, `ctx.metric`, `ctx.getMemoryUsage`
+- [Plugin System](/sdk/plugins) — Defining and registering plugins with `definePlugin()` + `configure()`
+- [Auth Plugin](/sdk/auth-plugin) — `bearer`, `basicAuth`, `apiKey`, `oauth2`, `withLogin`
+- [GraphQL Plugin](/sdk/graphql-plugin) — `graphql`, `createGraphQLClient`, `gql`, `fromGql`

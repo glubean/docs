@@ -1,0 +1,22 @@
+# AI Assistant Workflow
+
+Use AI for generation speed, then keep Glubean as the execution truth.
+
+## Recommended pattern
+
+1. Provide OpenAPI spec and task intent.
+2. Ask AI to generate test files into `explore/`.
+3. Run and inspect traces.
+4. Promote stable tests into `tests/`.
+
+## Improve output quality
+
+Generate context from your project:
+
+```bash
+glubean context --openapi openapi.json --out .glubean/ai-context.md
+```
+
+Feed `.glubean/ai-context.md` into your assistant at the start of a chat.
+
+See deep-dive details in [Extension AI Integration](/extension/ai-integration).

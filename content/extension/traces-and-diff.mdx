@@ -4,9 +4,9 @@ Every request Glubean makes is captured and logged. You don't need to dig throug
 
 ## Instant feedback
 
-When you click the **▶ play button** on a test, the extension automatically opens a `.trace.jsonc` file side-by-side with your code as soon as the test finishes.
+When you click the **▶ play button** on a test, the extension automatically opens the Trace Viewer side-by-side with your code as soon as the test finishes.
 
-This trace file captures the full HTTP conversation:
+The underlying trace data captures the full HTTP conversation:
 
 ```jsonc
 {
@@ -24,11 +24,15 @@ This trace file captures the full HTTP conversation:
 }
 ```
 
-If your test contains multiple steps or requests, they will all be logged sequentially in the same trace file.
+If your test contains multiple steps or requests, they will all be logged sequentially in the same trace record.
+
+### Result viewer
+
+When a test finishes, the extension also writes a result JSON file (recommended path: `.glubean/last-run.json`) with pass/fail outcome and assertion details. You can open it with **Glubean: Open Last Result JSON** from the Command Palette — it renders in a rich viewer showing status, duration, and any failed assertions with expected vs actual values.
 
 ### Copy as cURL
 
-While looking at a trace file, you can copy any captured request as a ready-to-run shell command.
+While viewing a trace in the Trace Viewer, you can copy any captured request as a ready-to-run shell command.
 1. Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
 2. Search for **Glubean: Copy as cURL**
 3. Paste it into your terminal.
@@ -40,9 +44,9 @@ Glubean remembers the past. By default, it keeps the last 20 traces for each ind
 Above each test in your `.test.ts` file, you will see a CodeLens that looks like this:
 **`Trace (5)`**
 
-Clicking this CodeLens opens the most recent trace for that specific test.
+Clicking this CodeLens opens the most recent trace for that specific test in the Trace Viewer.
 
-While viewing a trace file, look at the **Status Bar** at the bottom of VS Code. You'll see an indicator like `Trace 1/5` (meaning you are viewing the newest of 5 saved traces).
+While viewing a trace, look at the **Status Bar** at the bottom of VS Code. You'll see an indicator like `Trace 1/5` (meaning you are viewing the newest of 5 saved traces).
 
 You can step backward and forward through history:
 - **Older trace:** `Alt + [` (Mac/Win)
@@ -52,7 +56,9 @@ You can step backward and forward through history:
 
 One of the most practical day-to-day features is seeing exactly what changed between two runs. For example: before and after a backend deployment, or before and after changing your request payload.
 
-While viewing a trace, open the Command Palette and run:
+While viewing a trace in the Trace Viewer, open the Command Palette and run:
 **Glubean: Diff with Previous Run**
 
-This opens VS Code's native side-by-side diff editor, comparing the trace you were just looking at with the one immediately preceding it. You'll instantly see added, removed, or modified fields in the JSON response body and headers.
+This opens VS Code's native side-by-side diff editor, comparing the trace you were just viewing with the one immediately preceding it. You'll instantly see added, removed, or modified fields in the JSON response body and headers.
+
+> Raw trace artifacts are still written to `.glubean/traces/*.trace.jsonc` for archival and CLI workflows.

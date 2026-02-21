@@ -1,0 +1,50 @@
+# Run Your First Test
+
+## 1. Initialize a project
+
+```bash
+mkdir my-project && cd my-project
+glubean init
+```
+
+Expected folders:
+
+```text
+my-project/
+├── explore/
+├── tests/
+└── deno.json
+```
+
+## 2. Add environment variables
+
+Create `.env` in project root:
+
+```bash
+BASE_URL=http://localhost:3000
+```
+
+## 3. Write a basic test
+
+```typescript
+import { test } from "@glubean/sdk";
+
+export const health = test("health", async (ctx) => {
+  const baseUrl = ctx.vars.require("BASE_URL");
+  const res = await ctx.http.get(`${baseUrl}/health`);
+  ctx.expect(res.status).toBe(200);
+});
+```
+
+## 4. Run it
+
+```bash
+glubean run ./tests
+```
+
+Or run from the editor gutter/Test Explorer if you installed the extension.
+
+## 5. Inspect outputs
+
+- Trace files and result files are described in [Reference: Artifacts](/reference/artifacts).
+- For failure triage, continue with [Guides: Debugging](/guides/debugging).

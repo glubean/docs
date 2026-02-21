@@ -1,0 +1,38 @@
+# Connect CI
+
+Use the same command locally and in CI to avoid drift.
+
+## Minimal CI command
+
+```bash
+glubean run ./tests --result-json .glubean/last-run.json --reporter junit:test-results.xml
+```
+
+## Why this shape
+
+- `./tests` keeps CI focused on committed regression tests.
+- `--result-json .glubean/last-run.json` gives a stable machine-readable artifact for tools and the extension viewer.
+- `--reporter junit:test-results.xml` integrates with common CI test dashboards.
+
+## GitHub Actions example
+
+```yaml
+name: test-api
+on: [push, pull_request]
+
+jobs:
+  glubean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno install -Agf -n glubean jsr:@glubean/cli
+      - run: glubean run ./tests --result-json .glubean/last-run.json --reporter junit:test-results.xml
+```
+
+## Next
+
+- CI tuning patterns: [CLI Recipes](/cli/recipes)
+- Environment switching strategy: [Guides: Environments](/guides/environments)
