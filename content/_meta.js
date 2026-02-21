@@ -1,0 +1,6 @@
+export default {
+  index: 'Introduction',
+  extension: 'VS Code Extension',
+  sdk: 'SDK',
+  cli: 'CLI',
+}

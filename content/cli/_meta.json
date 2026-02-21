@@ -1,6 +1,0 @@
-{
-  "commands": "Commands",
-  "init": "glubean init",
-  "run": "glubean run",
-  "context": "glubean context"
-}

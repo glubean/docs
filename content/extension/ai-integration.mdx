@@ -1,0 +1,38 @@
+# AI Integration
+
+Glubean's SDK is designed from the ground up to be understood and written by AI assistants like Cursor, GitHub Copilot, and ChatGPT.
+
+Because Glubean uses standard TypeScript, explicit types, and rich JSDoc with `@example` tags, AIs rarely hallucinate APIs or make syntax errors.
+
+## The AI Workflow
+
+Instead of manually constructing HTTP requests in a GUI or writing boilerplate fetch code, use your AI to do the heavy lifting.
+
+**1. Provide the spec**
+Paste your OpenAPI / Swagger spec (or even just a curl command or endpoint description) into your AI chat window.
+
+**2. Ask for a test**
+Prompt the AI using natural language:
+> _"Generate Glubean tests for the user CRUD endpoints. Create a user, fetch it to verify, update the name, and then delete it."_
+
+**3. Run it**
+Save the generated code into a file in your `explore/` folder (e.g., `explore/user-crud.test.ts`). Click the **▶ play button** in the gutter.
+
+You've gone from spec to running tests in seconds.
+
+## Better context: `glubean context`
+
+To get the most accurate tests from your AI, it needs to understand the patterns already established in your project, and what the SDK is capable of.
+
+The CLI provides a command to bundle all this context together:
+
+```bash
+glubean context --openapi openapi.json
+```
+
+This command generates a `.glubean/ai-context.md` file containing:
+- The Glubean SDK quick reference
+- Existing test patterns found in your current project
+- A list of uncovered endpoints from the provided OpenAPI spec
+
+**How to use it:** At the start of a new chat session (or as a rule in Cursor), tell your AI to read `.glubean/ai-context.md` before generating new tests. This ensures the output matches your specific assertions, `ctx.vars` usage, and project structure.

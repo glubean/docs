@@ -1,0 +1,65 @@
+# Comparison
+
+## Different tools, different philosophies
+
+Glubean, Postman, and REST Client are all ways to send HTTP requests and inspect responses — but they come from fundamentally different starting points.
+
+**Postman** is a standalone application built around a visual GUI. You fill in fields, click buttons, organise requests into collections, and share them via cloud sync. No code required.
+
+**REST Client** (the VS Code extension) lets you write `.http` files with raw HTTP syntax directly in your editor. Simple and lightweight — great for one-off requests.
+
+**Glubean** is built around TypeScript. Your tests are `.ts` files, versioned in git, run from the gutter, and executed by the same CLI that runs in CI. The focus is on repeatable, assertable, multi-step tests — not just sending a request.
+
+None of these is objectively better. The right choice depends on how your team works.
+
+---
+
+## Who each tool is best for
+
+**Glubean** fits naturally if you:
+- Live in VS Code and want tests alongside your application code
+- Want collections versioned in git and reviewed in PRs
+- Need real assertions — status codes, response body shape, schema validation
+- Work with multi-step flows (create → fetch → verify → cleanup)
+- Use AI assistants to generate tests from specs
+- Need the same test suite to run locally and in CI without any changes
+
+**Postman** fits naturally if you:
+- Prefer a visual interface over writing code
+- Work with non-developer teammates (QA, support, product) who need to send requests without a coding setup
+- Want a standalone tool independent of your editor
+
+**REST Client** fits naturally if you:
+- Want the simplest possible thing — just type a request and send it
+- Don't need assertions or scripting, just raw request/response visibility
+- Already have `.http` files checked into your repository
+
+---
+
+## Feature comparison
+
+| | Glubean | Postman | REST Client |
+|---|---|---|---|
+| Where it lives | VS Code / Cursor | Standalone app | VS Code |
+| Request authoring | TypeScript | GUI form | `.http` file syntax |
+| Version control | Native — `.ts` files in git | Export/import JSON | Native — `.http` files in git |
+| Assertions | Rich: fluent `expect`, schema validation, custom metrics | Test scripts (JS) | None |
+| Multi-step flows | Built-in `.step()` builder | Collections + variables | Not supported |
+| Trace history & diff | Built-in, per-test | Not built-in | Not built-in |
+| AI-friendly | Designed for it — rich JSDoc, generate from OpenAPI | Limited | Limited |
+| CI integration | `glubean run` in any pipeline | Newman CLI | Not supported |
+| Environment switching | Status bar picker, `.env` files | Environments UI | Variables in `.env` file |
+| No-code usage | No — requires TypeScript | Yes | Minimal — plain text syntax |
+| Pricing | Free, open source | Free + paid tiers | Free, open source |
+
+---
+
+## Summary
+
+REST Client is the right tool when you want a quick, no-setup way to fire off requests from inside VS Code. It's a great scratchpad.
+
+Postman is the right tool when your team needs a shared, visual workspace — especially if non-developers are involved.
+
+Glubean is the right tool when your API tests are a first-class part of your codebase: committed, reviewed, and run automatically in CI.
+
+Many teams use all three: REST Client for quick exploration, Postman for sharing with stakeholders, and Glubean for the regression suite.

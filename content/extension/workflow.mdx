@@ -1,0 +1,46 @@
+# Workflow: Explore vs Tests
+
+Glubean's file conventions map directly to the two main stages of API development and testing: **Exploration** and **Verification**.
+
+## Directory structure
+
+When you run `glubean init`, the CLI creates two folders:
+
+```
+my-project/
+├── explore/   # Interactive API exploration
+├── tests/     # Permanent verification suite
+└── data/      # Shared JSON/CSV for data-driven tests
+```
+
+The extension reads this folder structure and groups your tests in the **Test Explorer** sidebar accordingly.
+
+## 1. Explore (The Scratchpad)
+
+The `explore/` directory is your scratchpad. This is where you work when you are:
+- Trying out a new endpoint for the first time
+- Replicating a bug reported by a user
+- Asking an AI assistant to generate a test for a new OpenAPI spec
+
+Tests in `explore/` are meant for quick iteration. You click the gutter **▶ play button**, look at the trace file, adjust the code, and run it again. There are no consequences if an exploration test breaks.
+
+*Many teams choose to add `explore/` to their `.gitignore`, treating it purely as a local workspace.*
+
+## 2. Promote to Tests
+
+Once a test in `explore/` is stable and proves useful (e.g., it successfully covers a critical user flow or reproduces a regression), you should make it permanent.
+
+**Simply drag and drop the `.test.ts` file from `explore/` into `tests/`.**
+
+That's it. Zero code changes needed. The VS Code Test Explorer will automatically move the test from the "Explore" group into the "Tests" group.
+
+## 3. Run in CI
+
+The `tests/` directory is your permanent verification suite. These files are committed to git, reviewed in Pull Requests, and run automatically by your CI pipeline.
+
+In GitHub Actions or GitLab CI, you execute:
+```bash
+glubean run tests/
+```
+
+What you ran locally is exactly what runs in CI — the same `.test.ts` files, the same assertions, using the exact same CLI engine. This completely eliminates the "it worked in Postman but failed in Newman" problem.

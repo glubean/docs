@@ -1,0 +1,104 @@
+# Environments & Secrets
+
+## Environment files
+
+Glubean loads variables from `.env` files in your project root. Create one file per environment:
+
+```
+my-project/
+├── .env              # local development (default)
+├── .env.staging      # staging environment
+└── .env.prod         # production environment
+```
+
+A matching `.secrets` file holds sensitive values that should never be committed:
+
+```
+├── .env.staging.secrets   # secrets for staging (gitignore this)
+```
+
+Add secrets files to `.gitignore`:
+
+```
+*.secrets
+```
+
+---
+
+## Switching environments
+
+The active environment is shown in the status bar at the bottom of the window. Click it to open a quick-pick menu:
+
+```
+⚙ .env  ▾
+```
+
+Selecting `.env.staging` immediately switches all subsequent runs to load variables from that file. The matching `.env.staging.secrets` is loaded automatically — no extra step.
+
+You can also switch from the Command Palette:
+
+```
+Glubean: Select Environment
+```
+
+---
+
+## Accessing variables in tests
+
+Use `ctx.vars` for regular variables and `ctx.secrets` for sensitive values:
+
+```typescript
+export const getUser = test("get-user", async (ctx) => {
+  const baseUrl = ctx.vars.require("BASE_URL");
+  const token = ctx.secrets.require("API_TOKEN");
+
+  const res = await ctx.http.get(`${baseUrl}/users/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+});
+```
+
+| Method | Behaviour |
+|---|---|
+| `ctx.vars.get("KEY")` | Returns the value or `undefined` |
+| `ctx.vars.require("KEY")` | Returns the value or throws with a clear message |
+| `ctx.secrets.get("KEY")` | Returns the value or `undefined` |
+| `ctx.secrets.require("KEY")` | Returns the value or throws with a clear message |
+
+Prefer `require()` for anything the test cannot run without — the error message will name the missing key directly.
+
+---
+
+## Hover preview
+
+Hover over any `vars.require("KEY")` or `secrets.require("KEY")` call in your editor to see the resolved value from the currently selected environment:
+
+```typescript
+const baseUrl = ctx.vars.require("BASE_URL");
+//                                  ^
+//   hover → BASE_URL = "https://api.staging.example.com"
+```
+
+Secret values are masked in the hover tooltip.
+
+---
+
+## Example `.env` files
+
+**.env**
+```bash
+BASE_URL=http://localhost:3000
+LOG_LEVEL=debug
+```
+
+**.env.staging**
+```bash
+BASE_URL=https://api.staging.example.com
+LOG_LEVEL=info
+```
+
+**.env.staging.secrets**
+```bash
+API_TOKEN=sk_staging_xxxx
+DB_PASSWORD=hunter2
+```
