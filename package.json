@@ -1,0 +1,29 @@
+{
+  "name": "docs",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev -p 4300",
+    "build": "next build",
+    "start": "next start -p 4300"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/glubean/docs.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/glubean/docs/issues"
+  },
+  "homepage": "https://github.com/glubean/docs#readme",
+  "description": "",
+  "dependencies": {
+    "next": "^16.1.6",
+    "nextra": "^4.6.1",
+    "nextra-theme-docs": "^4.6.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  }
+}
