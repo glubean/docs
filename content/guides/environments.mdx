@@ -1,0 +1,42 @@
+# Environments & Secrets
+
+## File model
+
+```text
+.env
+.env.staging
+.env.prod
+.env.staging.secrets
+.env.prod.secrets
+```
+
+Secrets files should be ignored by git:
+
+```text
+*.secrets
+```
+
+## Runtime usage
+
+- `ctx.vars.require("KEY")` for required config
+- `ctx.vars.get("KEY")` for optional config
+- `ctx.secrets.require("KEY")` for required secrets
+
+```typescript
+const baseUrl = ctx.vars.require("BASE_URL");
+const token = ctx.secrets.require("API_TOKEN");
+```
+
+## Switching strategy
+
+- Local default: `.env`
+- Staging: `--env-file .env.staging`
+- Production verification: `--env-file .env.prod`
+
+```bash
+glubean run ./tests --env-file .env.staging
+```
+
+Extension users can also switch active env from the status bar.
+
+For deeper API details: [SDK Environment & Secrets](/sdk/env-and-secrets), [Extension Environments](/extension/environments).

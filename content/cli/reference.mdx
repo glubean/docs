@@ -23,7 +23,7 @@ glubean run [target] [options]
 - `--verbose`: Show full HTTP request/response bodies, all assertions, and detailed metrics directly in the console output.
 - `--fail-fast`: Stop the entire test run immediately upon the first failure.
 - `--fail-after <N>`: Stop the test run after *N* test failures.
-- `--result-json [path]`: Write structured execution results to a JSON file (essential for CI and the VS Code extension). If no path is provided, writes to `glubean-run.result.json`.
+- `--result-json [path]`: Write structured execution results to a JSON file (essential for CI and the VS Code extension). Prefer passing an explicit path such as `.glubean/last-run.json`.
 - `--reporter <format>[:<path>]`: Output format for CI integrations. Currently supports `junit` (e.g., `--reporter junit:results.xml`).
 - `--emit-full-trace`: Save full HTTP request/response pairs as `.trace.jsonc` files in `.glubean/traces/` for detailed local debugging.
 - `--inspect-brk [port]`: Enable the V8 Inspector to attach a debugger (e.g., Chrome DevTools) and break on the first line.

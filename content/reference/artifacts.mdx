@@ -1,0 +1,25 @@
+# Artifacts Contract
+
+This page defines the shared artifact model used across guides and examples.
+
+## Standard artifacts
+
+- **Result JSON**: `.glubean/last-run.json`
+- **Trace files**: `.glubean/traces/*.trace.jsonc`
+- **AI context**: `.glubean/ai-context.md`
+- **Metadata scan output**: `metadata.json`
+
+## Recommended run command
+
+```bash
+glubean run ./tests --result-json .glubean/last-run.json
+```
+
+Using an explicit `--result-json` path avoids ambiguity across local runs, CI, and extension workflows.
+
+## Related commands
+
+- `glubean run`
+- `glubean context`
+- `glubean scan`
+- `glubean validate-metadata`
