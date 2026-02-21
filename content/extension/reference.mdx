@@ -18,6 +18,7 @@ You can access these commands via the VS Code Command Palette (`Cmd+Shift+P` / `
 | Glubean: Clean All Traces | — | Delete all saved trace files |
 | Glubean: Open Last Result JSON | — | Open `.glubean/last-run.json` |
 | Glubean: Setup | — | Install or verify Deno and the Glubean CLI |
+| Glubean: Initialize Project | — | Scaffold a new Glubean project in the current workspace folder |
 
 ## Settings Reference
 
@@ -28,5 +29,7 @@ You can configure Glubean via VS Code's standard Settings UI or `settings.json`.
 | `glubean.glubeanPath` | `"glubean"` | Path to the Glubean CLI executable. If you installed the CLI globally, leaving this as `"glubean"` is fine. |
 | `glubean.autoDiscover` | `true` | When true, the extension automatically scans `.test.ts` files for tests when they are opened or saved. |
 | `glubean.traceHistoryLimit` | `20` | Maximum number of trace files to keep per test. Older traces are automatically deleted. |
+| `glubean.taskTimeoutMs` | `300000` | Milliseconds to wait for a task to complete before marking it timed out (5 minutes by default). |
+| `glubean.telemetry.enabled` | `false` | Share anonymous usage data to help improve Glubean. See [Telemetry](https://github.com/glubean/vscode/blob/main/docs/telemetry.md) for details. |
 
 *Note: Environment file selection and verbose mode are controlled via the status bar picker and are not saved in `settings.json`.*

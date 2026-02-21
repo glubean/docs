@@ -26,6 +26,10 @@ This trace file captures the full HTTP conversation:
 
 If your test contains multiple steps or requests, they will all be logged sequentially in the same trace file.
 
+### Result viewer
+
+When a test finishes, the extension also writes a `.result.json` file with the pass/fail outcome and assertion details. You can open it with **Glubean: Open Last Result JSON** from the Command Palette — it renders in a rich viewer showing status, duration, and any failed assertions with expected vs actual values.
+
 ### Copy as cURL
 
 While looking at a trace file, you can copy any captured request as a ready-to-run shell command.
