@@ -1,0 +1,29 @@
+# Glubean SDK Overview
+
+The `@glubean/sdk` provides the core primitives for writing API tests that can run locally via the CLI and seamlessly in the cloud on the Glubean platform, without any code changes.
+
+## Design Philosophy
+
+The SDK is built around a few core principles:
+1. **Zero Magic Globals:** Everything a test needs is passed explicitly via the `TestContext` (`ctx`). There are no ambient global variables to guess.
+2. **Fail Fast & Loud:** Missing environment variables, secrets, or failed hard assertions throw immediately, preventing silent, cascading failures deep within test logic.
+3. **Observability First:** Tests don't just pass or fail—they produce rich traces, logs, and metrics. The SDK is deeply integrated with the Glubean dashboard to report this data automatically.
+
+## Core Concepts
+
+The SDK is divided into several logical areas. Explore the documentation to understand the purpose, design rationale, and scenarios for each.
+
+### Test Structure & Organization
+- [Test API & Builder](./test-api) — `test()`, `.setup()`, `.step()`, `.teardown()`, `.use()`, `.group()`
+- [Data-Driven Tests](./data-driven) — `test.each()`, `test.pick()`, and data loaders (`fromCsv`, `fromYaml`)
+- [Configuration](./configuration) — File-level shared setup using `configure()`
+
+### The Test Context (`ctx`)
+Every test function receives a `ctx` object (`TestContext`). This context object is your gateway to making HTTP requests, reading variables, asserting conditions, and logging.
+
+- [HTTP Client](./http-client) — `ctx.http`
+- [Environment & Secrets](./env-and-secrets) — `ctx.vars`, `ctx.secrets`
+- [Assertions & Validation](./assertions) — `ctx.expect`, `ctx.assert`, `ctx.warn`, `ctx.validate`
+- [Test Lifecycle & Control](./test-control) — `ctx.skip`, `ctx.fail`, `ctx.setTimeout`, `ctx.pollUntil`, `ctx.retryCount`
+- [Observability](./observability) — `ctx.log`, `ctx.trace`, `ctx.metric`, `ctx.getMemoryUsage`
+- [Plugin System](./plugins) — Extending the SDK and integrating GraphQL

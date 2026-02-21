@@ -1,0 +1,84 @@
+# Assertions & Validation
+
+The SDK provides multiple ways to validate test outcomes through `ctx.expect`, `ctx.assert`, `ctx.warn`, and `ctx.validate`.
+
+## Purpose
+To verify that your APIs behave as expected. By providing different severity levels of assertions, the SDK enables tests that can either fail fast on critical errors or collect multiple non-critical failures for a comprehensive report.
+
+## Design Rationale
+In testing, not all failures are equal:
+- **`ctx.assert` (Hard Assertions):** Stops execution immediately if the condition is critical (e.g., if a login fails, there is no point in continuing the checkout flow).
+- **`ctx.expect` (Soft Assertions):** Inspired by modern testing frameworks (like Playwright), this allows you to check multiple fields on a response. If one field is wrong, the test continues to check the rest, providing a complete list of failures at the end of the test.
+- **`ctx.warn` (Soft Checks):** Records a warning in the dashboard for best-practices (e.g., "Response should be under 500ms"), but does *not* fail the build or the test.
+- **`ctx.validate` (Schema Validation):** APIs are increasingly typed using schema libraries. `ctx.validate` provides first-class support for validating complex payloads against Zod (including Zod 4), Valibot, ArkType, and any library implementing `.safeParse()` or `.parse()`.
+
+## Scenarios
+
+### Soft Assertions with `ctx.expect`
+Use `expect` for standard property checking. Because it is "soft-by-default", multiple `expect` failures will be collected and reported together.
+
+```typescript
+export const checkProfile = test("profile", async (ctx) => {
+  const body = await ctx.http.get("/profile").json();
+  
+  // If the first fails, the second will still run and report
+  ctx.expect(body.role).toBe("admin");
+  ctx.expect(body.features).toContain("beta_access");
+  ctx.expect(body).toMatchObject({ active: true });
+});
+```
+
+If you need an `expect` to act as a guard (stopping execution if it fails), chain `.orFail()`:
+
+```typescript
+// If status is 500, abort here before trying to parse JSON
+ctx.expect(res.status).toBe(200).orFail();
+const data = await res.json(); 
+```
+
+### Hard Assertions with `ctx.assert`
+Use `assert` for simple boolean checks that must pass. 
+
+```typescript
+// Simple boolean assertion
+ctx.assert(res.ok, "Request should succeed");
+
+// Providing actual/expected helps generate better diffs in the UI
+ctx.assert(res.status === 200, "Status check", {
+  actual: res.status,
+  expected: 200,
+});
+```
+
+### Schema Validation with `ctx.validate`
+When you have a large JSON payload, asserting every property manually is tedious. Use `ctx.validate` with your favorite schema library (works natively with Zod 4, Valibot, ArkType, etc.).
+
+```typescript
+import { z } from "zod"; // Zod 4
+// import * as v from "valibot"; // Valibot
+
+const UserSchema = z.object({ 
+  id: z.number(), 
+  email: z.string().email() 
+});
+// const UserSchema = v.object({ id: v.number(), email: v.pipe(v.string(), v.email()) });
+
+export const validateUser = test("validate-user", async (ctx) => {
+  const body = await ctx.http.get("/users/1").json();
+  
+  // Validates the schema. If it fails, the test fails and shows the exact validation error paths.
+  const user = ctx.validate(body, UserSchema, "response body");
+  
+  // You get typed access to the parsed object!
+  ctx.expect(user?.email).toBeDefined();
+});
+```
+
+### Warnings with `ctx.warn`
+Use warnings to track performance budgets or headers that aren't strictly required for functionality but represent good practices.
+
+```typescript
+// Warning is recorded in the UI but the test still passes
+ctx.warn(durationMs < 500, "Response should be under 500ms");
+ctx.warn(res.headers.has("cache-control"), "Should include cache headers");
+```

@@ -1,0 +1,70 @@
+# Configuration
+
+The `configure()` function provides a way to define file-level shared setup for your tests.
+
+## Purpose
+To centralize and declare dependencies on environment variables, secrets, HTTP client defaults, and plugins at the top of your test file, avoiding repetition across individual test blocks.
+
+## Design Rationale
+- **Lazy Resolution:** In a testing monorepo, test files are frequently imported by scanning tools (like the Glubean CLI) just to read metadata. If you try to read an environment variable at the top level of a file, the scanner might crash or throw errors. `configure()` solves this by making all configuration *lazy*. The values are only resolved when they are actually accessed inside a running test.
+- **Fail Fast:** Any variable or secret declared in `configure()` is implicitly **required**. If it's missing at runtime, the test fails immediately with a clear error.
+- **Template Interpolation:** You can use `{{key}}` syntax in headers to automatically inject secrets without concatenating strings manually.
+
+## Scenarios
+
+### File-Level Setup
+Use `configure()` to set up your HTTP client, variables, and secrets once per file.
+
+```typescript
+import { configure, test } from "@glubean/sdk";
+
+// Define shared configuration
+export const { http, vars, secrets } = configure({
+  vars: { 
+    baseUrl: "BASE_URL" // Maps ctx.vars.require("BASE_URL") to `vars.baseUrl`
+  },
+  secrets: { 
+    apiKey: "API_KEY"   // Maps ctx.secrets.require("API_KEY") to `secrets.apiKey`
+  },
+  http: {
+    // Uses the runtime value of the BASE_URL variable
+    prefixUrl: "BASE_URL",
+    // Automatically injects the API_KEY secret into the header
+    headers: { Authorization: "Bearer {{API_KEY}}" },
+  },
+});
+
+// Use the configured instances in your tests
+export const listUsers = test("list-users", async (ctx) => {
+  // `http` is pre-configured with the prefixUrl and headers!
+  // It also automatically inherits ctx.trace and ctx.metric tracking.
+  const data = await http.get("users?limit=5").json<{ users: any[] }>();
+  
+  ctx.expect(data.users.length).toBe(5);
+  
+  // Safe, typed access to required variables
+  ctx.log(`Tested against ${vars.baseUrl}`);
+});
+```
+
+### Plugin Registration
+`configure()` is also where you register plugins, such as the GraphQL client or custom API wrappers.
+
+```typescript
+import { configure, test } from "@glubean/sdk";
+import { graphql } from "@glubean/graphql";
+
+const { gql } = configure({
+  plugins: {
+    gql: graphql({
+      endpoint: "GRAPHQL_URL",
+      headers: { Authorization: "Bearer {{API_KEY}}" },
+    }),
+  },
+});
+
+export const checkGraphql = test("graphql", async (ctx) => {
+  // The GraphQL client is lazily instantiated here
+  const { data } = await gql.query(`{ me { id } }`);
+});
+```
