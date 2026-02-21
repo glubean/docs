@@ -20,6 +20,7 @@
   "homepage": "https://github.com/glubean/docs#readme",
   "description": "",
   "dependencies": {
+    "geist": "^1.7.0",
     "next": "^16.1.6",
     "nextra": "^4.6.1",
     "nextra-theme-docs": "^4.6.1",

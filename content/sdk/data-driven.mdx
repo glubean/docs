@@ -1,0 +1,107 @@
+# Data-Driven Tests
+
+Glubean SDK provides powerful utilities for data-driven testing using `test.each()` and `test.pick()`, alongside helpers for loading data from CSV, YAML, JSONL, or directories.
+
+## Purpose
+To allow testing the same logic against numerous input variants without duplicating code. This is essential for boundary testing, localization checks, and validating large datasets.
+
+## Design Rationale
+- **Deterministic AI-friendly Sampling (`test.pick`):** When you have 10,000 rows of test data, running all of them locally is too slow, and feeding them to an AI agent is impossible. `test.pick()` allows you to define named examples (like "normal", "edge_case"). By default, the CLI will sample randomly, but in CI you can pin exactly which ones to run.
+- **Dynamic Tags:** Tests generated from data can be automatically tagged using fields from the data row (e.g., tagging by country or region). This allows you to run slices of your data-driven tests easily (`glubean run --tag country:JP`).
+
+## Scenarios
+
+### Simple Parameterized Tests
+Use `test.each()` when you have a small, hardcoded array of test cases.
+
+```typescript
+import { test } from "@glubean/sdk";
+
+export const statusChecks = test.each([
+  { id: 1, expected: 200 },
+  { id: 999, expected: 404 },
+])("get-user-$id", async (ctx, { id, expected }) => {
+  // The test name "get-user-$id" automatically interpolates the data fields
+  const res = await ctx.http.get(`${ctx.vars.require("BASE_URL")}/users/${id}`);
+  ctx.expect(res.status).toBe(expected);
+});
+```
+
+### Named Examples with `test.pick()`
+When you have complex payloads, define them as a dictionary of named examples. This makes test results readable and debugging easier.
+
+```typescript
+import { test } from "@glubean/sdk";
+
+export const createUser = test.pick({
+  normal: { body: { name: "Alice" }, expected: 201 },
+  missingName: { body: {}, expected: 400 },
+  longName: { body: { name: "A".repeat(1000) }, expected: 400 },
+})("create-user-$_pick", async (ctx, { body, expected }) => {
+  // $_pick interpolates the key name (e.g., "normal", "missingName")
+  const res = await ctx.http.post(`${ctx.vars.require("BASE_URL")}/users`, {
+    json: body,
+    throwHttpErrors: false,
+  });
+  ctx.expect(res.status).toBe(expected);
+});
+```
+
+In CI, you can pin specific examples:
+```bash
+glubean run ./users.test.ts --pick normal,missingName
+```
+
+### Loading External Data
+For massive datasets, use the built-in data loaders.
+
+```typescript
+import { test, fromCsv } from "@glubean/sdk";
+
+// Loads rows from a CSV file relative to the execution directory
+const usersData = await fromCsv("./data/users.csv");
+
+export const testUsers = test.each(usersData)("test-user-$email", async (ctx, row) => {
+  // test logic
+});
+```
+
+Available loaders include:
+- `fromCsv(path)`
+- `fromYaml(path)`
+- `fromJsonl(path)`
+
+### Directory Loaders (`fromDir`)
+When your data is split across multiple files in a directory, `fromDir` offers three modes depending on how you want to combine them:
+
+1. **`fromDir(path)`** — Treats each file as **one row/object**. Returns an array where each item is the contents of a file. Automatically adds `_name` (the filename) and `_path`. Perfect for `test.each()`.
+2. **`fromDir.concat(path)`** — Treats each file as an **array of rows**. Concatenates all arrays from all files into one flat array. Perfect for `test.each()` when you have batch files (e.g., `batch-1.json`, `batch-2.json`).
+3. **`fromDir.merge(path)`** — Treats each file as a **dictionary of named examples**. Merges all dictionaries into one giant object. Perfect for `test.pick()` when named examples are split across files (e.g., `us-east.json`, `eu-west.json`).
+
+```typescript
+import { test, fromDir } from "@glubean/sdk";
+
+// Example using fromDir.concat for batches
+const allBatches = await fromDir.concat("./data/batches/");
+export const testBatches = test.each(allBatches)("case-$id", async (ctx, row) => { ... });
+
+// Example using fromDir.merge for test.pick
+const regionalExamples = await fromDir.merge("./data/regions/");
+export const testRegions = test.pick(regionalExamples)("region-$_pick", async (ctx, data) => { ... });
+```
+
+### Filtering and Dynamic Tagging
+When using large datasets, you might want to exclude certain rows or automatically tag tests based on row data.
+
+```typescript
+export const localizedTests = test
+  .meta({
+    // Only run for active countries
+    filter: (row) => row.isActive === true,
+    // Automatically generate tags like "country:JP" or "region:APAC"
+    tagFields: ["country", "region"] 
+  })
+  .each(localizationData)("check-locale-$country", async (ctx, row) => {
+    // ...
+  });
+```

@@ -1,0 +1,93 @@
+# Observability
+
+The `ctx.log`, `ctx.trace`, `ctx.metric`, and `ctx.getMemoryUsage` APIs allow you to emit rich data about your tests to the Glubean platform.
+
+## Purpose
+To turn your test suites into active monitoring tools. Tests shouldn't just be green or red—they should provide historical performance data, network traces for debugging, and operational metrics.
+
+## Design Rationale
+- **Integrated Storage:** All observability calls are collected by the runner and streamed directly to the Glubean Cloud. You don't need to configure Datadog or OpenTelemetry agents. 
+- **Structured by Default:** `ctx.log` takes a payload object, not just a string. `ctx.metric` takes explicit tags. This ensures that the data is easily searchable and sliceable in the Glubean dashboard.
+- **Trace Context:** Every log and metric is automatically correlated to the exact test execution ID that generated it, making root-cause analysis trivial.
+
+## Scenarios
+
+### Structured Logging
+Use `ctx.log` to output contextual information. This is much more powerful than `console.log` because it attaches structured data that can be inspected in the UI.
+
+```typescript
+export const orderTest = test("order-test", async (ctx) => {
+  const orderId = "ord_123xyz";
+  
+  // The object is saved as structured metadata
+  ctx.log("Starting order processing", { 
+    orderId, 
+    items: 4, 
+    userId: "usr_abc" 
+  });
+});
+```
+
+### Emitting Custom Metrics
+While `ctx.http` automatically emits `http_duration_ms` for every request, you often want to track domain-specific metrics. Use `ctx.metric` to track trends over time (e.g., how long the database takes to respond, or the size of a payload).
+
+```typescript
+export const reportTest = test("report-test", async (ctx) => {
+  const start = Date.now();
+  const res = await ctx.http.get("/reports/daily").json();
+  const duration = Date.now() - start;
+
+  // Track the latency of this specific business logic
+  ctx.metric("report_generation_ms", duration, {
+    unit: "ms",
+    tags: { reportType: "daily", environment: ctx.vars.get("ENV") }
+  });
+
+  // Track the size of the returned dataset
+  ctx.metric("report_row_count", res.rows.length, {
+    unit: "count"
+  });
+});
+```
+
+### Manual API Tracing
+If you are using a custom SDK (like a proprietary gRPC client) instead of `ctx.http`, you can manually emit network traces so they still show up in the Glubean network inspector.
+
+```typescript
+export const customClientTest = test("custom-client", async (ctx) => {
+  const start = Date.now();
+  
+  // Using some custom third-party SDK
+  const result = await proprietarySdk.getUser(123);
+  
+  // Manually register the trace
+  ctx.trace({
+    method: "RPC",
+    url: "grpc://internal.service/getUser",
+    status: 200,
+    duration: Date.now() - start,
+    responseBody: result,
+  });
+});
+```
+
+### Memory Profiling
+If you are running complex data-processing tests, you can track memory usage to spot memory leaks in your test logic.
+
+```typescript
+export const heavyTest = test("heavy-test", async (ctx) => {
+  const before = ctx.getMemoryUsage();
+  
+  // ... perform memory-intensive operations (e.g. downloading massive CSV)
+  
+  const after = ctx.getMemoryUsage();
+  
+  if (before && after) {
+    const deltaMb = (after.heapUsed - before.heapUsed) / 1024 / 1024;
+    ctx.log(`Memory delta: ${deltaMb.toFixed(2)} MB`);
+    
+    // Optionally track it as a metric
+    ctx.metric("test_memory_delta_mb", deltaMb, { unit: "MB" });
+  }
+});
+```

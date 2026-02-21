@@ -1,0 +1,84 @@
+# Plugin System
+
+The Glubean SDK provides a powerful plugin system (`definePlugin` and `configure`) that allows you to extend the capabilities of the SDK with custom clients and logic.
+
+## Purpose
+To cleanly encapsulate reusable configuration (like Authentication headers, Base URLs) and custom protocol clients (like GraphQL) so they can be easily shared across hundreds of tests.
+
+## Design Rationale
+- **Lazy Initialization:** In a testing monorepo, files are frequently scanned by the CLI to discover metadata. If a client tries to instantiate itself and read an environment variable at the top level of a file, the scanner might crash. The plugin system solves this by ensuring plugins are instantiated **lazily**—only when their properties are first accessed during actual test execution.
+- **Unified Context:** Plugins receive a `GlubeanRuntime` object, granting them full access to the runner's `vars`, `secrets`, and the pre-configured `http` client (meaning your plugins automatically inherit auto-tracing and metrics).
+
+## Scenarios
+
+### Creating a Custom API Client
+If you interact with a specific service repeatedly, you can build a strongly-typed client plugin.
+
+```typescript
+import { configure, test, definePlugin } from "@glubean/sdk";
+
+// 1. Define the plugin using definePlugin
+// This factory function receives the 'runtime' context lazily.
+export const myCustomClient = (opts: { endpointKey: string }) =>
+  definePlugin((runtime) => {
+    // Access vars and the base HTTP client from the runtime
+    const url = runtime.requireVar(opts.endpointKey);
+    
+    // Return an object, a class, or anything you want!
+    return {
+      getAdminStatus: async () => {
+        return await runtime.http.get(`${url}/admin/status`).json();
+      }
+    };
+  });
+
+// 2. Register the plugin at the file/project level
+const { myClient } = configure({
+  plugins: {
+    // Registers the plugin under the 'myClient' key
+    myClient: myCustomClient({ endpointKey: "INTERNAL_API_URL" }),
+  },
+});
+
+// 3. Use it securely in tests
+export const adminTest = test("admin-test", async (ctx) => {
+  // 'myClient' is instantiated right here, on first access.
+  const data = await myClient.getAdminStatus();
+  ctx.expect(data.healthy).toBe(true);
+});
+```
+
+### GraphQL Support
+The most common use case for plugins is GraphQL. Glubean provides an official `@glubean/graphql` package built natively on this plugin architecture.
+
+It securely injects secrets via template variables `{{key}}` and automatically parses GraphQL responses.
+
+```typescript
+import { configure, test } from "@glubean/sdk";
+import { graphql } from "@glubean/graphql";
+
+// Configure the GraphQL plugin
+const { gql } = configure({
+  plugins: {
+    gql: graphql({
+      endpoint: "{{graphql_url}}", // Resolved from ctx.vars at runtime
+      headers: { 
+        Authorization: "Bearer {{api_key}}" // Resolved from ctx.secrets at runtime
+      },
+      throwOnGraphQLErrors: true,
+    }),
+  },
+});
+
+export const getUser = test("get-user", async (ctx) => {
+  // Type-safe queries using the configured plugin
+  const { data } = await gql.query<{ user: { name: string } }>(
+    `query GetUser($id: ID!) { user(id: $id) { name } }`,
+    { variables: { id: "1" } },
+  );
+  
+  ctx.expect(data?.user.name).toBe("Alice");
+});
+```
+
+See the [`@glubean/graphql` documentation](https://jsr.io/@glubean/graphql) for full API details, `.gql` file loading, and standalone usage.
