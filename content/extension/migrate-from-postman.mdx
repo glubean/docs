@@ -1,0 +1,328 @@
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# Convert Your Existing APIs to Glubean Tests
+
+You do **not** need to rewrite everything by hand.
+
+Most teams convert 80-90% of their existing API collections with AI assistance. Manual effort goes only into flow design and edge cases.
+
+If your first reaction after the demo is:
+
+> "We have hundreds of Postman requests. Are we supposed to rewrite all of this one by one?"
+
+The short answer is: **no**.
+
+<Callout type="warning">
+**You must run migration inside a Glubean project.**
+
+Do not ask AI to convert Postman/OpenAPI files in a random folder. Initialize a real Glubean project first:
+
+```bash
+glubean init
+```
+
+The AI assistant needs to see `deno.json`, the `@glubean/sdk` import map, and `tests/` conventions. Without this context, it will generate Node/Jest-style code instead of Glubean SDK tests.
+</Callout>
+
+---
+
+## What this migration is really about
+
+Migration is not a text-format conversion problem. It is a **test architecture** problem:
+
+- Keep request definitions you already have.
+- Let AI generate Glubean test code from those sources.
+- Make a few structural decisions once (auth, grouping, assertion depth).
+- Reuse that pattern across the rest of the collection.
+
+Once the pattern is locked, conversion speed increases dramatically.
+
+---
+
+## Supported source formats
+
+| Format | How to export |
+|---|---|
+| **Postman** | Collection → Export → Collection v2.1 (JSON) |
+| **Apifox** | Project → Export → OpenAPI 3.0 or Postman format |
+| **REST Client** | Use existing `.http` / `.rest` files directly |
+| **Swagger / OpenAPI** | `openapi.yaml` or `openapi.json` |
+| **RapidAPI** | Export as Postman Collection or copy requests as cURL |
+| **cURL commands** | Paste directly into AI prompt |
+
+<Callout type="info">
+**Swagger / OpenAPI users — this is also a "generate new tests" workflow.**
+
+If you are not migrating old collections and only have an OpenAPI spec, this guide still applies end-to-end. Treat your spec as the source of truth and ask AI to generate fresh Glubean tests by tag or operationId.
+
+This document covers both **migration** and **greenfield test generation**.
+</Callout>
+
+---
+
+## What converts well automatically
+
+AI assistants can reliably convert:
+
+- HTTP methods and URLs → `ctx.http.get/post/put/patch/delete(...)`
+- Query parameters → `searchParams`
+- Request headers and JSON bodies
+- Basic status assertions → `ctx.expect(res.status).toBe(...)`
+- Environment placeholders → `ctx.vars.require(...)`
+- Sensitive values → `ctx.secrets.require(...)`
+- OpenAPI `operationId` → test IDs
+- OpenAPI tags → test grouping (typically one file per tag/folder)
+
+## What still needs your decisions
+
+AI cannot infer business intent from export files alone. You still need to decide:
+
+1. **Granularity** — independent tests vs multi-step flow tests
+2. **Auth model** — static token vs dynamic login setup
+3. **Secrets boundary** — which values must be `ctx.secrets`
+4. **Assertion depth** — status-only vs key fields vs schema validation
+5. **File layout** — one file per resource/tag vs merged files
+
+These five choices determine 80% of migration quality.
+
+---
+
+## Model selection matters (a lot)
+
+Use different model tiers at different migration stages:
+
+| Stage | Recommended model type | Why |
+|---|---|---|
+| First 1-3 flows (pattern design) | More capable model | Better at multi-step state flow and auth reasoning |
+| Bulk conversion after pattern is stable | Faster/cheaper model | High throughput once rules are clear |
+| Final review and risk scan | More capable model | Better at catching hidden state coupling and missing assertions |
+
+Practical strategy:
+
+1. Start with a stronger model for architecture decisions.
+2. Freeze your conventions (`configure.ts`, naming, auth helper, assertions).
+3. Switch to a faster model for batch conversion.
+4. Use a stronger model again for final review.
+
+This gives you both quality and speed.
+
+---
+
+## Recommended migration path
+
+<Steps>
+
+### Set up and feasibility scan
+
+Make sure you are in a Glubean project root (created by `glubean init`).
+
+Drop your source file (Postman JSON, OpenAPI spec, or `.http` file) into the project folder.
+
+Then run a **scan-only round first** — do not ask AI to generate files yet:
+
+```text
+You are in a Glubean project (Deno + @glubean/sdk).
+Before generating any files, do a feasibility scan only.
+
+Please:
+1) Read project context first:
+   - deno.json
+   - tests/ and explore/ structure
+   - existing configure.ts (if any)
+   - @glubean/sdk usage patterns in this repo
+2) Read source API assets:
+   - [Postman/OpenAPI/REST files path]
+3) Output a feasibility report (no code generation yet):
+   - What can be converted automatically
+   - What requires manual decisions
+   - Risks / unknowns / blockers
+   - Proposed file plan (which .test.ts files to create)
+   - Proposed auth strategy and assertion depth
+   - A small sample (one endpoint/flow) plan only
+4) Wait for my approval before writing any files.
+```
+
+Review the report. Fix any misunderstandings before proceeding.
+
+### Convert one representative flow first
+
+After approving the plan:
+
+```text
+Approved. Now generate files according to the plan.
+Start with one representative flow first, then stop for review.
+```
+
+Pick a flow that includes auth, a create/update action, a verification, and cleanup. This becomes your reference pattern.
+
+### Lock your house style
+
+Decide and document:
+
+- `configure.ts` structure
+- Status/assertion policy
+- When to use builder steps vs single tests
+- Teardown requirements for data-creating tests
+
+### Batch-convert by folder or tag
+
+Convert one Postman folder or OpenAPI tag group at a time. Reuse the pattern from step 2.
+
+### Run and fix flagged cases
+
+```bash
+deno task test
+# or
+glubean run tests/
+```
+
+Handle only failures and TODO-marked script logic.
+
+</Steps>
+
+---
+
+## Mapping guide
+
+| Source concept | Glubean equivalent |
+|---|---|
+| Postman env variable | `ctx.vars.require("VAR_NAME")` |
+| Postman secret variable | `ctx.secrets.require("SECRET_NAME")` |
+| Postman `pm.collectionVariables.set(k, v)` | Return `{ key: value }` from a step; receive in next step's `state` |
+| Postman `pm.test("name", fn)` | `ctx.expect(...)` or `ctx.assert(...)` |
+| Postman pre-request auth step | `.setup(async (ctx) => { ... })` |
+| Postman folder | One `*.test.ts` file (or grouped exports) |
+| OpenAPI `operationId` | `test("operation-id", ...)` or `test({ id: "operation-id" }, ...)` |
+| REST Client `###` block | One test export |
+| cURL header/body | `headers` / `json` in `ctx.http` options |
+
+---
+
+## Prompt templates by source format
+
+Use the feasibility scan (step 1 above) first, then follow up with one of these:
+
+<Tabs items={['Postman / Apifox', 'OpenAPI / Swagger', 'REST Client .http']}>
+
+<Tabs.Tab>
+
+```text
+I have a Postman Collection at [path].
+Please convert it into Glubean tests using @glubean/sdk.
+
+Requirements:
+- Group by Postman folder, one file per folder under tests/
+- Use ctx.vars.require("BASE_URL") for base URL
+- Sensitive keys [API_KEY, PASSWORD, TOKEN] must use ctx.secrets.require(...)
+- Use builder flow (.setup/.step/.teardown) for stateful sequences
+- Use single test(...) for isolated endpoints
+- Assertions: status + key fields present
+- Create a shared tests/configure.ts with configure({ vars, secrets, http })
+- If any script logic is not safely convertible, add a TODO comment
+
+Return:
+1) tests/configure.ts
+2) generated test files
+3) a short "manual follow-up" list
+```
+
+</Tabs.Tab>
+
+<Tabs.Tab>
+
+```text
+I have an OpenAPI 3 spec at [path].
+Generate Glubean tests for non-deprecated endpoints.
+
+Requirements:
+- Group by OpenAPI tag, one file per tag
+- Use operationId as test id where available
+- Use ctx.vars for non-sensitive values and ctx.secrets for sensitive values
+- Add status assertions based on responses
+- Where schemas are available, add schema validation logic
+- Create tests/configure.ts with shared HTTP settings
+- Mark uncertain conversions with TODO comments
+```
+
+</Tabs.Tab>
+
+<Tabs.Tab>
+
+```text
+I have a REST Client file at [path].
+Convert each ### block into one Glubean test export.
+
+Requirements:
+- Map {{BASE_URL}} to ctx.vars.require("BASE_URL")
+- Map sensitive placeholders (TOKEN, API_KEY, PASSWORD) to ctx.secrets.require(...)
+- Add status assertions using the expected status from context/comments.
+  If unknown, keep a TODO instead of guessing.
+- Put output in tests/[name].test.ts
+```
+
+</Tabs.Tab>
+
+</Tabs>
+
+---
+
+## `configure.ts` baseline
+
+```ts
+import { configure } from "@glubean/sdk";
+
+export const { vars, secrets, http } = configure({
+  vars: { baseUrl: "BASE_URL" },
+  secrets: { apiToken: "API_TOKEN" },
+  http: {
+    prefixUrl: "BASE_URL",
+    headers: { Authorization: "Bearer {{API_TOKEN}}" },
+  },
+});
+```
+
+Then import and use in any test file:
+
+```ts
+import { test } from "@glubean/sdk";
+import { http } from "./configure.ts";
+
+export const listUsers = test("list-users", async (ctx) => {
+  const data = await http.get("users").json();
+  ctx.expect(data.length).toBeGreaterThan(0);
+});
+```
+
+---
+
+## Quality checklist
+
+- [ ] `ctx.vars.require(...)` is used for non-sensitive runtime config
+- [ ] `ctx.secrets.require(...)` is used for tokens, keys, passwords
+- [ ] Stateful flows use builder (`.setup()` → `.step()` → `.teardown()`)
+- [ ] Data-creating tests include cleanup paths
+- [ ] Assertions are not status-only for critical endpoints
+- [ ] Any unconverted dynamic script logic is explicitly marked with TODO
+
+---
+
+## Known limits
+
+These often require manual touch-ups:
+
+- Complex Postman pre-request scripts (custom signing/encryption)
+- Dynamic test scripts with branching business logic
+- Implicit state dependencies across folders/collections
+- APIs with undocumented response variance
+
+That is normal. Migration succeeds when 80-90% is automated and the remaining 10-20% is clear and reviewable.
+
+---
+
+## What's next?
+
+Ready to start? Set up your project first, then come back here with your export file.
+
+- [Quick Start](/extension/quick-start) — install the extension and run `glubean init`
+- [AI Integration](/extension/ai-integration) — use `glubean context` for even better AI output
+- [Workflow: Explore vs Tests](/extension/workflow) — start in `explore/`, promote to `tests/`
