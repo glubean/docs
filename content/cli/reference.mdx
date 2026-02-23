@@ -17,7 +17,7 @@ glubean run [target] [options]
 - `--pick <string>`: For data-driven tests using `test.pick()`, select specific named examples (comma-separated).
 - `--tag <string>`: Run only tests matching specific tags (can be used multiple times).
 - `--tag-mode <and|or>`: When providing multiple tags, require all (`and`) or any (`or`). Default is `or`.
-- `--env-file <path>`: Load environment variables from a specific file. Defaults to `.env` (which also auto-loads `.env.secrets`).
+- `--env-file <path>`: Load environment variables from a specific file. Defaults to `.env` (which also auto-loads `.env.secrets`). Missing keys fall back to same-name system environment variables. If names differ, map with `${OTHER_VAR}` in `.env` / `.env.secrets`.
 - `--log-file`: Write detailed logs to `<testfile>.log` (or `glubean-run.log` for multi-file runs).
 - `--pretty`: Pretty-print JSON in the log file (enabled by default in some setups).
 - `--verbose`: Show full HTTP request/response bodies, all assertions, and detailed metrics directly in the console output.

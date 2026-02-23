@@ -39,6 +39,22 @@ glubean run --env-file .env.prod
 **Why it works:**
 The CLI automatically looks for the corresponding `.secrets` file. When you specify `--env-file .env.staging`, it loads `.env.staging` into `ctx.vars` and automatically attempts to load `.env.staging.secrets` into `ctx.secrets`.
 
+**Recipe: Reuse local shell variables without copying secrets**
+```bash
+# Already set in your shell profile
+export GLUBEAN_URL=https://api.example.com
+export GLUBEAN_API_KEY=sk_live_xxx
+
+# Map to test-facing names (no secret value copied into repo files)
+printf "BASE_URL=\${GLUBEAN_URL}\n" > .env
+printf "API_KEY=\${GLUBEAN_API_KEY}\n" > .env.secrets
+
+glubean run
+```
+
+**Why it works:**
+Glubean first reads `.env` / `.env.secrets`, then falls back to same-name system variables. The `${...}` mapping is useful when your shell variable names differ from the names expected by test code.
+
 ---
 
 ## 3. Targeting Specific Tests and Data Examples
