@@ -88,6 +88,33 @@ AI cannot infer business intent from export files alone. You still need to decid
 
 These five choices determine 80% of migration quality.
 
+<Callout type="warning">
+**For large collections: use Plan mode first.**
+
+If your source has more than ~20 requests, **start in Plan mode** (Cursor: ⌘⇧P → "Plan mode", or type `@plan` in chat). This forces the AI to produce a structured proposal — file layout, auth strategy, variable mapping, assertion depth — before writing a single line of code.
+
+Without Plan mode, AI tends to start generating immediately and make early assumptions that cascade into dozens of broken tests. Plan mode is cheap (read-only, no code changes) and catches misunderstandings before they multiply.
+</Callout>
+
+<Callout type="info">
+**AI must ask, not guess.**
+
+When migrating large collections, AI will inevitably encounter ambiguity: which variables are secrets vs config, how to handle complex pre-request scripts, whether to split flows into separate tests, etc.
+
+**The correct behavior is to stop and ask you.** If your AI assistant is looping on errors instead of asking a clarifying question, explicitly tell it:
+
+```text
+Stop. Do not guess. List what you're unsure about and ask me before continuing.
+```
+
+Common decision points where AI should pause:
+- **Authentication** — static token vs. login flow vs. OAuth refresh
+- **Variable classification** — which values go in `.env` vs `.env.secrets`
+- **Pre-request scripts** — complex signing, encryption, or chained calls that have no direct equivalent
+- **Test granularity** — independent tests vs multi-step builder flows
+- **Assertion depth** — status-only vs. key fields vs. full schema validation
+</Callout>
+
 ---
 
 ## Model selection matters (a lot)
@@ -142,7 +169,10 @@ Please:
    - Proposed file plan (which .test.ts files to create)
    - Proposed auth strategy and assertion depth
    - A small sample (one endpoint/flow) plan only
-4) Wait for my approval before writing any files.
+4) If anything is ambiguous (auth model, secret classification,
+   pre-request script logic), list it as an open question —
+   do NOT guess and continue.
+5) Wait for my approval before writing any files.
 ```
 
 Review the report. Fix any misunderstandings before proceeding.
