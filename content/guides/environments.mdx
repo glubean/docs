@@ -1,0 +1,74 @@
+# Environments & Secrets
+
+## File model
+
+```text
+.env
+.env.staging
+.env.prod
+.env.staging.secrets
+.env.prod.secrets
+```
+
+Secrets files should be ignored by git:
+
+```text
+*.secrets
+```
+
+## Runtime usage
+
+- `ctx.vars.require("KEY")` for required config
+- `ctx.vars.get("KEY")` for optional config
+- `ctx.secrets.require("KEY")` for required secrets
+
+```typescript
+const baseUrl = ctx.vars.require("BASE_URL");
+const token = ctx.secrets.require("API_TOKEN");
+```
+
+## Resolution order and system fallback
+
+Glubean resolves variables by key name. For each key, file values win first, then shell/system environment is used as fallback.
+
+- `ctx.vars.*("KEY")`: `.env` (or `--env-file`) -> system environment `KEY`
+- `ctx.secrets.*("KEY")`: matching `.secrets` file -> system environment `KEY`
+
+This means if your shell already has `BASE_URL` and `API_KEY`, you can run tests without duplicating those values into local files.
+
+```bash
+export BASE_URL=https://api.example.com
+export API_KEY=sk_live_xxx
+glubean run
+```
+
+If your shell variable names are different from the names used in tests, map them in `.env` / `.env.secrets` with `${...}`.
+
+```dotenv
+# .env
+BASE_URL=${GLUBEAN_URL}
+
+# .env.secrets
+API_KEY=${GLUBEAN_API_KEY}
+```
+
+Then your tests can keep using:
+
+```typescript
+const baseUrl = ctx.vars.require("BASE_URL");
+const apiKey = ctx.secrets.require("API_KEY");
+```
+
+## Switching strategy
+
+- Local default: `.env`
+- Staging: `--env-file .env.staging`
+- Production verification: `--env-file .env.prod`
+
+```bash
+glubean run ./tests --env-file .env.staging
+```
+
+Extension users can also switch active env from the status bar.
+
+For deeper API details: [SDK Environment & Secrets](/sdk/env-and-secrets), [Extension Environments](/extension/environments).

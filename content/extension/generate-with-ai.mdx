@@ -1,0 +1,109 @@
+import { Callout } from 'nextra/components'
+
+# Test Any Public API in 2 Minutes
+
+No Postman collection. No OpenAPI spec. No config files.
+
+Just tell your AI what you want. One sentence is enough.
+
+---
+
+## Real example: GitHub repos
+
+Inside a Glubean project, open your AI assistant and type:
+
+```text
+please create github repo list tests in the explore folder
+```
+
+That's it. The AI reads `deno.json` and the SDK types, and generates a working test file:
+
+```ts
+import { test } from "@glubean/sdk";
+
+export const listUserRepos = test(
+  { id: "github-list-repos", name: "GET GitHub List Repos", tags: ["explore"] },
+  async (ctx) => {
+    const username = ctx.vars.require("GITHUB_USERNAME");
+    const token = ctx.vars.get("GITHUB_TOKEN");
+
+    const headers: Record<string, string> = {
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const res = await ctx.http.get(
+      `https://api.github.com/users/${username}/repos?per_page=5&sort=updated`,
+      { headers },
+    );
+    const data = await res.json();
+
+    ctx.expect(res.status).toBe(200);
+    ctx.expect(Array.isArray(data)).toBe(true);
+    ctx.expect(data.length).toBeGreaterThan(0);
+
+    const summary = data.map((repo: Record<string, unknown>) => ({
+      name: repo.name,
+      stars: repo.stargazers_count,
+      language: repo.language,
+      updated_at: repo.updated_at,
+    }));
+
+    ctx.log("Repos", summary);
+  },
+);
+```
+
+Click **▶** in the gutter. Done.
+
+Notice what the AI figured out on its own — no hand-holding needed:
+
+- `ctx.vars.require("GITHUB_USERNAME")` for runtime config
+- `ctx.vars.get("GITHUB_TOKEN")` as optional (higher rate limits, not required)
+- Proper GitHub API headers and versioning
+- Status + type + length assertions
+- Structured logging with `ctx.log`
+
+<Callout type="warning">
+**Not perfect — and that's fine.** The AI used `ctx.vars.get` for the token, but `GITHUB_TOKEN` is a secret — it should be `ctx.secrets.require("GITHUB_TOKEN")` (or `ctx.secrets.get` if optional). You'll also need to add `GITHUB_USERNAME` to your `.env` file and `GITHUB_TOKEN` to `.env.secrets`. You can ask the AI to fix these directly — and from there, it uses the corrected version as a template when generating more tests.
+</Callout>
+
+<Callout type="info">
+**One prerequisite: a Glubean project.** Run `glubean init` first so the AI can see `deno.json` and the `@glubean/sdk` import map. Without this context, it generates Node/Jest-style code instead of Glubean tests.
+</Callout>
+
+---
+
+## Try it with any API
+
+The prompt doesn't need to be fancy. Just say what you want:
+
+- _"create tests for the JSONPlaceholder API — create a post, fetch it, delete it"_
+- _"test the OpenWeatherMap current weather endpoint"_
+- _"hit the Stripe prices list API, use secrets for the key"_
+- _"test HackerNews — fetch top 5 story IDs, then fetch each title"_
+
+And if you have _any_ document that describes your API — a markdown file, a plain text spec, a JSON example, internal wiki notes, even a Slack message with endpoints listed — just drop it into the project and point the AI at it. There's no required format. If it describes request structure, AI can generate tests from it.
+
+---
+
+## From exploration to CI
+
+When you're happy with a test:
+
+1. Move the file from `explore/` to `tests/`.
+2. Add deeper assertions or schema validation if needed.
+3. Run in CI with `glubean run tests/` — same file, zero migration.
+
+The file you explored with today catches regressions in CI tomorrow.
+
+---
+
+## What's next?
+
+- [Quick Start](/extension/quick-start) — install the extension and create your first project
+- [AI Workflow](/extension/ai-integration) — use `glubean context` for even richer AI output
+- [Migrate from Postman/OpenAPI](/extension/migrate-from-postman) — already have existing collections? Convert them with AI too

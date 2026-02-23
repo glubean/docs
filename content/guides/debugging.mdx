@@ -1,0 +1,28 @@
+# Debugging Workflow
+
+## Fast loop
+
+```bash
+glubean run ./tests/users.test.ts --verbose --emit-full-trace
+```
+
+Use this when you need both console detail and full trace artifacts.
+
+## Target one test or one example
+
+```bash
+glubean run ./tests/users.test.ts --filter "create-user"
+glubean run ./tests/users.test.ts --pick "edge,invalid"
+```
+
+## Use the editor debugger
+
+In VS Code/Cursor, run **Debug Test** from gutter/Test Explorer to attach the runtime inspector and step through your test.
+
+## Diagnose by artifact, not memory
+
+Use [Reference: Artifacts](/reference/artifacts) as the source of truth for where traces/results/metadata live.
+
+Deep dives:
+- [Extension Debugging](/extension/debugging)
+- [Extension Traces & Diff](/extension/traces-and-diff)

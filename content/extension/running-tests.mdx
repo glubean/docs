@@ -6,7 +6,7 @@ Glubean tests are designed to be run right where you write them, without ever le
 
 Every `test()` call automatically gets a **▶ play button** in the gutter next to the line number. Click it to run that single test instantly.
 
-When the test finishes, a ✓ or ✗ icon appears in the gutter, and the trace file opens side-by-side.
+When the test finishes, a ✓ or ✗ icon appears in the gutter, and the Trace Viewer opens side-by-side.
 
 ## Run the whole file
 
@@ -110,9 +110,9 @@ Define your test suites in `deno.json` under the `tasks` section:
   "tasks": {
     "test": "glubean run",
     "test:staging": "glubean run --env-file .env.staging",
-    "test:smoke": "glubean run -t smoke",
-    "test:regression": "glubean run -t regression",
-    "test:ci": "glubean run --ci"
+    "test:smoke": "glubean run --tag smoke",
+    "test:regression": "glubean run --tag regression",
+    "test:ci": "glubean run ./tests --result-json .glubean/last-run.json --reporter junit:test-results.xml"
   }
 }
 ```
@@ -126,5 +126,4 @@ Define your test suites in `deno.json` under the `tasks` section:
 ### Further Reading
 Since the Tasks Panel is essentially running Glubean CLI commands under the hood, you can customize these commands with various flags (like filtering by tags, changing environments, etc.). 
 
-Check out the [Glubean CLI Reference](../cli/reference) for all available options, or explore the [CLI Recipes](../cli/recipes) for more advanced CI/CD and multi-environment setups.
-
+Check out the [Glubean CLI Reference](/cli/reference) for all available options, or explore the [CLI Recipes](/cli/recipes) for more advanced CI/CD and multi-environment setups.

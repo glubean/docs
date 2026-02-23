@@ -1,0 +1,20 @@
+# Explore to Regression
+
+Glubean works best with a two-lane workflow:
+
+- `explore/`: fast, disposable investigation
+- `tests/`: durable regression checks
+
+## Recommended lifecycle
+
+1. Start in `explore/` to validate endpoint behavior quickly.
+2. Once stable, move test files into `tests/`.
+3. Run only `tests/` in CI.
+
+```bash
+glubean run ./tests
+```
+
+This keeps experimentation velocity high while preserving CI signal quality.
+
+For editor behavior and grouping details, see [Extension Workflow](/extension/workflow).

@@ -1,5 +1,7 @@
 # Quick Start
 
+Glubean's default workflow is: use `explore/` as your scratchpad, then promote stable files into `tests/` for CI.
+
 ## 1. Install the extension
 
 Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Glubean.glubean) or download a [VSIX](https://github.com/glubean/vscode/releases) for Cursor, VSCodium, or other forks.
@@ -32,21 +34,27 @@ You can also run **Glubean: Initialize Project** from the Command Palette (`Cmd+
 
 Open the generated `*.test.ts` file and click the **▶** button in the gutter next to any `test(` call. The response opens as a structured trace file right beside your code.
 
+When the check is stable, move it to `tests/` and run it in CI.
+
 ## Manual install
 
 The extension auto-installs Deno and the CLI on first use. If that fails (e.g. network restrictions), install manually:
 
 ```bash
-# macOS / Linux
-curl -fsSL https://glubean.com/install.sh | sh
+# Cross-platform via Deno
+deno install -Agf -n glubean jsr:@glubean/cli
 
-# Or with Deno already installed
-deno install -Agf jsr:@glubean/cli
+# Optional script-based install
+curl -fsSLo /tmp/glubean-install.sh https://glubean.com/install.sh
+sh /tmp/glubean-install.sh
 ```
 
 ## What's next?
 
-- [Running Tests](./running-tests) — gutter buttons, Test Explorer, data-driven tests, Tasks Panel
-- [Traces & Diff](./traces-and-diff) — trace history, Copy as cURL, diff with previous run
-- [Environments & Secrets](./environments) — `.env` files, secrets, status bar switcher
-- [AI Integration](./ai-integration) — generate tests from OpenAPI specs with any AI assistant
+- [Generate Tests with AI](/extension/generate-with-ai) — test any public API in 2 minutes, no import files needed
+- [Migrate from Postman/OpenAPI](/extension/migrate-from-postman) — convert existing API assets with AI, without manual rewrites
+- [Explore vs Tests](/extension/workflow) — start in `explore/`, then promote to `tests/`
+- [Running Tests](/extension/running-tests) — gutter buttons, Test Explorer, data-driven tests, Tasks Panel
+- [Traces & Diff](/extension/traces-and-diff) — trace history, Copy as cURL, diff with previous run
+- [Environments & Secrets](/extension/environments) — `.env` files, secrets, status bar switcher
+- [AI Integration](/extension/ai-integration) — generate tests from OpenAPI specs with any AI assistant
