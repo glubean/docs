@@ -1,27 +1,10 @@
 # Environments & Secrets
 
+This page focuses on the VS Code extension workflow (status bar switching, hover preview, and run behavior). For the canonical rules (file model, resolution order, system fallback, and `${...}` mapping), see [Environments & Secrets](/guides/environments).
+
 ## Environment files
 
-Glubean loads variables from `.env` files in your project root. Create one file per environment:
-
-```
-my-project/
-├── .env              # local development (default)
-├── .env.staging      # staging environment
-└── .env.prod         # production environment
-```
-
-A matching `.secrets` file holds sensitive values that should never be committed:
-
-```
-├── .env.staging.secrets   # secrets for staging (gitignore this)
-```
-
-Add secrets files to `.gitignore`:
-
-```
-*.secrets
-```
+Use the standard Glubean env file model (`.env`, `.env.staging`, `.env.prod` and matching `.secrets` files) from the canonical guide: [Environments & Secrets](/guides/environments).
 
 ---
 
@@ -57,15 +40,7 @@ export const getUser = test("get-user", async (ctx) => {
   });
 });
 ```
-
-| Method | Behaviour |
-|---|---|
-| `ctx.vars.get("KEY")` | Returns the value or `undefined` |
-| `ctx.vars.require("KEY")` | Returns the value or throws with a clear message |
-| `ctx.secrets.get("KEY")` | Returns the value or `undefined` |
-| `ctx.secrets.require("KEY")` | Returns the value or throws with a clear message |
-
-Prefer `require()` for anything the test cannot run without — the error message will name the missing key directly.
+For full API semantics (`get` vs `require`, validation behavior), see [SDK Environment & Secrets](/sdk/env-and-secrets).
 
 ---
 
@@ -80,25 +55,3 @@ const baseUrl = ctx.vars.require("BASE_URL");
 ```
 
 Secret values are masked in the hover tooltip.
-
----
-
-## Example `.env` files
-
-**.env**
-```bash
-BASE_URL=http://localhost:3000
-LOG_LEVEL=debug
-```
-
-**.env.staging**
-```bash
-BASE_URL=https://api.staging.example.com
-LOG_LEVEL=info
-```
-
-**.env.staging.secrets**
-```bash
-API_TOKEN=sk_staging_xxxx
-DB_PASSWORD=hunter2
-```
