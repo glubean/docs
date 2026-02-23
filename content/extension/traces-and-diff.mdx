@@ -30,6 +30,10 @@ If your test contains multiple steps or requests, they will all be logged sequen
 
 When a test finishes, the extension also writes a result JSON file (recommended path: `.glubean/last-run.json`) with pass/fail outcome and assertion details. You can open it with **Glubean: Open Last Result JSON** from the Command Palette — it renders in a rich viewer showing status, duration, and any failed assertions with expected vs actual values.
 
+### Result viewer
+
+When a test finishes, the extension also writes a `.result.json` file with the pass/fail outcome and assertion details. You can open it with **Glubean: Open Last Result JSON** from the Command Palette — it renders in a rich viewer showing status, duration, and any failed assertions with expected vs actual values.
+
 ### Copy as cURL
 
 While viewing a trace in the Trace Viewer, you can copy any captured request as a ready-to-run shell command.
