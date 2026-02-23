@@ -37,7 +37,7 @@ glubean run --env-file .env.prod
 ```
 
 **Why it works:**
-The CLI automatically looks for the corresponding `.secrets` file. When you specify `--env-file .env.staging`, it loads `.env.staging` into `ctx.vars` and automatically attempts to load `.env.staging.secrets` into `ctx.secrets`.
+The CLI automatically looks for the corresponding `.secrets` file for the selected env file. For exact resolution rules and fallback behavior, see [Environments & Secrets](/guides/environments).
 
 **Recipe: Reuse local shell variables without copying secrets**
 ```bash
@@ -53,7 +53,7 @@ glubean run
 ```
 
 **Why it works:**
-Glubean first reads `.env` / `.env.secrets`, then falls back to same-name system variables. The `${...}` mapping is useful when your shell variable names differ from the names expected by test code.
+This mapping pattern keeps test-facing key names stable while reusing shell-level variable names. For canonical resolution and fallback rules, see [Environments & Secrets](/guides/environments).
 
 ---
 
