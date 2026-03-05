@@ -1,6 +1,7 @@
 export default {
   index: 'Introduction',
   'getting-started': 'Getting Started',
+  cloud: 'Cloud',
   guides: 'Guides',
   reference: 'Reference',
   extension: 'Extension (Deep Dive)',

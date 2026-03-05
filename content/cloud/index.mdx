@@ -1,0 +1,43 @@
+# Glubean Cloud
+
+Glubean Cloud stores your test runs, tracks trends over time, and gives your team a shared view of API health.
+
+You write tests locally with the SDK and CLI. When you add `--upload`, results flow to Cloud automatically.
+
+## What Cloud Does
+
+| Capability | Description |
+|---|---|
+| **Run History** | Every uploaded run is stored with full results, logs, and traces. Browse, search, and compare across time. |
+| **Team Dashboard** | Shared project view — see pass/fail status, recent runs, and which tests need attention. |
+| **Artifact Viewer** | Inspect traces, screenshots, and response snapshots directly in the browser. |
+| **Status Badges** | Embed live pass/fail badges in your README or wiki. |
+| **Webhooks** | Get notified on `run.completed` and `run.failed` events. |
+| **Real-time Streaming** | Watch test results appear live as a run executes. |
+
+## How Runs Are Counted
+
+A **run** is one execution of `glubean run --upload`. Each run can contain any number of tests and events.
+
+Your plan determines how many runs you can upload per month. See [Plans & Quotas](/cloud/quotas) for details.
+
+## Get Started
+
+1. [Upload Your First Run](/cloud/quickstart) — go from local tests to Cloud in 5 minutes.
+2. [Dashboard](/cloud/dashboard) — understand what you see after uploading.
+3. [Plans & Quotas](/cloud/quotas) — how billing works.
+4. [Roadmap](/cloud/roadmap) — what's live now and what's coming next.
+
+## Architecture
+
+```text
+  Local / CI                        Cloud
+┌──────────────┐    --upload    ┌──────────────────┐
+│  glubean run │ ─────────────► │  Run Storage     │
+│  (SDK + CLI) │                │  Event Stream    │
+└──────────────┘                │  Artifact Store  │
+                                │  Dashboard       │
+                                └──────────────────┘
+```
+
+Tests always run on your machine (or CI runner). Cloud is the data layer — it receives results, never executes your code.

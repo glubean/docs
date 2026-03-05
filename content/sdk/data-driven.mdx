@@ -76,7 +76,7 @@ When your data is split across multiple files in a directory, `fromDir` offers t
 
 1. **`fromDir(path)`** — Treats each file as **one row/object**. Returns an array where each item is the contents of a file. Automatically adds `_name` (the filename) and `_path`. Perfect for `test.each()`.
 2. **`fromDir.concat(path)`** — Treats each file as an **array of rows**. Concatenates all arrays from all files into one flat array. Perfect for `test.each()` when you have batch files (e.g., `batch-1.json`, `batch-2.json`).
-3. **`fromDir.merge(path)`** — Treats each file as a **dictionary of named examples**. Merges all dictionaries into one giant object. Perfect for `test.pick()` when named examples are split across files (e.g., `us-east.json`, `eu-west.json`).
+3. **`fromDir.merge(path)`** — Treats each file as a **dictionary of named examples**. Merges all dictionaries into one giant object. Perfect for `test.pick()` when named examples are split across files (e.g., `us-east.json`, `eu-west.json`). Combined with the `*.local.json` gitignore convention, this enables [git-safe personal test data](/guides/local-data).
 
 ```typescript
 import { test, fromDir } from "@glubean/sdk";

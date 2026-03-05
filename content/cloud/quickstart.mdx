@@ -1,0 +1,141 @@
+# Upload Your First Run
+
+This guide takes you from a working local test to seeing results in Glubean Cloud. Takes about 5 minutes.
+
+## Prerequisites
+
+- Glubean CLI installed ([Installation](/getting-started/installation))
+- A test that runs locally (`glubean run` works)
+
+## 1. Create a Cloud account
+
+Go to [app.glubean.com](https://app.glubean.com) and sign in with GitHub or Google.
+
+A default project is created automatically when you sign up.
+
+## 2. Get a project token
+
+1. Open your project in the Cloud dashboard.
+2. Go to **Settings → Tokens**.
+3. Click **Create Token** and copy the value (starts with `gpt_`).
+
+## 3. Configure the token
+
+Pick the method that fits your setup:
+
+### Option A: Login command (recommended for local dev)
+
+```bash
+glubean login
+```
+
+Paste your token when prompted. Credentials are saved to `~/.glubean/credentials.json`.
+
+### Option B: Environment file (recommended for team projects)
+
+Add to `.env.secrets` in your project root:
+
+```bash
+GLUBEAN_TOKEN=gpt_your_project_token
+```
+
+> `.env.secrets` is gitignored by default. Never commit tokens to version control.
+
+### Option C: Environment variable (recommended for CI)
+
+```yaml
+# GitHub Actions example
+env:
+  GLUBEAN_TOKEN: ${{ secrets.GLUBEAN_TOKEN }}
+```
+
+```bash
+glubean run ./tests --upload
+```
+
+### Option D: deno.json (quick start / public demos)
+
+```json
+{
+  "glubean": {
+    "cloud": {
+      "token": "gpt_your_project_token",
+      "projectId": "prj_abc123"
+    }
+  }
+}
+```
+
+> Only use this for tokens with limited scope. The CLI warns if your deno.json is tracked by git.
+
+## 4. Upload a run
+
+```bash
+glubean run --upload
+```
+
+That's it. The CLI runs your tests locally, then sends results to Cloud.
+
+On success you'll see:
+
+```text
+✓ health        12ms
+✓ list-users    45ms
+
+2 passed, 0 failed
+
+Uploaded → https://app.glubean.com/p/my-project/runs/abc123
+```
+
+## 5. View in Cloud
+
+Click the URL from the output, or open the Cloud dashboard and navigate to your project. You'll see:
+
+- **Run summary** — pass/fail counts, duration, timestamp
+- **Test results** — each test with status and timing
+- **Events** — assertions, logs, and traces expandable per test
+
+## CI integration
+
+Add `--upload` to your existing CI command:
+
+```bash
+glubean run ./tests --upload
+```
+
+Every CI run uploads to Cloud automatically. The team sees results without checking CI logs.
+
+```yaml
+# Full GitHub Actions example
+name: api-tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno install -Agf -n glubean jsr:@glubean/cli
+      - run: glubean run ./tests --upload
+        env:
+          GLUBEAN_TOKEN: ${{ secrets.GLUBEAN_TOKEN }}
+```
+
+## Token resolution order
+
+The CLI looks for credentials in this order (first match wins):
+
+1. `--token` CLI flag
+2. `GLUBEAN_TOKEN` environment variable
+3. `.env` / `.env.secrets` file in project root
+4. `deno.json` → `glubean.cloud.token`
+5. `~/.glubean/credentials.json` (from `glubean login`)
+
+## Next steps
+
+- [Dashboard](/cloud/dashboard) — understand the Cloud UI
+- [Plans & Quotas](/cloud/quotas) — free tier limits and upgrade options
+- [CLI Reference](/cli/reference) — all `--upload` related flags

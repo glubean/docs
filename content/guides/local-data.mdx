@@ -1,0 +1,229 @@
+import { Callout } from 'nextra/components'
+
+# Local Test Data (Git-Safe)
+
+When multiple team members share a test suite, everyone needs to tweak request bodies, query params, or test cases for local debugging — without creating merge conflicts. This guide covers the recommended patterns for keeping personal test data out of Git.
+
+## The problem
+
+You have a `test.pick` or `test.each` test with shared example data. Alice wants to add her own request body; Bob wants a different edge case. If both edit the same JSON file, Git conflicts are inevitable.
+
+## Quick decision table
+
+| What you need to customize | Mechanism | Git status |
+| --- | --- | --- |
+| Simple scalar values (URLs, IDs, flags) | `.env.local` + `.env.local.secrets` (local env) | Both gitignored |
+| Request bodies / complex objects for `test.pick` | `fromDir.merge()` + `*.local.json` | `*.local.json` gitignored |
+| Extra test cases for `test.each` | `fromDir()` or `fromDir.concat()` + `*.local.json` | `*.local.json` gitignored |
+
+## Scalar values: use a local environment
+
+Glubean supports multiple environments via `--env-file`. The team commits shared environments (`.env`, `.env.staging`), and each developer can create a personal local environment that is entirely gitignored. See [Environments & Secrets](/guides/environments) for the full env file model.
+
+```text
+.env                    ← committed (team baseline)
+.env.secrets            ← gitignored (shared secrets)
+.env.local              ← gitignored (your personal overrides)
+.env.local.secrets      ← gitignored (your personal secrets)
+```
+
+Add both to `.gitignore`:
+
+```text
+.env.local
+.env.local.secrets
+```
+
+Your test code stays the same — it just reads `ctx.vars` and `ctx.secrets` as usual:
+
+```typescript
+const baseUrl = ctx.vars.require("BASE_URL");
+const apiKey = ctx.secrets.require("API_KEY");
+```
+
+When debugging locally, switch to your personal environment:
+
+**In VS Code / Cursor** — click the environment indicator in the status bar and select `.env.local`. All subsequent runs (play button, CodeLens, Test Explorer) will use your personal values.
+
+**From CLI** — pass `--env-file`:
+
+```bash
+glubean run --env-file .env.local
+```
+
+Or add a task shortcut in `deno.json`:
+
+```json
+"test:local": "glubean run --env-file .env.local"
+```
+
+This way the team baseline stays committed in `.env`, and each developer's overrides (different `BASE_URL`, `USER_ID`, feature flags, etc.) live in their own gitignored `.env.local`. No conflicts.
+
+For structured data (JSON bodies, nested objects), use the directory pattern below.
+
+## Structured data: the `*.local.json` convention
+
+Place shared and personal data files in the same directory. Files matching `*.local.json` are gitignored, so each team member can freely add their own data without conflicts.
+
+```text
+data/create-user/
+  shared.json             ← committed (team baseline)
+  alice.local.json        ← gitignored (Alice's personal data)
+  bob.local.json          ← gitignored (Bob's personal data)
+```
+
+One line in `.gitignore` covers every directory:
+
+```text
+*.local.json
+```
+
+<Callout>
+`glubean init` automatically adds `*.local.json` to `.gitignore` in new projects.
+</Callout>
+
+### For `test.pick` — override shared examples
+
+Use `fromDir.merge()` to load a directory of named example maps. Shared files load first, then `*.local.*` files — all merged with `Object.assign`, so local files always override shared keys.
+
+```typescript
+import { fromDir, test } from "@glubean/sdk";
+
+const examples = await fromDir.merge("./data/create-user/");
+
+export const createUser = test.pick(examples)(
+  "create-user-$_pick",
+  async (ctx, { body, expected }) => {
+    const res = await ctx.http.post(
+      `${ctx.vars.require("BASE_URL")}/users/add`,
+      { json: body },
+    );
+    ctx.expect(res.status).toBe(expected);
+  },
+);
+```
+
+**How merging works:**
+
+```json
+// shared.json (committed)
+{
+  "normal": { "body": { "name": "Alice" }, "expected": 201 },
+  "edge":   { "body": { "name": "" },      "expected": 400 }
+}
+
+// alice.local.json (gitignored)
+{
+  "normal":   { "body": { "name": "Alice-local" }, "expected": 201 },
+  "my-debug": { "body": { "name": "Debug" },       "expected": 201 }
+}
+```
+
+Result after merge:
+
+- `"normal"` — Alice's version wins (override)
+- `"edge"` — shared version kept (no local override)
+- `"my-debug"` — added by Alice's local file
+
+In VS Code, CodeLens buttons appear above the `test.pick` call showing all available keys — including keys from `*.local.json` files.
+
+### For `test.each` — append local test cases
+
+Use `fromDir()` (one file = one row) or `fromDir.concat()` (each file is an array, all concatenated). Local files simply add more rows to the test table.
+
+**One file = one test case:**
+
+```text
+data/cases/
+  get-user-1.json                ← committed
+  get-user-999.json              ← committed
+  my-edge-case.local.json        ← gitignored (adds one more case)
+```
+
+```typescript
+import { fromDir, test } from "@glubean/sdk";
+
+export const cases = test.each(await fromDir("./data/cases/"))(
+  "case-$_name",
+  async (ctx, row) => {
+    const res = await ctx.http.get(
+      `${ctx.vars.require("BASE_URL")}/users/${row.id}`,
+    );
+    ctx.expect(res.status).toBe(row.expected);
+  },
+);
+```
+
+**Multi-file array concat:**
+
+```text
+data/batches/
+  shared.json            ← committed: [{ id: 1 }, { id: 2 }]
+  local.local.json       ← gitignored: [{ id: 99 }]
+```
+
+```typescript
+export const batches = test.each(await fromDir.concat("./data/batches/"))(
+  "batch-$id",
+  async (ctx, { id, expected }) => { /* ... */ },
+);
+```
+
+The result is one flat array: `[{ id: 1 }, { id: 2 }, { id: 99 }]`.
+
+## Merge order
+
+Shared files always load first (alphabetically), then `*.local.*` files load after (alphabetically). No naming tricks needed — the convention guarantees local files come last.
+
+```text
+data/create-user/
+  shared.json             ← loaded first (team baseline)
+  alice.local.json        ← loaded after all shared files
+```
+
+In `fromDir.merge`, local files override shared keys. In `fromDir` / `fromDir.concat`, local rows appear at the end of the array.
+
+## Running only local or only shared data
+
+By default, `fromDir.*` loads all files in the directory (shared + local). The `GLUBEAN_DATA_MODE` env var lets you change this:
+
+| `GLUBEAN_DATA_MODE` | What `fromDir.*` loads |
+| --- | --- |
+| unset or `default` | All files (shared + local) |
+| `local_only` | Only `*.local.*` files |
+| `shared_only` | Only non-`*.local.*` files |
+
+Put this in your `.env.local` to only run your personal data:
+
+```dotenv
+GLUBEAN_DATA_MODE=local_only
+```
+
+This works across all three modes (`fromDir`, `fromDir.concat`, `fromDir.merge`) — no test code changes needed. When you switch back to `.env` (the team default), all data loads again.
+
+`shared_only` is useful for CI to defensively ignore any `*.local.json` files that might have leaked past `.gitignore`.
+
+## Summary
+
+```text
+Simple values       →  .env.local + .env.local.secrets
+                       (gitignored personal env, switch with --env-file)
+
+Structured data     →  data/my-dir/shared.json + *.local.json
+                       (JSON objects/arrays, gitignored local overrides)
+
+test.pick           →  fromDir.merge("./data/my-dir/")
+                       (local keys override shared keys)
+
+test.each           →  fromDir("./data/my-dir/")
+                       or fromDir.concat("./data/my-dir/")
+                       (local files append rows)
+
+Only my data        →  GLUBEAN_DATA_MODE=local_only in .env.local
+                       (fromDir.* skips shared files entirely)
+
+Only shared (CI)    →  GLUBEAN_DATA_MODE=shared_only
+                       (fromDir.* ignores *.local.* files)
+```
+
+No test code changes needed. For env files, just switch `--env-file`. For data files, the same `fromDir.*` call reads both shared and local files automatically. `GLUBEAN_DATA_MODE` controls the mix. Each team member's personal data stays out of Git entirely.

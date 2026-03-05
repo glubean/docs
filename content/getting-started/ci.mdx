@@ -32,7 +32,18 @@ jobs:
       - run: glubean run ./tests --result-json .glubean/last-run.json --reporter junit:test-results.xml
 ```
 
+## Upload results to Cloud
+
+Add `--upload` to send results to Glubean Cloud after each CI run:
+
+```bash
+glubean run ./tests --upload
+```
+
+Requires a `GLUBEAN_TOKEN` env var. See [Upload Your First Run](/cloud/quickstart) for setup.
+
 ## Next
 
 - CI tuning patterns: [CLI Recipes](/cli/recipes)
 - Environment switching strategy: [Guides: Environments](/guides/environments)
+- Upload to Cloud: [Cloud Quickstart](/cloud/quickstart)

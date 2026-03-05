@@ -1,0 +1,155 @@
+# Redaction
+
+When you share test results (via `glubean run --upload` or the upcoming Glubean Cloud), the CLI automatically scans and masks sensitive data before anything leaves your machine. This guide covers how the redaction engine works and how to customize it.
+
+## How it works
+
+The engine applies two layers of detection:
+
+1. **Key-level** — If a JSON key name contains a sensitive keyword (e.g. `authorization`, `token`, `secret`), the entire value is replaced.
+2. **Value-level** — The engine scans string values for patterns like JWTs, Bearer tokens, AWS keys, and GitHub PATs, replacing only the matched portion.
+
+Key-level runs first. If a key is already flagged, value-level scanning is skipped for that field.
+
+## Preview before uploading
+
+Use the `glubean redact` command to see exactly what will be masked — without uploading anything:
+
+```bash
+glubean redact .glubean/last-run.result.json
+```
+
+The console output uses partial masking (`Bea***Xfk`) so you can verify which values are being caught. To write the fully redacted JSON to a file:
+
+```bash
+glubean redact .glubean/last-run.result.json --out redacted.json
+```
+
+## Default rules
+
+### Sensitive keys (key-level)
+
+Any JSON key whose name contains one of these substrings (case-insensitive) triggers full-value redaction:
+
+```text
+password    passwd       secret       token
+api_key     apikey       api-key      access_token
+refresh_token            authorization              auth
+credential  credentials  private_key  privatekey
+private-key ssh_key      client_secret              client-secret
+bearer
+```
+
+### Value patterns (value-level)
+
+| Pattern | What it detects | Default |
+|---|---|---|
+| `jwt` | JSON Web Tokens (`eyJ…eyJ…`) | on |
+| `bearer` | `Bearer <token>` strings | on |
+| `awsKeys` | AWS Access Key IDs (`AKIA…`) | on |
+| `githubTokens` | GitHub PATs (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`) | on |
+| `creditCard` | 16-digit card numbers | on |
+| `email` | Email addresses | off |
+| `ipAddress` | IPv4 addresses | off |
+| `hexKeys` | Hex strings ≥ 32 chars (commit SHAs, ETags) | off |
+
+Patterns marked "off" are available but disabled by default because they tend to produce false positives in API testing scenarios (e.g. SSH URLs matching as emails, ETags matching as hex keys).
+
+### Scopes
+
+The engine scans all areas of a test result by default:
+
+- Request headers, query parameters, and body
+- Response headers and body
+- Console output (`ctx.log`)
+- Error messages
+- Step return state
+
+## Customizing redaction
+
+Add a `redaction` section to your `glubean.config.ts`:
+
+```typescript
+import { defineConfig } from "@glubean/sdk";
+
+export default defineConfig({
+  redaction: {
+    // Turn patterns on or off
+    patterns: {
+      email: true,       // enable email detection
+      hexKeys: false,    // keep hex keys unmasked (default)
+      custom: [
+        { name: "internal-id", regex: "INT-[A-Z0-9]{12}" },
+      ],
+    },
+
+    // Add or exclude sensitive keys
+    sensitiveKeys: {
+      useBuiltIn: true,
+      additional: ["x-internal-token", "session-id"],
+      excluded: ["x-accepted-oauth-scopes"],
+    },
+
+    // Control which parts of the result get scanned
+    scopes: {
+      requestHeaders: true,
+      requestBody: true,
+      responseHeaders: true,
+      responseBody: true,
+      requestQuery: true,
+      consoleOutput: true,
+      errorMessages: true,
+      returnState: true,
+    },
+
+    // "simple" → [REDACTED]
+    // "labeled" → [REDACTED:jwt]
+    // "partial" → Bea***Xfk
+    replacementFormat: "simple",
+  },
+});
+```
+
+### Adding custom patterns
+
+The `custom` array lets you define project-specific regex patterns:
+
+```typescript
+patterns: {
+  custom: [
+    { name: "stripe-key", regex: "sk_live_[a-zA-Z0-9]{24,}" },
+    { name: "slack-webhook", regex: "hooks\\.slack\\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[a-zA-Z0-9]+" },
+  ],
+}
+```
+
+### Excluding keys from redaction
+
+If the built-in sensitive key list is too aggressive for your API (e.g. `auth` matching `x-oauth-scopes`), exclude specific keys:
+
+```typescript
+sensitiveKeys: {
+  useBuiltIn: true,
+  excluded: ["x-oauth-scopes", "x-accepted-oauth-scopes"],
+}
+```
+
+## Replacement formats
+
+| Format | Output | Use case |
+|---|---|---|
+| `"simple"` | `[REDACTED]` | Clean output for sharing (default) |
+| `"labeled"` | `[REDACTED:jwt]` | Debugging which plugin caught a value |
+| `"partial"` | `Bea***Xfk` | Verify the right values are masked |
+
+The `glubean redact` preview command always uses partial masking in the console, regardless of your config. The `--out` file uses your configured format.
+
+## Skipping redaction
+
+If you need to upload results without redaction (e.g. a local development server with no real secrets):
+
+```bash
+glubean run --no-redact tests/
+```
+
+This is not recommended for production APIs.
