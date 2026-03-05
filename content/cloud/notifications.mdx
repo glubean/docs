@@ -1,0 +1,76 @@
+# Notifications
+
+Glubean Cloud can alert you when runs fail, quotas are reached, or workers go offline. Notifications are configured as **subscriptions** — each subscription combines events, a delivery channel, and optional filters.
+
+## Subscription Levels
+
+- **Team-wide** — applies to all projects in the team. Configure in **Team → Notifications**.
+- **Project-level** — scoped to a single project. Configure in **Project Settings → Notifications**.
+
+## Events
+
+| Event | Description |
+|---|---|
+| `run.failed` | A run finishes with at least one test failure |
+| `run.passed` | A run finishes with all tests passing |
+| `run.flaky` | A run contains tests flagged as flaky |
+| `build.failed` | A bundle build fails |
+| `quota.exceeded` | Monthly run quota is exhausted |
+| `daily.digest` | Summary of the day's runs |
+| `worker.offline` | A connected worker stops responding |
+| `worker.back_online` | A previously offline worker recovers |
+
+## Channels
+
+### Email
+
+Send notifications to one or more email addresses.
+
+- **Recipients** — comma-separated list
+- **Subject prefix** — defaults to `[Glubean]`
+
+### Slack
+
+Post to a Slack channel via incoming webhook.
+
+- **Webhook URL** — create one in your Slack workspace settings
+- **Channel** — optional override
+- **Mention on failure** — tag people or groups (e.g. `@oncall`)
+
+### Webhook
+
+Send a JSON POST to any HTTP endpoint.
+
+- **URL** — your endpoint
+- **Headers** — optional custom headers (e.g. auth tokens)
+- **Retry** — configurable max attempts and backoff
+
+## Filters
+
+Subscriptions can be narrowed with filters so you only get notified about relevant runs:
+
+| Filter | Description |
+|---|---|
+| **Branches** | Only trigger for runs on matching branches (supports patterns) |
+| **Tags** | Only trigger for runs with specific tags |
+| **Severity** | Filter by error, warning, or info level |
+| **Min failure count** | Only trigger when failures exceed a threshold |
+
+## Rate Limiting
+
+To avoid notification storms, each subscription has rate limits:
+
+- **Max per hour** — cap hourly notifications
+- **Max per day** — cap daily notifications
+- **Quiet hours** — suppress notifications during a time window (configurable timezone)
+
+## Creating a Subscription
+
+1. Go to **Team → Notifications** (or **Project Settings → Notifications**)
+2. Click **New Subscription**
+3. Select events to subscribe to
+4. Choose a channel and configure it
+5. Optionally add filters and rate limits
+6. Save
+
+Subscriptions can be toggled on/off without deleting them.

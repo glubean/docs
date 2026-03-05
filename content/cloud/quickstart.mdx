@@ -21,39 +21,49 @@ A default project is created automatically when you sign up.
 
 ## 3. Configure the token
 
-Pick the method that fits your setup:
+Pick the method that fits your setup. For a full explanation of token types, see [Tokens & Auth](/cloud/tokens).
 
-### Option A: Login command (recommended for local dev)
+### Option A: Environment file (recommended for local dev)
 
-```bash
-glubean login
-```
-
-Paste your token when prompted. Credentials are saved to `~/.glubean/credentials.json`.
-
-### Option B: Environment file (recommended for team projects)
-
-Add to `.env.secrets` in your project root:
+Uses a **project token** (`gpt_`). Add to `.env.secrets` in your project root:
 
 ```bash
 GLUBEAN_TOKEN=gpt_your_project_token
+GLUBEAN_PROJECT_ID=prj_abc123
 ```
 
 > `.env.secrets` is gitignored by default. Never commit tokens to version control.
 
-### Option C: Environment variable (recommended for CI)
+The CLI auto-loads `.env` + `.env.secrets` by default. For per-environment tokens, use `--env-file`:
+
+```bash
+# .env.staging.secrets
+GLUBEAN_TOKEN=gpt_staging_token
+
+# .env.production.secrets
+GLUBEAN_TOKEN=gpt_production_token
+```
+
+```bash
+glubean run --env-file .env.staging --upload
+```
+
+The CLI loads both `.env.staging` and `.env.staging.secrets` automatically.
+
+### Option B: Environment variable (recommended for CI)
+
+Uses a **project token** (`gpt_`). Store it in your CI provider's secrets:
 
 ```yaml
 # GitHub Actions example
 env:
   GLUBEAN_TOKEN: ${{ secrets.GLUBEAN_TOKEN }}
+  GLUBEAN_PROJECT_ID: ${{ vars.GLUBEAN_PROJECT_ID }}
 ```
 
-```bash
-glubean run ./tests --upload
-```
+### Option C: deno.json (quick start / public demos)
 
-### Option D: deno.json (quick start / public demos)
+Uses a **project token** (`gpt_`). Inline in your project config:
 
 ```json
 {
@@ -68,15 +78,49 @@ glubean run ./tests --upload
 
 > Only use this for tokens with limited scope. The CLI warns if your deno.json is tracked by git.
 
+### Option D: Global login (personal use across projects)
+
+Uses a **user API key** (`gb_`) or project token. Stores credentials globally:
+
+```bash
+glubean login
+```
+
+Saves to `~/.glubean/credentials.json`. A user API key gives access to all your projects from one credential. For project-specific tokens, prefer Option A or B.
+
 ## 4. Upload a run
 
 ```bash
 glubean run --upload
 ```
 
-That's it. The CLI runs your tests locally, then sends results to Cloud.
+By default, `glubean run` executes all `*.test.ts` files in your `tests/` directory. Add `--upload` to send results to Cloud after execution.
 
-On success you'll see:
+### Running specific tests
+
+```bash
+# Run a single file
+glubean run ./tests/auth.test.ts --upload
+
+# Run a specific directory
+glubean run ./tests/api/ --upload
+
+# Filter by test name/id (substring match)
+glubean run --filter "login" --upload
+
+# Filter by tag (exact match, OR logic)
+glubean run --tag "smoke" --upload
+
+# Multiple tags with AND logic
+glubean run --tag "smoke" --tag "auth" --tag-mode and --upload
+
+# Run explore tests (not committed regression tests)
+glubean run ./explore --upload
+```
+
+For all execution options, see [CLI Reference](/cli/reference).
+
+### Example output
 
 ```text
 ✓ health        12ms

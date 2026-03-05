@@ -1,0 +1,121 @@
+# Cloud Redaction Policies
+
+Glubean redacts sensitive data before results leave your machine. The CLI applies redaction rules from your `deno.json` config during upload (see [Guides: Redaction](/guides/redaction)).
+
+Cloud provides a **visual rule editor** for teams — configure rules in the dashboard, then copy the config to your local project.
+
+## Recommended Workflow
+
+```text
+1. Configure rules        2. Export config         3. Use locally
+┌─────────────────┐      ┌──────────────────┐     ┌──────────────────┐
+│ Cloud dashboard  │ ───► │ Copy as JSON     │ ──► │ Paste into       │
+│ (visual editor)  │      │                  │     │ deno.json        │
+└─────────────────┘      └──────────────────┘     └──────────────────┘
+```
+
+1. Use the Cloud dashboard's visual editor to build your redaction rules (easier than writing JSON by hand).
+2. Export the config as JSON.
+3. Paste into your project's `deno.json` under `glubean.redaction`.
+
+The CLI applies these rules **locally before upload** — sensitive data never leaves your machine.
+
+> **Note:** Export as JSON is coming soon. For now, manually replicate your Cloud rules in `deno.json`. See the [config format](#local-config-format) below.
+
+## Configuring Rules in Cloud
+
+Go to **Team → Redaction** in the Cloud dashboard.
+
+### Scopes
+
+Choose which parts of test data are scanned for sensitive values:
+
+| Scope | What it covers |
+|---|---|
+| Request Headers | HTTP request headers (e.g. `Authorization`) |
+| Request Query Params | URL query parameters |
+| Request Body | POST/PUT/PATCH body content |
+| Response Headers | HTTP response headers |
+| Response Body | Response body content |
+| Console Output | `ctx.log()` output |
+| Error Messages | Test failure messages and stack traces |
+| Return State | Step return values |
+
+### Sensitive Keys
+
+The built-in list covers common sensitive key names:
+
+`password`, `secret`, `token`, `api_key`, `apikey`, `access_token`, `refresh_token`, `authorization`, `credential`, `private_key`, `ssh_key`, `client_secret`, `bearer`, and more (22 total).
+
+You can:
+- **Add custom keys** — comma-separated names to flag
+- **Exclude keys** — remove specific built-in keys from detection (e.g. if `token` causes false positives in your domain)
+
+### Value Patterns
+
+Built-in patterns detect common secret formats in string values:
+
+| Pattern | Example | Default |
+|---|---|---|
+| JWT Tokens | `eyJhbGci...` | On |
+| Bearer Tokens | `Bearer sk-...` | On |
+| AWS Keys | `AKIA...` | On |
+| GitHub Tokens | `ghp_...`, `gho_...` | On |
+| Credit Cards | 16-digit numbers | On |
+| Email Addresses | `user@example.com` | Off |
+| IP Addresses | `192.168.1.1` | Off |
+| Hex Keys | 32+ char hex strings | Off |
+
+Toggle each pattern on/off. You can also add **custom regex patterns** with a name and regex.
+
+### Replacement Format
+
+Choose how redacted values appear:
+
+| Format | Example |
+|---|---|
+| **Simple** | `[REDACTED]` |
+| **Labeled** | `[REDACTED:jwt]` — includes which rule matched |
+| **Partial** | `sk_li***_4xN` — preserves prefix/suffix hints for debugging |
+
+## Local Config Format
+
+The CLI reads redaction rules from `deno.json`:
+
+```json
+{
+  "glubean": {
+    "redaction": {
+      "sensitiveKeys": {
+        "additional": ["x-custom-secret", "internal-token"],
+        "excluded": ["token"]
+      },
+      "patterns": {
+        "custom": [
+          { "name": "stripe_key", "regex": "sk_live_\\w+" },
+          { "name": "internal_id", "regex": "int_[a-f0-9]{32}" }
+        ]
+      },
+      "replacementFormat": "labeled"
+    }
+  }
+}
+```
+
+The built-in baseline (22 sensitive keys + 5 default patterns) is always active and **cannot be weakened**. Your config can only add rules on top.
+
+## Preview Before Uploading
+
+Use `glubean redact` to see exactly what will be masked without uploading:
+
+```bash
+glubean redact .glubean/last-run.result.json
+```
+
+This uses partial masking in the console (`Bea***Xfk`) so you can verify which values are caught. See [Guides: Redaction](/guides/redaction) for details.
+
+## Cloud-Side Redaction (Advanced)
+
+Cloud can also apply redaction policies **server-side** when a run is bound to a `redactionPolicyId`. This is used by cloud workers and scheduled runs — the server redacts event payloads at ingestion time.
+
+For CLI uploads, redaction happens locally before data is sent. Server-side redaction is a safety net for execution modes where the CLI isn't involved.
