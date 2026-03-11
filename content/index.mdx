@@ -1,37 +1,85 @@
 # Glubean
 
-Code-first API testing that runs the same way in editor and CI.
-
-Glubean is not optimized for one-off API pokes. It is optimized for turning API checks into durable regression assets your team can run on every deploy.
+**Verification as code.** Write checks in TypeScript. Run them in editor, CI, and production. Track results over time.
 
 [![GitHub](https://img.shields.io/badge/GitHub-glubean%2Fglubean-181717?logo=github)](https://github.com/glubean/glubean)
 
-## Start Here
+## What Glubean Is
 
-If you are new, follow this path:
+Glubean is a **verification platform** — not just an API client, not just a test runner.
 
-1. [Getting Started](/getting-started)
-2. [Install & Verify](/getting-started/installation)
-3. [Run Your First Test](/getting-started/first-test)
-4. [Connect CI](/getting-started/ci)
-5. [Upload to Cloud](/cloud/quickstart)
+You write verification logic as TypeScript code: HTTP assertions, multi-step workflows, schema validation, custom metrics. That code lives in git, runs locally from your editor, executes in CI on every push, and optionally runs on a schedule against production. Results flow to a shared dashboard with analytics, alerting, and trend tracking.
 
-## Use by Goal
+```typescript
+import { test } from "@glubean/sdk";
 
-- **Set up quickly**: [Getting Started](/getting-started)
-- **Upload results to Cloud**: [Cloud](/cloud)
-- **Operate day-to-day**: [Guides](/guides)
-- **Look up commands and outputs**: [Reference](/reference)
+export const health = test("health-check", async (ctx) => {
+  const res = await ctx.http.get(`${ctx.vars.require("BASE_URL")}/health`);
+  ctx.expect(res.status).toBe(200);
+  ctx.expect(res.body.version).toBeDefined();
+  ctx.metric("health_latency_ms", res.timings.total, { unit: "ms" });
+});
+```
 
-## Product Surfaces
+One file. Runs in VS Code with a click, in GitHub Actions with `glubean run --upload`, on a cron schedule via Cloud Jobs. Same code, same assertions, same traces everywhere.
 
-Glubean has four integrated surfaces:
+## How It's Different
 
-1. **[SDK](/sdk)** (`@glubean/sdk`) for writing tests.
-2. **[CLI](/cli)** (`@glubean/cli`) for execution and automation.
-3. **[VS Code Extension](/extension/quick-start)** for interactive local workflows.
-4. **[Cloud](/cloud)** for run history, team dashboards, and artifact viewing.
+### vs Postman
 
-## Core Principle
+Postman is a GUI for sending requests. Glubean is code for verifying systems.
 
-Start in `explore/` for fast iteration, then move stable files into `tests/` for committed regression coverage and CI execution.
+| | Postman | Glubean |
+|---|---|---|
+| Authoring | Click forms, write pre/post scripts | TypeScript — full language, full IDE support |
+| Version control | Export JSON, hope nobody merges wrong | `.ts` files in git, reviewed in PRs like any code |
+| CI | Newman (separate tool, separate format) | Same `glubean run` command everywhere |
+| Assertions | JS snippets in a text box | Fluent `ctx.expect()`, schema validation, soft/hard modes |
+| Multi-step | Chained requests via collection variables | Type-safe `.setup() → .step() → .teardown()` builder |
+| Data-driven | CSV runner with limited control | `test.each()`, `test.pick()`, `fromCsv()`, `fromYaml()`, directory loaders |
+
+Postman is great for one-off exploration. Glubean is for checks you want to keep running forever.
+
+### vs Checkly
+
+Checkly is a monitoring SaaS — you write checks in their platform, they run them on their infrastructure, you pay per check.
+
+Glubean inverts this:
+
+- **Your code, your infra.** Tests run on your machine or CI runner. Cloud is the data layer — it stores results, never executes your code.
+- **Local-first development.** Write in VS Code with instant feedback, traces, and debugging. Checkly's workflow starts and ends in a browser.
+- **No per-check pricing.** Run as many tests as you want locally. Cloud pricing is by uploaded runs, not by check count.
+- **SDK-first, not monitoring-first.** Glubean starts as a testing tool and extends to monitoring. Checkly starts as monitoring and bolts on testing.
+
+### vs Playwright / Jest / Vitest
+
+Those are test runners. Glubean is a verification platform that happens to include a runner.
+
+The difference: after your tests run, Glubean gives you structured traces, custom metrics, trend analytics, flaky test detection, alerting, and a shared dashboard. A test runner gives you a green/red exit code.
+
+Glubean also covers API + browser + MCP testing in one SDK. No glue code between Playwright for browser and Supertest for API — same `ctx`, same trace timeline.
+
+## The Workflow
+
+```
+explore/          →  tests/           →  CI + Cloud
+(scratchpad)         (committed)         (automated)
+```
+
+1. **Explore**: Write quick checks in `explore/`. Run from the editor. Iterate fast.
+2. **Commit**: When a check is stable, move it to `tests/`. It's now a regression test.
+3. **Automate**: CI runs `glubean run --upload` on every push. Results appear in Cloud with full traces, analytics, and alerts.
+
+## Get Started
+
+1. [Install & Verify](/getting-started/installation) — 30 seconds
+2. [Run Your First Test](/getting-started/first-test) — 2 minutes
+3. [Connect CI](/getting-started/ci) — 5 minutes
+4. [Upload to Cloud](/getting-started/upload-to-cloud) — 5 minutes
+
+## Documentation Map
+
+- **[Writing Tests (SDK)](/sdk)** — test API, assertions, HTTP client, data-driven, plugins
+- **[Running Tests (CLI)](/cli)** — commands, environments, redaction, debugging
+- **[Cloud](/cloud)** — dashboard, analytics, notifications, metrics
+- **[VS Code Extension](/extension)** — interactive workflow, traces, AI generation

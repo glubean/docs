@@ -49,21 +49,6 @@ glubean init [options]
 
 ---
 
-## `glubean context`
-
-Scans your project's tests, execution traces, and OpenAPI spec (if available) to generate an AI-optimized context file (`.glubean/ai-context.md`). This file is designed to be fed into AI tools like Cursor or Copilot to help them write better tests.
-
-**Usage:**
-```bash
-glubean context [options]
-```
-
-**Options:**
-- `--openapi <path>`: Explicitly provide the path to your OpenAPI spec (JSON or YAML). If omitted, the CLI searches for `openapi.json` or `openapi.yaml` in the project root.
-- `--out <path>`: Custom output path for the context file. Defaults to `.glubean/ai-context.md`.
-
----
-
 ## `glubean scan`
 
 Scans the project to discover all test metadata (`TestMeta`, `StepMeta`, tags, data dependencies) and writes it to `metadata.json`. This is used internally by the Glubean platform and VS Code extension to map out your test suite without executing it.

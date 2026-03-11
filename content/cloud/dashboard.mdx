@@ -8,7 +8,6 @@ After signing in, you land on the project list. Each project groups runs from a 
 
 A project has:
 
-- **Slug** — URL-friendly identifier (e.g. `my-api`)
 - **Visibility** — private (team only) or public (shareable link, no login required)
 - **Tokens** — scoped credentials for uploading runs
 
@@ -23,7 +22,7 @@ Each row displays:
 | Status | `passed`, `failed`, `running`, `cancelled` |
 | Test counts | Number of passed / failed / total tests |
 | Duration | Total execution time |
-| Source | `cli` or `browser` — where the run originated |
+| Source | Where the run originated (CLI, scheduled, manual) |
 | Timestamp | When the run was uploaded |
 
 Click a run to open the detail view.
@@ -41,6 +40,7 @@ Pass/fail counts, total duration, and metadata (CLI version, source, environment
 A list of every test in the run. Each test shows:
 
 - **Status** — pass or fail
+- **Start time** — when the test began executing
 - **Duration** — execution time in ms
 - **Assertions** — expand to see individual assertion results
 - **Logs** — `ctx.log()` output captured during execution
@@ -48,9 +48,17 @@ A list of every test in the run. Each test shows:
 
 Failed tests are shown first.
 
+### Trace Waterfall
+
+The trace waterfall view shows all HTTP requests in a timeline, visualizing request duration and overlap across tests.
+
 ### Live Streaming
 
 If a run is still in progress, results appear in real time via server-sent events. You can watch tests complete one by one.
+
+### Delete Run
+
+Runs can be deleted from the detail page. Deletion cascades to all associated events, artifacts, and metrics.
 
 ## Artifacts
 
@@ -80,15 +88,15 @@ Project webhooks fire on run events:
 | `run.completed` | A run finishes (pass or fail) |
 | `run.failed` | A run finishes with at least one failure |
 
-Configure webhooks in **Project Settings → Webhooks**. Each webhook sends a JSON payload with the run summary.
+Configure webhooks in **Project Settings → Webhooks**. Each webhook sends a JSON payload with the run summary. Webhooks support both user authentication and project token authentication.
 
 ## Public Projects
 
-Public projects are accessible without login. Anyone with the URL can view runs, results, and artifacts. Useful for open-source projects or sharing results with external stakeholders.
+Public projects are accessible without login. Anyone with the URL can view runs, results, analytics, and artifacts. Useful for open-source projects or sharing results with external stakeholders.
 
-Public project URL: `https://app.glubean.com/p/{slug}`
+Public project URL: `https://app.glubean.com/p/{projectId}`
 
 ## Next
 
+- [Analytics](/cloud/analytics) — pass rate trends, flaky tests, and more
 - [Plans & Quotas](/cloud/quotas) — understand limits and billing
-- [Roadmap](/cloud/roadmap) — upcoming features

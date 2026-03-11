@@ -1,10 +1,9 @@
 export default {
   index: 'Introduction',
   'getting-started': 'Getting Started',
+  sdk: 'Writing Tests',
+  cli: 'Running Tests',
   cloud: 'Cloud',
-  guides: 'Guides',
+  extension: 'VS Code Extension',
   reference: 'Reference',
-  extension: 'Extension (Deep Dive)',
-  sdk: 'SDK (Deep Dive)',
-  cli: 'CLI (Deep Dive)',
 }

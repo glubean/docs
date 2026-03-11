@@ -2,6 +2,7 @@ export default {
   index: 'Overview',
   'test-api': 'Test API & Builder',
   'data-driven': 'Data-Driven Tests',
+  'local-data': 'Local Test Data',
   configuration: 'Configuration',
   'http-client': 'HTTP Client',
   'env-and-secrets': 'Environment & Secrets',
@@ -11,4 +12,5 @@ export default {
   plugins: 'Plugin System',
   'auth-plugin': 'Auth Plugin',
   'graphql-plugin': 'GraphQL Plugin',
+  'browser-plugin': 'Browser Plugin',
 }
