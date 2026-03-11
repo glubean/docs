@@ -2,9 +2,9 @@ import { Callout } from 'nextra/components'
 
 # Test Any Public API in 2 Minutes
 
-No Postman collection. No OpenAPI spec. No config files.
+No Postman collection. No complex config. Just your AI and one sentence.
 
-Just tell your AI what you want. One sentence is enough.
+Tell your AI what you want. One sentence is enough.
 
 ---
 
@@ -90,6 +90,65 @@ And if you have _any_ document that describes your API — a markdown file, a pl
 
 ---
 
+## Multi-step workflows
+
+For API flows that span multiple calls — create, verify, update, cleanup — ask for a builder pattern test:
+
+```text
+create a checkout flow test: create a cart, add an item, complete checkout, then clean up
+```
+
+The AI generates a step chain:
+
+```ts
+import { test } from "@glubean/sdk";
+import { http } from "./configure.ts";
+
+export const checkout = test("checkout-flow")
+  .meta({ tags: ["e2e"] })
+  .step("create cart", async ({ expect }) => {
+    const cart = await http.post("carts").json<{ id: string }>();
+    expect(cart.id).toBeDefined();
+    return { cartId: cart.id };
+  })
+  .step("add item", async ({ expect }, { cartId }) => {
+    await http.post(`carts/${cartId}/items`, {
+      json: { productId: "product-123" },
+    });
+    const cart = await http.get(`carts/${cartId}`).json<{ items: unknown[] }>();
+    expect(cart.items).toHaveLength(1);
+    return { cartId };
+  })
+  .step("checkout", async ({ expect }, { cartId }) => {
+    const order = await http
+      .post(`carts/${cartId}/checkout`)
+      .json<{ status: string }>();
+    expect(order.status).toBe("completed");
+    return { cartId };
+  })
+  .teardown(async (_ctx, state) => {
+    if (state?.cartId) await http.delete(`carts/${state.cartId}`);
+  });
+```
+
+Each step receives state from the previous step, and `.teardown()` runs even if a step fails — so test data never leaks.
+
+---
+
+## Level up: add context for better results
+
+The examples above work with zero setup — great for exploring public APIs. For your own APIs, adding context dramatically improves accuracy:
+
+- **OpenAPI spec** in `context/` — AI knows your exact routes and response shapes, no guessing
+- **Skill file** — AI follows your SDK conventions, auth patterns, and assertion style
+- **MCP tools** — AI runs tests and fixes failures automatically, in the same chat turn
+
+With all three, generated tests run on first try instead of needing 2-3 rounds of manual fixes.
+
+→ Read the full **[AI Context Guide](/extension/ai-integration)** for setup instructions.
+
+---
+
 ## From exploration to CI
 
 When you're happy with a test:
@@ -104,6 +163,6 @@ The file you explored with today catches regressions in CI tomorrow.
 
 ## What's next?
 
+- [AI Context Guide](/extension/ai-integration) — set up OpenAPI specs, skills, and MCP for maximum generation accuracy
 - [Quick Start](/extension/quick-start) — install the extension and create your first project
-- [AI Workflow](/extension/ai-integration) — use `glubean context` for even richer AI output
-- [Migrate from Postman/OpenAPI](/extension/migrate-from-postman) — already have existing collections? Convert them with AI too
+- [Migrate from Postman/OpenAPI](/extension/migrate-from-postman) — convert existing collections with AI

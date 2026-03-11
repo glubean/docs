@@ -10,11 +10,14 @@ You write tests locally with the SDK and CLI. When you add `--upload`, results f
 |---|---|
 | **Run History** | Every uploaded run is stored with full results, logs, and traces. Browse, search, and compare across time. |
 | **Team Dashboard** | Shared project view — see pass/fail status, recent runs, and which tests need attention. |
+| **Analytics** | Pass rate trends, flaky test detection, failure distribution, test duration tracking, and endpoint latency. |
+| **Custom Metrics** | Track domain-specific metrics with `ctx.metric()`. View trends on a dedicated dashboard or export to Prometheus. |
 | **Artifact Viewer** | Inspect traces, screenshots, and response snapshots directly in the browser. |
 | **Status Badges** | Embed live pass/fail badges in your README or wiki. |
-| **Notifications** | Get alerted via email, Slack, or webhook on run failures, quota limits, and more. |
+| **Notifications** | Get alerted via email, Slack, Discord, or webhook on run failures, quota limits, and more. |
 | **Redaction Policies** | Team-level sensitive data masking — enforced on all uploads, cannot be weakened by projects. |
 | **Real-time Streaming** | Watch test results appear live as a run executes. |
+| **Scheduled Runs** | Cron, interval, daily, or weekly test execution via Jobs. |
 
 ## How Runs Are Counted
 
@@ -24,13 +27,13 @@ Your plan determines how many runs you can upload per month. See [Plans & Quotas
 
 ## Get Started
 
-1. [Upload Your First Run](/cloud/quickstart) — go from local tests to Cloud in 5 minutes.
+1. [Upload to Cloud](/getting-started/upload-to-cloud) — go from local tests to Cloud in 5 minutes.
 2. [Tokens & Auth](/cloud/tokens) — understand project tokens vs user API keys.
 3. [Dashboard](/cloud/dashboard) — understand what you see after uploading.
-4. [Notifications](/cloud/notifications) — set up alerts for run failures and quota events.
-5. [Redaction Policies](/cloud/redaction) — configure team-wide sensitive data masking.
-6. [Plans & Quotas](/cloud/quotas) — how billing works.
-7. [Roadmap](/cloud/roadmap) — what's live now and what's coming next.
+4. [Analytics](/cloud/analytics) — pass rate trends, flaky tests, and more.
+5. [Notifications](/cloud/notifications) — set up alerts for run failures and quota events.
+6. [Redaction Policies](/cloud/redaction) — configure team-wide sensitive data masking.
+7. [Plans & Quotas](/cloud/quotas) — how billing works.
 
 ## Architecture
 
@@ -41,6 +44,7 @@ Your plan determines how many runs you can upload per month. See [Plans & Quotas
 │  (SDK + CLI) │                │  Event Stream    │
 └──────────────┘                │  Artifact Store  │
                                 │  Dashboard       │
+                                │  Analytics       │
                                 └──────────────────┘
 ```
 

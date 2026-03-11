@@ -1,0 +1,33 @@
+# VS Code Extension
+
+The Glubean extension turns VS Code (and Cursor, VSCodium, etc.) into an interactive API testing environment. Write tests in TypeScript, run them with one click, inspect traces inline, and iterate without leaving the editor.
+
+## What It Does
+
+| Capability | Description |
+|---|---|
+| **One-click execution** | Play buttons in the gutter and Test Explorer — run a single test, a file, or the entire suite. |
+| **Inline traces** | HTTP request/response pairs open as structured trace files right beside your code. |
+| **Trace diff** | Compare traces across runs to spot regressions. Navigate history with `Alt+[` / `Alt+]`. |
+| **AI test generation** | Generate tests from natural language or OpenAPI specs using any AI assistant. |
+| **Postman / OpenAPI migration** | Convert existing collections and specs to Glubean tests with AI — no manual rewrites. |
+| **Environment switcher** | Toggle between `.env` files from the status bar. Hover to preview current values. |
+| **Data-driven testing** | CodeLens buttons for `test.pick` and `test.each` — see and run individual examples. |
+| **V8 debugger** | Set breakpoints, step through, and inspect variables in your test code. |
+| **Explore → Tests workflow** | Use `explore/` as a scratchpad, then promote stable files to `tests/` for CI. |
+
+## When to Use the Extension vs CLI
+
+The extension and CLI run the same tests with the same engine — the extension just wraps the CLI with a visual UI.
+
+- **Extension**: interactive development, debugging, trace inspection, quick iteration
+- **CLI**: CI pipelines, automation, scripting, Cloud upload
+
+You don't have to choose — most teams use both. Write and debug in the extension, run in CI with the CLI.
+
+## Get Started
+
+1. [Quick Start](/extension/quick-start) — install and run your first test
+2. [Generate Tests with AI](/extension/generate-with-ai) — test any API in 2 minutes
+3. [Running Tests](/extension/running-tests) — all the ways to execute tests
+4. [Traces & Diff](/extension/traces-and-diff) — inspect and compare HTTP traces

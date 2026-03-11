@@ -1,0 +1,39 @@
+# Analytics
+
+The Analytics page provides insights into your project's test health over time. All views support a configurable date range (7d, 14d, 30d, 90d).
+
+## Pass Rate Trend
+
+A rolling chart showing the percentage of passing runs over time. Use this to spot regressions or improvements in test stability.
+
+## Flaky Tests
+
+Tests that alternate between pass and fail across runs, ranked by flaky score. Flaky tests erode CI trust — use this view to prioritize stabilization work.
+
+Click a flaky test to see its **test history view** — a timeline of every execution with status, duration, and error details.
+
+## Top Failing Tests
+
+Tests ranked by failure count over the selected period. Helps you focus debugging effort on the most impactful failures.
+
+## Failure Distribution
+
+A breakdown of failures by classification (assertion, timeout, network error, etc.). Useful for identifying systemic issues vs individual test bugs.
+
+## Endpoint Latency
+
+API request latency statistics aggregated from trace data. Shows P50/P95/P99 response times per endpoint, helping you detect performance regressions.
+
+## Test Duration Trend
+
+Track how long individual tests take over time. Spot tests that are gradually getting slower before they become a CI bottleneck.
+
+## Custom Metrics
+
+If your tests emit custom metrics via `ctx.metric()`, they appear on a dedicated **Custom Metrics** dashboard page. Each metric name gets its own trend chart.
+
+Custom metrics are also available via **Prometheus export** at `/metrics/projects/:projectId` in text format 0.0.4. Configure normalization rules and parameter preservation in **Project Settings → Metrics**.
+
+## Accessing Analytics
+
+Navigate to **Project → Analytics** in the Cloud dashboard. Public projects expose analytics to anyone with the link.

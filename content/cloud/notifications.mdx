@@ -37,6 +37,12 @@ Post to a Slack channel via incoming webhook.
 - **Channel** — optional override
 - **Mention on failure** — tag people or groups (e.g. `@oncall`)
 
+### Discord
+
+Post to a Discord channel via webhook.
+
+- **Webhook URL** — create one in your Discord server's channel settings (Integrations → Webhooks)
+
 ### Webhook
 
 Send a JSON POST to any HTTP endpoint.
@@ -44,6 +50,10 @@ Send a JSON POST to any HTTP endpoint.
 - **URL** — your endpoint
 - **Headers** — optional custom headers (e.g. auth tokens)
 - **Retry** — configurable max attempts and backoff
+
+## Test Notification
+
+After creating a subscription, click **Send test notification** to verify delivery. This sends a sample notification through the configured channel so you can confirm everything is wired up correctly.
 
 ## Filters
 
