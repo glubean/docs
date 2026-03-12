@@ -1,42 +1,46 @@
 # CLI Command Reference
 
-This is a comprehensive reference for all commands and flags available in the Glubean CLI.
+This page is for exact command shape. If you need workflow advice, start with [CLI Overview](/cli) or [Common Recipes](/cli/recipes).
 
 ## `glubean run`
 
-Runs tests within your project. If no target is provided, it defaults to the `testDir` specified in `deno.json` (usually `./tests/`).
+Runs checks in your project. If no target is provided, it defaults to the `testDir` in `package.json` under the `glubean` field and usually resolves to `./tests/`.
 
 **Usage:**
 ```bash
 glubean run [target] [options]
 ```
-*(The `target` can be a specific file, directory, or glob pattern).*
+`target` can be a file, directory, or glob.
 
 **Options:**
 - `--filter <string>`: Run only tests whose ID or name matches the given substring.
 - `--pick <string>`: For data-driven tests using `test.pick()`, select specific named examples (comma-separated).
 - `--tag <string>`: Run only tests matching specific tags (can be used multiple times).
 - `--tag-mode <and|or>`: When providing multiple tags, require all (`and`) or any (`or`). Default is `or`.
-- `--env-file <path>`: Load environment variables from a specific file. Defaults to `.env` (which also auto-loads `.env.secrets`). For resolution order, system fallback, and `${...}` mapping, see [Environments & Secrets](/guides/environments).
+- `--env-file <path>`: Load environment variables from a specific file. Defaults to `.env` (which also auto-loads `.env.secrets`). For resolution order, system fallback, and `${...}` mapping, see [Environments & Secrets](/cli/environments).
 - `--log-file`: Write detailed logs to `<testfile>.log` (or `glubean-run.log` for multi-file runs).
 - `--pretty`: Pretty-print JSON in the log file (enabled by default in some setups).
 - `--verbose`: Show full HTTP request/response bodies, all assertions, and detailed metrics directly in the console output.
 - `--fail-fast`: Stop the entire test run immediately upon the first failure.
 - `--fail-after <N>`: Stop the test run after *N* test failures.
-- `--result-json [path]`: Write structured execution results to a JSON file (essential for CI and the VS Code extension). Prefer passing an explicit path such as `.glubean/last-run.json`.
+- `--result-json [path]`: Write structured execution results to a JSON file. Prefer an explicit path such as `.glubean/last-run.json`.
 - `--reporter <format>[:<path>]`: Output format for CI integrations. Currently supports `junit` (e.g., `--reporter junit:results.xml`).
 - `--emit-full-trace`: Save full HTTP request/response pairs as `.trace.jsonc` files in `.glubean/traces/` for detailed local debugging.
 - `--inspect-brk [port]`: Enable the V8 Inspector to attach a debugger (e.g., Chrome DevTools) and break on the first line.
 
----
-
 ## `glubean init`
 
-Scaffolds a new test project in the current directory. It provides an interactive 3-step wizard to set up environments, git hooks, and GitHub Actions.
+Scaffolds a new Glubean project in the current directory.
 
 **Usage:**
 ```bash
 glubean init [options]
+```
+
+If you do not install the CLI globally, use:
+
+```bash
+npx @glubean/cli init [options]
 ```
 
 **Options:**
@@ -47,25 +51,21 @@ glubean init [options]
 - `--overwrite`: Overwrite existing files (dangerous).
 - `--no-interactive`: Run silently, accepting defaults (useful for CI/scripting).
 
----
-
 ## `glubean scan`
 
-Scans the project to discover all test metadata (`TestMeta`, `StepMeta`, tags, data dependencies) and writes it to `metadata.json`. This is used internally by the Glubean platform and VS Code extension to map out your test suite without executing it.
+Discovers test metadata and writes it to `metadata.json`.
 
 **Usage:**
 ```bash
 glubean scan [dir]
 ```
 
----
-
 ## `glubean validate-metadata`
 
-Ensures that the `metadata.json` file is up-to-date with the actual code in the repository. Typically used in CI or pre-push hooks to ensure developers don't push code without running `glubean scan`.
+Ensures `metadata.json` is in sync with the code in the repo.
 
 **Usage:**
 ```bash
 glubean validate-metadata
 ```
-*(Exits with code 1 if the metadata is stale).*
+Exits with code `1` if metadata is stale.

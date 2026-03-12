@@ -1,9 +1,9 @@
 export default {
-  index: 'Introduction',
-  'getting-started': 'Getting Started',
-  sdk: 'Writing Tests',
-  cli: 'Running Tests',
-  cloud: 'Cloud',
-  extension: 'VS Code Extension',
+  index: 'Home',
+  'getting-started': 'Start Here',
+  sdk: 'Write Checks',
+  extension: 'Run In Editor',
+  cloud: 'Use In Cloud',
+  cli: 'CLI & Config',
   reference: 'Reference',
 }

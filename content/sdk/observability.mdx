@@ -1,35 +1,26 @@
-# Observability
+# Logs, Traces, Metrics
 
-The `ctx.log`, `ctx.trace`, `ctx.metric`, and `ctx.getMemoryUsage` APIs allow you to emit rich data about your tests to the Glubean platform.
+Use these APIs when a pass or fail result alone does not explain enough.
 
-## Purpose
-To turn your test suites into active monitoring tools. Tests shouldn't just be green or red—they should provide historical performance data, network traces for debugging, and operational metrics.
+## `ctx.log()`
 
-## Design Rationale
-- **Integrated Storage:** All observability calls are collected by the runner and streamed directly to the Glubean Cloud. You don't need to configure Datadog or OpenTelemetry agents. 
-- **Structured by Default:** `ctx.log` takes a payload object, not just a string. `ctx.metric` takes explicit tags. This ensures that the data is easily searchable and sliceable in the Glubean dashboard.
-- **Trace Context:** Every log and metric is automatically correlated to the exact test execution ID that generated it, making root-cause analysis trivial.
-
-## Scenarios
-
-### Structured Logging
-Use `ctx.log` to output contextual information. This is much more powerful than `console.log` because it attaches structured data that can be inspected in the UI.
+Use structured logs for useful context that should travel with the run.
 
 ```typescript
 export const orderTest = test("order-test", async (ctx) => {
   const orderId = "ord_123xyz";
-  
-  // The object is saved as structured metadata
-  ctx.log("Starting order processing", { 
-    orderId, 
-    items: 4, 
-    userId: "usr_abc" 
+
+  ctx.log("Starting order processing", {
+    orderId,
+    items: 4,
+    userId: "usr_abc",
   });
 });
 ```
 
-### Emitting Custom Metrics
-While `ctx.http` automatically emits `http_duration_ms` for every request, you often want to track domain-specific metrics. Use `ctx.metric` to track trends over time (e.g., how long the database takes to respond, or the size of a payload).
+## `ctx.metric()`
+
+Use metrics for values you want to chart over time.
 
 ```typescript
 export const reportTest = test("report-test", async (ctx) => {
@@ -37,30 +28,26 @@ export const reportTest = test("report-test", async (ctx) => {
   const res = await ctx.http.get("/reports/daily").json();
   const duration = Date.now() - start;
 
-  // Track the latency of this specific business logic
   ctx.metric("report_generation_ms", duration, {
     unit: "ms",
-    tags: { reportType: "daily", environment: ctx.vars.get("ENV") }
+    tags: { reportType: "daily", environment: ctx.vars.get("ENV") },
   });
 
-  // Track the size of the returned dataset
   ctx.metric("report_row_count", res.rows.length, {
-    unit: "count"
+    unit: "count",
   });
 });
 ```
 
-### Manual API Tracing
-If you are using a custom SDK (like a proprietary gRPC client) instead of `ctx.http`, you can manually emit network traces so they still show up in the Glubean network inspector.
+## `ctx.trace()`
+
+Most HTTP traces are created automatically by `ctx.http`. If you use a custom client, you can emit traces manually.
 
 ```typescript
 export const customClientTest = test("custom-client", async (ctx) => {
   const start = Date.now();
-  
-  // Using some custom third-party SDK
   const result = await proprietarySdk.getUser(123);
-  
-  // Manually register the trace
+
   ctx.trace({
     method: "RPC",
     url: "grpc://internal.service/getUser",
@@ -71,23 +58,11 @@ export const customClientTest = test("custom-client", async (ctx) => {
 });
 ```
 
-### Memory Profiling
-If you are running complex data-processing tests, you can track memory usage to spot memory leaks in your test logic.
+## `ctx.getMemoryUsage()`
 
-```typescript
-export const heavyTest = test("heavy-test", async (ctx) => {
-  const before = ctx.getMemoryUsage();
-  
-  // ... perform memory-intensive operations (e.g. downloading massive CSV)
-  
-  const after = ctx.getMemoryUsage();
-  
-  if (before && after) {
-    const deltaMb = (after.heapUsed - before.heapUsed) / 1024 / 1024;
-    ctx.log(`Memory delta: ${deltaMb.toFixed(2)} MB`);
-    
-    // Optionally track it as a metric
-    ctx.metric("test_memory_delta_mb", deltaMb, { unit: "MB" });
-  }
-});
-```
+Use this when a heavy check may be leaking memory or processing large payloads.
+
+## Next
+
+- [Use In Cloud](/cloud)
+- [Run In Editor](/extension)

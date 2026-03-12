@@ -1,25 +1,25 @@
-# Glubean CLI Overview
+# CLI & Config
 
-The Glubean CLI is the core execution engine for running verification tests locally, in CI/CD, and for interacting with the Glubean platform.
+Use the CLI when you want the stable, scriptable surface of Glubean.
 
-While you might primarily use the Glubean VS Code Extension during local development, the CLI is the foundation that powers it. It is optimized for speed, producing structured observability data, and running smoothly in headless CI environments.
+The extension is the best local UI, but the CLI is the source of truth for:
 
-## Installation
+- CI execution
+- result files and JUnit output
+- environment switching
+- uploads to Cloud
+- repeatable team workflows
 
-```bash
-# Cross-platform via Deno (requires Deno 2.x)
-deno install -Agf -n glubean jsr:@glubean/cli
+## The commands that matter most
 
-# Optional script-based install
-curl -fsSLo /tmp/glubean-install.sh https://glubean.com/install.sh
-sh /tmp/glubean-install.sh
-```
+- `npx @glubean/cli init` to scaffold a project
+- `glubean run` to execute checks
+- `glubean scan` to export metadata
+- `glubean validate-metadata` to keep generated metadata honest in CI
 
-## Core Workflows
+## Start with these pages
 
-The CLI supports three main workflows:
-
-1. **Test Execution (`glubean run`)**: Running tests with rich filtering, tagging, and output formatting (JUnit, JSON).
-2. **Project Setup (`glubean init`)**: Scaffolding new test projects, setting up Git hooks, and configuring CI workflows.
-
-Explore the [Command Reference](/cli/reference) for a full list of commands and flags, or check out the [Scenarios & Recipes](/cli/recipes) to see how to use the CLI in real-world situations like CI/CD pipelines and multi-environment testing.
+1. [Command Reference](/cli/reference)
+2. [Environments & Secrets](/cli/environments)
+3. [Debugging](/cli/debugging)
+4. [Common Recipes](/cli/recipes)

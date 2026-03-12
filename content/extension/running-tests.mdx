@@ -1,32 +1,31 @@
 # Running Tests
 
-Glubean tests are designed to be run right where you write them, without ever leaving your editor or switching to a terminal.
+This page covers the editor-side ways to run Glubean checks.
 
 ## Run from the gutter
 
-Every `test()` call automatically gets a **▶ play button** in the gutter next to the line number. Click it to run that single test instantly.
+Every `test()` call gets a **▶** button in the gutter. Use it to run one test immediately.
 
-When the test finishes, a ✓ or ✗ icon appears in the gutter, and the Trace Viewer opens side-by-side.
+When the run finishes, Glubean updates the gutter state and opens the trace viewer beside your code.
 
 ## Run the whole file
 
-In the top-right corner of the editor (the title bar), there is a **▶** button when you have a `*.test.ts` file open. Clicking this will run all the tests in the active file sequentially.
+When a `*.test.ts` file is open, the editor title bar also exposes a run button for the entire file.
 
 ## Test Explorer
 
-Glubean integrates deeply with VS Code's native Test Explorer sidebar. 
+Glubean integrates with VS Code's native Test Explorer.
 
-Your tests are organised into two main groups (based on the folder structure):
-- **Explore** — quick, uncommitted API exploration (`explore/`)
-- **Tests** — permanent, CI-ready tests (`tests/`)
+You usually see two groups:
 
-From the Test Explorer, you can:
-- Run an entire folder or file
-- See the pass/fail status of your last run
-- Filter tests by name or failure state
+- **Explore** for scratchpad checks in `explore/`
+- **Tests** for committed checks in `tests/`
+
+From Test Explorer you can run a folder, file, or single test and inspect the latest pass or fail state.
 
 ### Multi-step tests
-If you use the builder API (`test("id").step(...)`), the Test Explorer will display each step as a child node in a tree. You can see exactly which step failed:
+
+Builder-style tests appear as trees so you can see which step failed:
 
 ```text
 ▼ auth-flow
@@ -35,15 +34,15 @@ If you use the builder API (`test("id").step(...)`), the Test Explorer will disp
   ✗ update name    AssertionError: expected 200, got 422
 ```
 
-## Re-run last test
+## Re-run the previous target
 
-Instead of reaching for the mouse, you can re-execute the most recently run test (or group of tests) by pressing:
+Use the rerun shortcut for the most recent target:
 - **Mac:** `Cmd + Shift + R`
 - **Windows/Linux:** `Ctrl + Shift + R`
 
-## Data-driven tests (`test.each`)
+## Data-driven tests
 
-For traditional data-driven testing where you want to execute a test against every row of data, use `test.each`. The Test Explorer will detect this and show each row as an expandable child node:
+`test.each()` rows appear as child nodes:
 
 ```typescript
 export const statusCodes = test.each([
@@ -55,75 +54,18 @@ export const statusCodes = test.each([
 });
 ```
 
-You can click the **▶ play button** on individual rows in the Test Explorer to re-run specific cases.
+You can run a single row from the tree.
 
-## Example-driven tests (`test.pick`)
+`test.pick()` examples show up as CodeLens actions above the test so you can run `normal`, `edge`, or other named examples directly.
 
-If you use `test.pick` to provide a dictionary of named examples, the extension provides a **CodeLens button** directly above the code for each example:
+## Tasks Panel
 
-```typescript
-export const createUser = test.pick({
-  normal:      { name: "Alice", age: 25 },
-  "edge-case": { name: "",      age: -1 },
-  admin:       { name: "Admin", role: "admin" },
-})("create-user-$_pick", async (ctx, example) => {
-  // ...
-});
-```
+If your team defines `glubean run` commands in `package.json` scripts, the Tasks Panel turns them into clickable presets such as `test:staging` or `test:smoke`.
 
-You'll see clickable text like **▶ normal** | **▶ edge-case** | **▶ admin** floating above the function. Clicking one runs that specific example deterministically. If you just click the regular gutter play button without selecting an example, it picks one at random.
+This is useful when QA or non-authors need stable run buttons without learning CLI flags.
 
-### Loading examples from external files
+## Next
 
-You can also load examples from JSON or YAML files — keeping test code focused on logic while QA or product teams contribute test cases without touching TypeScript:
-
-```typescript
-import examples from "./data/create-user.json" with { type: "json" };
-
-export const createUser = test.pick(examples)(
-  "create-user-$_pick",
-  async (ctx, example) => {
-    await ctx.http.post("/api/users", { json: example });
-  },
-);
-```
-
-### CLI override
-
-From the command line, you can run a specific example deterministically:
-
-```bash
-glubean run file.ts --pick admin
-```
-
-## Tasks Panel (For QA & CI)
-
-While developers use the Editor gutter or Test Explorer to run individual tests, QA engineers often want named, pre-configured run presets they can trigger with a single click.
-
-The **Glubean Tasks Panel** surfaces `glubean run` tasks defined in your `deno.json` file as a dedicated Activity Bar view.
-
-### Setting up tasks
-Define your test suites in `deno.json` under the `tasks` section:
-
-```json
-{
-  "tasks": {
-    "test": "glubean run",
-    "test:staging": "glubean run --env-file .env.staging",
-    "test:smoke": "glubean run --tag smoke",
-    "test:regression": "glubean run --tag regression",
-    "test:ci": "glubean run ./tests --result-json .glubean/last-run.json --reporter junit:test-results.xml"
-  }
-}
-```
-
-### Using the panel
-- **Zero CLI Knowledge Required:** Click the **▶** button next to any task in the panel (e.g., `test:staging`).
-- **Single Source of Truth:** CI and the IDE panel run exactly the same command defined in `deno.json`.
-- **Results, Not Noise:** The panel automatically parses the structured output from the CLI and shows clear ✓/✗ icons, timestamps, and pass/fail counts.
-- **Auto-open Results:** When a run completes with failures, the structured result JSON viewer opens automatically.
-
-### Further Reading
-Since the Tasks Panel is essentially running Glubean CLI commands under the hood, you can customize these commands with various flags (like filtering by tags, changing environments, etc.). 
-
-Check out the [Glubean CLI Reference](/cli/reference) for all available options, or explore the [CLI Recipes](/cli/recipes) for more advanced CI/CD and multi-environment setups.
+- [Traces & Diff](/extension/traces-and-diff)
+- [Environments & Secrets](/extension/environments)
+- [CLI Command Reference](/cli/reference)

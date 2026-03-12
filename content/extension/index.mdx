@@ -1,33 +1,27 @@
-# VS Code Extension
+# Run In Editor
 
-The Glubean extension turns VS Code (and Cursor, VSCodium, etc.) into an interactive API testing environment. Write tests in TypeScript, run them with one click, inspect traces inline, and iterate without leaving the editor.
+Use the extension when you want the fastest local loop.
 
-## What It Does
+The extension sits on top of the same CLI engine you use in CI. That means the local workflow is convenient without becoming a separate system.
 
-| Capability | Description |
-|---|---|
-| **One-click execution** | Play buttons in the gutter and Test Explorer — run a single test, a file, or the entire suite. |
-| **Inline traces** | HTTP request/response pairs open as structured trace files right beside your code. |
-| **Trace diff** | Compare traces across runs to spot regressions. Navigate history with `Alt+[` / `Alt+]`. |
-| **AI test generation** | Generate tests from natural language or OpenAPI specs using any AI assistant. |
-| **Postman / OpenAPI migration** | Convert existing collections and specs to Glubean tests with AI — no manual rewrites. |
-| **Environment switcher** | Toggle between `.env` files from the status bar. Hover to preview current values. |
-| **Data-driven testing** | CodeLens buttons for `test.pick` and `test.each` — see and run individual examples. |
-| **V8 debugger** | Set breakpoints, step through, and inspect variables in your test code. |
-| **Explore → Tests workflow** | Use `explore/` as a scratchpad, then promote stable files to `tests/` for CI. |
+## What the extension is best at
 
-## When to Use the Extension vs CLI
+- run one check from the gutter
+- inspect traces next to code
+- switch environments from the status bar
+- debug with breakpoints
+- generate or migrate tests with AI assistance
 
-The extension and CLI run the same tests with the same engine — the extension just wraps the CLI with a visual UI.
+## Typical flow
 
-- **Extension**: interactive development, debugging, trace inspection, quick iteration
-- **CLI**: CI pipelines, automation, scripting, Cloud upload
+1. Open a Glubean project
+2. Run a check from the gutter or Test Explorer
+3. Inspect the trace and result file
+4. Move stable checks from `explore/` to `tests/`
 
-You don't have to choose — most teams use both. Write and debug in the extension, run in CI with the CLI.
+## Start with these pages
 
-## Get Started
-
-1. [Quick Start](/extension/quick-start) — install and run your first test
-2. [Generate Tests with AI](/extension/generate-with-ai) — test any API in 2 minutes
-3. [Running Tests](/extension/running-tests) — all the ways to execute tests
-4. [Traces & Diff](/extension/traces-and-diff) — inspect and compare HTTP traces
+1. [Quick Start](/extension/quick-start)
+2. [Running Tests](/extension/running-tests)
+3. [Traces & Diff](/extension/traces-and-diff)
+4. [Debugging](/extension/debugging)

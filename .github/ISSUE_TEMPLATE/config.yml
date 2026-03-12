@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation Discussion
+    url: https://github.com/glubean/docs/discussions
+    about: Use discussions for open-ended ideas, IA proposals, and broader docs strategy.

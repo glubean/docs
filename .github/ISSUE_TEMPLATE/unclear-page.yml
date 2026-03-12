@@ -1,0 +1,36 @@
+name: Unclear Page
+description: Report a page that exists but still left you confused.
+title: "[Docs Clarity]: "
+labels:
+  - docs
+  - clarity
+body:
+  - type: textarea
+    id: page
+    attributes:
+      label: Page
+      description: Which page confused you?
+      placeholder: /extension/quick-start
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: What were you trying to do?
+      description: Describe the task you were trying to complete.
+    validations:
+      required: true
+  - type: textarea
+    id: confusion
+    attributes:
+      label: Where did it become unclear?
+      description: Quote the confusing section or describe what the page failed to explain.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to see?
+      description: Describe the explanation, example, or step that would have helped.
+    validations:
+      required: false

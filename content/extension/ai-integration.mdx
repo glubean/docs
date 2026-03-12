@@ -21,7 +21,7 @@ my-project/
 │   └── openapi.patch.yaml    # optional: supplement missing schemas
 ├── tests/
 ├── explore/
-└── deno.json
+└── package.json
 ```
 
 The AI reads `context/` before generating any test. Supported formats: OpenAPI 3.x in JSON or YAML.
@@ -155,8 +155,8 @@ Create `.cursor/mcp.json` in your project root:
 {
   "mcpServers": {
     "glubean": {
-      "command": "deno",
-      "args": ["run", "-A", "jsr:@glubean/mcp"]
+      "command": "npx",
+      "args": ["@glubean/mcp"]
     }
   }
 }
@@ -189,8 +189,8 @@ Create `.vscode/mcp.json` in your project root:
   "servers": {
     "glubean": {
       "type": "stdio",
-      "command": "deno",
-      "args": ["run", "-A", "jsr:@glubean/mcp"]
+      "command": "npx",
+      "args": ["@glubean/mcp"]
     }
   }
 }
@@ -215,7 +215,7 @@ The skill file (`.claude/rules/gb.md`) already declares allowed MCP tools in its
 | `glubean_run_local_file` | Execute a test file and return structured results (assertions, traces, logs) |
 | `glubean_discover_tests` | List all `test` exports in a file with their names and tags |
 | `glubean_list_test_files` | Find all test files in the project |
-| `glubean_diagnose_config` | Check project health (deno.json, .env, directories) and suggest fixes |
+| `glubean_diagnose_config` | Check project health (package.json, .env, directories) and suggest fixes |
 | `glubean_get_last_run_summary` | Summary of the most recent local run |
 | `glubean_get_local_events` | Detailed events from last run — filter by type (assertion, trace, log) |
 
@@ -246,7 +246,7 @@ Without any context, AI generates plausible-looking code that usually needs 2-3 
 ### Initialize project
 
 ```bash
-glubean init
+npx @glubean/cli init
 ```
 
 This creates the project structure, skill file, and MCP config for your editor.

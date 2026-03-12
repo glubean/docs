@@ -1,8 +1,10 @@
 # Debugging
 
+Use this page when traces are not enough and you need to step through execution.
+
 ## Breakpoints in test code
 
-Glubean tests run on Deno, which exposes a full V8 inspector. VS Code's debugger connects to it automatically — so you get the same breakpoint experience you'd expect from any Node.js project.
+Glubean tests run on Node, which exposes the V8 inspector that VS Code already understands.
 
 To debug a test:
 
@@ -16,11 +18,9 @@ From there you can:
 - Evaluate expressions in the Debug Console
 - Hover over any variable in the editor to see its current value
 
----
-
 ## Inspecting HTTP calls
 
-The debugger is most useful when you want to understand what's happening between steps. For example:
+The debugger is most useful when you want to inspect a response before the assertion path hides the root cause.
 
 ```typescript
 export const createAndFetch = test("create-and-fetch")
@@ -36,8 +36,6 @@ export const createAndFetch = test("create-and-fetch")
 ```
 
 Pause after `.post()` and inspect `res` directly in the debug console — status code, headers, raw body — before the assertion runs.
-
----
 
 ## Tips
 
@@ -57,3 +55,8 @@ ctx.log("User created", { id: body.id, status: res.status });
 > JSON.stringify(body, null, 2)
 '{\n  "id": 42,\n  "name": "Alice"\n}'
 ```
+
+## Next
+
+- [Traces & Diff](/extension/traces-and-diff)
+- [CLI Debugging](/cli/debugging)

@@ -1,22 +1,26 @@
-# Run Your First Test
+# Run Your First Check
 
-## 1. Initialize a project
+This is the shortest path from empty folder to one passing check.
+
+## 1. Create a project
 
 ```bash
 mkdir my-project && cd my-project
-glubean init
+npx @glubean/cli init
 ```
 
-Expected folders:
+Expected layout:
 
 ```text
 my-project/
 ├── explore/
 ├── tests/
-└── deno.json
+└── package.json
 ```
 
-## 2. Add environment variables
+Use `explore/` for fast local iteration. Move stable files to `tests/` when you want them in CI.
+
+## 2. Add a base URL
 
 Create `.env` in project root:
 
@@ -24,7 +28,7 @@ Create `.env` in project root:
 BASE_URL=http://localhost:3000
 ```
 
-## 3. Write a basic test
+## 3. Write a check
 
 ```typescript
 import { test } from "@glubean/sdk";
@@ -39,12 +43,18 @@ export const health = test("health", async (ctx) => {
 ## 4. Run it
 
 ```bash
-glubean run ./tests
+npm test
 ```
 
-Or run from the editor gutter/Test Explorer if you installed the extension.
+If you installed the extension, you can also run the same file from the editor gutter or Test Explorer.
 
-## 5. Inspect outputs
+## 5. Know what to inspect
 
-- Trace files live in `.glubean/traces/`, result JSON in `.glubean/last-run.json`. See [Artifacts](/reference/artifacts).
-- For failure triage, see [CLI Debugging](/cli/debugging).
+- Trace files live in `.glubean/traces/`
+- Result JSON usually lives at `.glubean/last-run.json`
+- Failure triage starts in [Run In Editor](/extension) or [CLI Debugging](/cli/debugging)
+
+## Next
+
+- [Connect CI](/getting-started/ci)
+- [Artifacts](/reference/artifacts)

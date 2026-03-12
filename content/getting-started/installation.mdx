@@ -1,37 +1,47 @@
 # Install & Verify
 
-## Prerequisites
+Use this page when you want a working Node-based Glubean setup in a few minutes.
 
-- [Deno 2.x](https://deno.com)
-- VS Code, Cursor, or another compatible editor (optional, but recommended)
+## What you need
 
-## Recommended installation (cross-platform)
+- Node.js 20+
+- VS Code, Cursor, or another compatible editor
 
-Install CLI via Deno:
+## 1. Install the extension
 
-```bash
-deno install -Agf -n glubean jsr:@glubean/cli
-```
+Install the Glubean extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Glubean.glubean) or the [VSIX releases](https://github.com/glubean/vscode/releases).
 
-Then verify:
+After Node is available, the extension becomes the main local entry point for writing and running verification checks.
 
-```bash
-glubean --help
-```
+## 2. Initialize a project
 
-## Shell script installation (advanced)
-
-If your environment allows installer scripts:
+Project init still uses the CLI, but you do not need a global install. Use `npx`:
 
 ```bash
-curl -fsSLo /tmp/glubean-install.sh https://glubean.com/install.sh
-sh /tmp/glubean-install.sh
+npx @glubean/cli init
 ```
 
-For security-sensitive environments, review the script before executing it and prefer pinning a known CLI version in internal setup scripts.
+This scaffolds a Node project with `package.json`, test scripts, `tests/`, `explore/`, and env files.
 
-## Extension setup
+## 3. Verify the CLI entry
 
-Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Glubean.glubean) or the [VSIX releases](https://github.com/glubean/vscode/releases).
+If you want to verify the CLI explicitly:
 
-The extension can auto-detect or auto-install required runtime dependencies, but teams with strict policies should use the explicit CLI installation above.
+```bash
+npx @glubean/cli --help
+```
+
+## Optional: install the CLI globally
+
+If your team prefers a global binary:
+
+```bash
+npm install -g @glubean/cli
+```
+
+That gives you both `glubean` and `gb` on PATH.
+
+## Next
+
+- [Run Your First Check](/getting-started/first-test)
+- [Extension Quick Start](/extension/quick-start)

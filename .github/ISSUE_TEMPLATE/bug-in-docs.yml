@@ -1,0 +1,29 @@
+name: Docs Bug
+description: Report a documentation bug such as an incorrect command, wrong file path, or broken link.
+title: "[Docs Bug]: "
+labels:
+  - docs
+  - bug
+body:
+  - type: textarea
+    id: page
+    attributes:
+      label: Page
+      description: Which page or URL is wrong?
+      placeholder: /getting-started/first-test
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong?
+      description: Describe the incorrect instruction, outdated detail, or broken link.
+    validations:
+      required: true
+  - type: textarea
+    id: fix
+    attributes:
+      label: Suggested fix
+      description: If you already know the correct wording or command, put it here.
+    validations:
+      required: false

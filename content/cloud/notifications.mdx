@@ -1,11 +1,12 @@
 # Notifications
 
-Glubean Cloud can alert you when runs fail, quotas are reached, or workers go offline. Notifications are configured as **subscriptions** — each subscription combines events, a delivery channel, and optional filters.
+Notifications let teams react to important run events without living in the dashboard.
 
-## Subscription Levels
+Each notification rule combines:
 
-- **Team-wide** — applies to all projects in the team. Configure in **Team → Notifications**.
-- **Project-level** — scoped to a single project. Configure in **Project Settings → Notifications**.
+- events
+- a delivery channel
+- optional filters
 
 ## Events
 
@@ -20,67 +21,28 @@ Glubean Cloud can alert you when runs fail, quotas are reached, or workers go of
 | `worker.offline` | A connected worker stops responding |
 | `worker.back_online` | A previously offline worker recovers |
 
+## Levels
+
+- **Team-wide** for all projects in a team
+- **Project-level** for one project only
+
 ## Channels
 
-### Email
+- **Email**
+- **Slack**
+- **Discord**
+- **Webhook**
 
-Send notifications to one or more email addresses.
+## Useful filters
 
-- **Recipients** — comma-separated list
-- **Subject prefix** — defaults to `[Glubean]`
+- branches
+- tags
+- severity
+- minimum failure count
 
-### Slack
+## A practical setup
 
-Post to a Slack channel via incoming webhook.
-
-- **Webhook URL** — create one in your Slack workspace settings
-- **Channel** — optional override
-- **Mention on failure** — tag people or groups (e.g. `@oncall`)
-
-### Discord
-
-Post to a Discord channel via webhook.
-
-- **Webhook URL** — create one in your Discord server's channel settings (Integrations → Webhooks)
-
-### Webhook
-
-Send a JSON POST to any HTTP endpoint.
-
-- **URL** — your endpoint
-- **Headers** — optional custom headers (e.g. auth tokens)
-- **Retry** — configurable max attempts and backoff
-
-## Test Notification
-
-After creating a subscription, click **Send test notification** to verify delivery. This sends a sample notification through the configured channel so you can confirm everything is wired up correctly.
-
-## Filters
-
-Subscriptions can be narrowed with filters so you only get notified about relevant runs:
-
-| Filter | Description |
-|---|---|
-| **Branches** | Only trigger for runs on matching branches (supports patterns) |
-| **Tags** | Only trigger for runs with specific tags |
-| **Severity** | Filter by error, warning, or info level |
-| **Min failure count** | Only trigger when failures exceed a threshold |
-
-## Rate Limiting
-
-To avoid notification storms, each subscription has rate limits:
-
-- **Max per hour** — cap hourly notifications
-- **Max per day** — cap daily notifications
-- **Quiet hours** — suppress notifications during a time window (configurable timezone)
-
-## Creating a Subscription
-
-1. Go to **Team → Notifications** (or **Project Settings → Notifications**)
-2. Click **New Subscription**
-3. Select events to subscribe to
-4. Choose a channel and configure it
-5. Optionally add filters and rate limits
-6. Save
-
-Subscriptions can be toggled on/off without deleting them.
+1. Send `run.failed` to Slack for the default branch
+2. Keep a quieter daily digest by email
+3. Exclude exploratory branches from paging rules
+4. Use **Send test notification** before trusting the rule

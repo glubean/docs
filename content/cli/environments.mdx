@@ -1,6 +1,6 @@
 # Environments & Secrets
 
-This page is the canonical reference for environment and secret resolution in Glubean (file naming, load order, system fallback, and variable mapping).
+This is the canonical page for env files, secret files, lookup order, and `${...}` mapping.
 
 ## File model
 
@@ -18,7 +18,7 @@ Secrets files should be ignored by git:
 *.secrets
 ```
 
-## Runtime usage
+## What your tests read
 
 - `ctx.vars.require("KEY")` for required config
 - `ctx.vars.get("KEY")` for optional config
@@ -29,9 +29,9 @@ const baseUrl = ctx.vars.require("BASE_URL");
 const token = ctx.secrets.require("API_TOKEN");
 ```
 
-## Resolution order and system fallback
+## Lookup order
 
-Glubean resolves variables by key name. For each key, file values win first, then shell/system environment is used as fallback.
+Glubean resolves each key by name. File values win first, then shell or system environment is used as fallback.
 
 - `ctx.vars.*("KEY")`: `.env` (or `--env-file`) -> system environment `KEY`
 - `ctx.secrets.*("KEY")`: matching `.secrets` file -> system environment `KEY`
@@ -61,7 +61,7 @@ const baseUrl = ctx.vars.require("BASE_URL");
 const apiKey = ctx.secrets.require("API_KEY");
 ```
 
-## Switching strategy
+## Switching environments
 
 - Local default: `.env`
 - Staging: `--env-file .env.staging`
@@ -71,6 +71,9 @@ const apiKey = ctx.secrets.require("API_KEY");
 glubean run ./tests --env-file .env.staging
 ```
 
-Extension users can also switch active env from the status bar.
+The extension can switch the active env from the status bar.
 
-For deeper API details: [SDK Environment & Secrets](/sdk/env-and-secrets), [Extension Environments](/extension/environments).
+## Next
+
+- [SDK: Variables & Secrets](/sdk/env-and-secrets)
+- [Extension: Environments](/extension/environments)

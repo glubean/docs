@@ -1,16 +1,22 @@
-# Traces & Diff
+# Traces & Files
 
-Glubean stores request/response traces so you can compare behavior across runs.
+Glubean writes the same trace artifacts that the editor opens visually.
+
+## When to use this page
+
+- You want to know where trace files live
+- You want to diff runs from disk
+- You are debugging in CI or on a machine without the extension
 
 ## Typical flow
 
-1. Run a test.
-2. Open the newest trace in the Trace Viewer.
-3. Diff with the previous run.
+1. Run with `--emit-full-trace`
+2. Inspect files in `.glubean/traces/`
+3. Compare with the previous run or attach them to CI artifacts
 
-In the extension, use:
+In the editor, the same data appears through:
 
 - `Glubean: Open Latest Trace`
 - `Glubean: Diff with Previous Run`
 
-CLI users can still consume the same artifacts from disk. Paths are documented in [Reference: Artifacts](/reference/artifacts).
+See [Artifacts](/reference/artifacts) for exact file paths.
