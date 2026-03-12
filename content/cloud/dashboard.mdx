@@ -1,102 +1,45 @@
 # Dashboard
 
-The Cloud dashboard is where your team views test results, tracks trends, and investigates failures.
+The dashboard is the first place to open after a run is uploaded.
 
-## Projects
+## What it helps you answer
 
-After signing in, you land on the project list. Each project groups runs from a single codebase or service.
+- what failed most recently
+- whether the suite is improving or getting noisier
+- which tests fail repeatedly
+- whether logs and traces exist for deeper triage
 
-A project has:
+## Run list
 
-- **Visibility** — private (team only) or public (shareable link, no login required)
-- **Tokens** — scoped credentials for uploading runs
+Each uploaded run appears in reverse chronological order with:
 
-## Run List
-
-Inside a project, the run list shows every uploaded run in reverse chronological order.
-
-Each row displays:
-
-| Field | Description |
-|---|---|
-| Status | `passed`, `failed`, `running`, `cancelled` |
-| Test counts | Number of passed / failed / total tests |
-| Duration | Total execution time |
-| Source | Where the run originated (CLI, scheduled, manual) |
-| Timestamp | When the run was uploaded |
+- status
+- test counts
+- duration
+- source such as CLI, CI, or scheduler
+- upload time
 
 Click a run to open the detail view.
 
-## Run Detail
+## Run detail
 
-The run detail page shows:
+Most day-to-day debugging happens here. A run detail page lets you inspect:
 
-### Summary
+- summary and metadata
+- each executed test
+- assertion results
+- logs
+- traces and artifacts
 
-Pass/fail counts, total duration, and metadata (CLI version, source, environment).
+Failed tests usually surface first, which keeps triage fast.
 
-### Test Results
+## Other useful features
 
-A list of every test in the run. Each test shows:
-
-- **Status** — pass or fail
-- **Start time** — when the test began executing
-- **Duration** — execution time in ms
-- **Assertions** — expand to see individual assertion results
-- **Logs** — `ctx.log()` output captured during execution
-- **Traces** — HTTP request/response pairs (if tracing is enabled)
-
-Failed tests are shown first.
-
-### Trace Waterfall
-
-The trace waterfall view shows all HTTP requests in a timeline, visualizing request duration and overlap across tests.
-
-### Live Streaming
-
-If a run is still in progress, results appear in real time via server-sent events. You can watch tests complete one by one.
-
-### Delete Run
-
-Runs can be deleted from the detail page. Deletion cascades to all associated events, artifacts, and metrics.
-
-## Artifacts
-
-Artifacts are files attached to a run — traces, screenshots, response snapshots, or any binary output.
-
-- **Traces** render inline with request/response details and diff highlighting
-- **Images** and **PDFs** preview directly in the browser
-- **Other files** are available for download
-
-## Status Badges
-
-Every project gets embeddable badges:
-
-```markdown
-![Status](https://app.glubean.com/badge/my-project)
-![Pass Rate](https://app.glubean.com/badge/my-project/pass-rate)
-```
-
-Badges update automatically (cached for 5 minutes). Use them in README files, wikis, or dashboards.
-
-## Webhooks
-
-Project webhooks fire on run events:
-
-| Event | When |
-|---|---|
-| `run.completed` | A run finishes (pass or fail) |
-| `run.failed` | A run finishes with at least one failure |
-
-Configure webhooks in **Project Settings → Webhooks**. Each webhook sends a JSON payload with the run summary. Webhooks support both user authentication and project token authentication.
-
-## Public Projects
-
-Public projects are accessible without login. Anyone with the URL can view runs, results, analytics, and artifacts. Useful for open-source projects or sharing results with external stakeholders.
-
-Public project URL: `https://app.glubean.com/p/{projectId}`
+- trace waterfall view for request timing
+- live streaming while a run is still executing
+- shareable project views for public projects
 
 ## Next
 
-- [Analytics](/cloud/analytics) — pass rate trends, flaky tests, and more
-- [Plans & Quotas](/cloud/quotas) — understand limits and billing
+- [Analytics](/cloud/analytics)
+- [Notifications](/cloud/notifications)

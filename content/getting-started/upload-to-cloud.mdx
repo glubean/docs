@@ -1,185 +1,74 @@
 # Upload Your First Run
 
-This guide takes you from a working local test to seeing results in Glubean Cloud. Takes about 5 minutes.
+Use this page when local checks already work and you want a shared run history in Cloud.
 
-## Prerequisites
+## Before you start
 
-- Glubean CLI installed ([Installation](/getting-started/installation))
-- A test that runs locally (`glubean run` works)
+- The CLI is installed
+- `glubean run` already works locally
+- You have access to a Glubean Cloud project
 
-## 1. Create a Cloud account
+## 1. Create a project token
 
-Go to [app.glubean.com](https://app.glubean.com) and sign in with GitHub or Google.
+In Glubean Cloud, open your project and go to **Settings → Tokens**.
 
-A default project is created automatically when you sign up.
+Create a token with at least `runs:write`. Project tokens start with `gpt_`.
 
-## 2. Get a project token
+For token types and tradeoffs, see [Tokens](/cloud/tokens).
 
-1. Open your project in the Cloud dashboard.
-2. Go to **Settings → Tokens**.
-3. Click **Create Token** and copy the value (starts with `gpt_`).
+## 2. Store the token
 
-## 3. Configure the token
-
-Pick the method that fits your setup. For a full explanation of token types, see [Tokens & Auth](/cloud/tokens).
-
-### Option A: Environment file (recommended for local dev)
-
-Uses a **project token** (`gpt_`). Add to `.env.secrets` in your project root:
+For local development, put it in `.env.secrets`:
 
 ```bash
 GLUBEAN_TOKEN=gpt_your_project_token
 GLUBEAN_PROJECT_ID=prj_abc123
 ```
 
-> `.env.secrets` is gitignored by default. Never commit tokens to version control.
+`.env.secrets` should stay out of git.
 
-The CLI auto-loads `.env` + `.env.secrets` by default. For per-environment tokens, use `--env-file`:
-
-```bash
-# .env.staging.secrets
-GLUBEAN_TOKEN=gpt_staging_token
-
-# .env.production.secrets
-GLUBEAN_TOKEN=gpt_production_token
-```
-
-```bash
-glubean run --env-file .env.staging --upload
-```
-
-The CLI loads both `.env.staging` and `.env.staging.secrets` automatically.
-
-### Option B: Environment variable (recommended for CI)
-
-Uses a **project token** (`gpt_`). Store it in your CI provider's secrets:
+For CI, store the same values in your provider's secret store:
 
 ```yaml
-# GitHub Actions example
 env:
   GLUBEAN_TOKEN: ${{ secrets.GLUBEAN_TOKEN }}
   GLUBEAN_PROJECT_ID: ${{ vars.GLUBEAN_PROJECT_ID }}
 ```
 
-### Option C: deno.json (quick start / public demos)
-
-Uses a **project token** (`gpt_`). Inline in your project config:
-
-```json
-{
-  "glubean": {
-    "cloud": {
-      "token": "gpt_your_project_token",
-      "projectId": "prj_abc123"
-    }
-  }
-}
-```
-
-> Only use this for tokens with limited scope. The CLI warns if your deno.json is tracked by git.
-
-### Option D: Global login (personal use across projects)
-
-Uses a **user API key** (`gb_`) or project token. Stores credentials globally:
+## 3. Upload a run
 
 ```bash
-glubean login
+npx gb run --ci --upload
 ```
 
-Saves to `~/.glubean/credentials.json`. A user API key gives access to all your projects from one credential. For project-specific tokens, prefer Option A or B.
-
-## 4. Upload a run
+You can still target a file, folder, filter, or tag:
 
 ```bash
-glubean run --upload
-```
-
-By default, `glubean run` executes all `*.test.ts` files in your `tests/` directory. Add `--upload` to send results to Cloud after execution.
-
-### Running specific tests
-
-```bash
-# Run a single file
 glubean run ./tests/auth.test.ts --upload
-
-# Run a specific directory
-glubean run ./tests/api/ --upload
-
-# Filter by test name/id (substring match)
 glubean run --filter "login" --upload
-
-# Filter by tag (exact match, OR logic)
-glubean run --tag "smoke" --upload
-
-# Multiple tags with AND logic
-glubean run --tag "smoke" --tag "auth" --tag-mode and --upload
-
-# Run explore tests (not committed regression tests)
-glubean run ./explore --upload
+glubean run --tag smoke --upload
 ```
 
-For all execution options, see [CLI Reference](/cli/reference).
+## 4. Open the run
 
-### Example output
+After upload, the CLI prints a Cloud URL. Open it to inspect:
 
-```text
-✓ health        12ms
-✓ list-users    45ms
+- run summary
+- test results
+- logs, traces, and metrics
 
-2 passed, 0 failed
+## Credential lookup order
 
-Uploaded → https://app.glubean.com/p/my-project/runs/abc123
-```
+The CLI uses the first matching credential source:
 
-## 5. View in Cloud
+1. `--token`
+2. `GLUBEAN_TOKEN`
+3. project env files such as `.env.secrets`
+4. `package.json` → `glubean.cloud`
+5. `~/.glubean/credentials.json` from `glubean login`
 
-Click the URL from the output, or open the Cloud dashboard and navigate to your project. You'll see:
+## Next
 
-- **Run summary** — pass/fail counts, duration, timestamp
-- **Test results** — each test with status and timing
-- **Events** — assertions, logs, and traces expandable per test
-
-## CI integration
-
-Add `--upload` to your existing CI command:
-
-```bash
-glubean run ./tests --upload
-```
-
-Every CI run uploads to Cloud automatically. The team sees results without checking CI logs.
-
-```yaml
-# Full GitHub Actions example
-name: api-tests
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-      - run: deno install -Agf -n glubean jsr:@glubean/cli
-      - run: glubean run ./tests --upload
-        env:
-          GLUBEAN_TOKEN: ${{ secrets.GLUBEAN_TOKEN }}
-```
-
-## Token resolution order
-
-The CLI looks for credentials in this order (first match wins):
-
-1. `--token` CLI flag
-2. `GLUBEAN_TOKEN` environment variable
-3. `.env` / `.env.secrets` file in project root
-4. `deno.json` → `glubean.cloud.token`
-5. `~/.glubean/credentials.json` (from `glubean login`)
-
-## Next steps
-
-- [Dashboard](/cloud/dashboard) — understand the Cloud UI
-- [Plans & Quotas](/cloud/quotas) — free tier limits and upgrade options
-- [CLI Reference](/cli/reference) — all `--upload` related flags
+- [Dashboard](/cloud/dashboard)
+- [Analytics](/cloud/analytics)
+- [Plans & Quotas](/cloud/quotas)

@@ -16,7 +16,7 @@ Inside a Glubean project, open your AI assistant and type:
 please create github repo list tests in the explore folder
 ```
 
-That's it. The AI reads `deno.json` and the SDK types, and generates a working test file:
+That's it. The AI reads `package.json`, the SDK types, and your project layout, then generates a working test file:
 
 ```ts
 import { test } from "@glubean/sdk";
@@ -72,7 +72,7 @@ Notice what the AI figured out on its own — no hand-holding needed:
 </Callout>
 
 <Callout type="info">
-**One prerequisite: a Glubean project.** Run `glubean init` first so the AI can see `deno.json` and the `@glubean/sdk` import map. Without this context, it generates Node/Jest-style code instead of Glubean tests.
+**One prerequisite: a Glubean project.** Run `npx @glubean/cli init` first so the AI can see `package.json`, the `@glubean/sdk` dependency, and your `tests/` / `explore/` layout. Without this context, it generates generic Node/Jest-style code instead of Glubean tests.
 </Callout>
 
 ---

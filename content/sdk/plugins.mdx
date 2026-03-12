@@ -1,22 +1,18 @@
-# Plugin System
+# Plugins
 
-Glubean's plugin system lets you extend test capabilities without changing the core SDK.
+Plugins let you package reusable runtime behavior without changing the core SDK.
 
-## Purpose
+Use them when multiple files need the same client, auth helper, or domain-specific utility.
 
-- Encapsulate reusable clients/configuration
-- Keep initialization lazy and runtime-safe
-- Share typed utilities across many test files
+## Basic pattern
 
-## How it works
+1. define a plugin with `definePlugin(...)`
+2. register it in `configure({ plugins })`
+3. use the shared instance in tests
 
-1. Define a plugin factory with `definePlugin(...)`.
-2. Register it in `configure({ plugins: { ... } })`.
-3. Consume the plugin instance in tests.
+The plugin is created lazily on first access.
 
-The plugin instance is lazily created on first access.
-
-## Custom plugin example
+## Example
 
 ```typescript
 import { configure, definePlugin, test } from "@glubean/sdk";

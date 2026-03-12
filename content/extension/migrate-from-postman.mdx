@@ -18,10 +18,10 @@ The short answer is: **no**.
 Do not ask AI to convert Postman/OpenAPI files in a random folder. Initialize a real Glubean project first:
 
 ```bash
-glubean init
+npx @glubean/cli init
 ```
 
-The AI assistant needs to see `deno.json`, the `@glubean/sdk` import map, and `tests/` conventions. Without this context, it will generate Node/Jest-style code instead of Glubean SDK tests.
+The AI assistant needs to see `package.json`, the `@glubean/sdk` dependency, and your `tests/` conventions. Without this context, it will generate generic Node/Jest-style code instead of Glubean SDK tests.
 </Callout>
 
 ---
@@ -144,19 +144,19 @@ This gives you both quality and speed.
 
 ### Set up and feasibility scan
 
-Make sure you are in a Glubean project root (created by `glubean init`).
+Make sure you are in a Glubean project root (created by `npx @glubean/cli init`).
 
 Drop your source file (Postman JSON, OpenAPI spec, or `.http` file) into the project folder.
 
 Then run a **scan-only round first** — do not ask AI to generate files yet:
 
 ```text
-You are in a Glubean project (Deno + @glubean/sdk).
+You are in a Glubean project (Node + @glubean/sdk).
 Before generating any files, do a feasibility scan only.
 
 Please:
 1) Read project context first:
-   - deno.json
+   - package.json
    - tests/ and explore/ structure
    - existing configure.ts (if any)
    - @glubean/sdk usage patterns in this repo
@@ -204,7 +204,7 @@ Convert one Postman folder or OpenAPI tag group at a time. Reuse the pattern fro
 ### Run and fix flagged cases
 
 ```bash
-deno task test
+npm test
 # or
 glubean run tests/
 ```
@@ -356,6 +356,6 @@ That is normal. Migration succeeds when 80-90% is automated and the remaining 10
 
 Ready to start? Set up your project first, then come back here with your export file.
 
-- [Quick Start](/extension/quick-start) — install the extension and run `glubean init`
+- [Quick Start](/extension/quick-start) — install the extension and run `npx @glubean/cli init`
 - [AI Integration](/extension/ai-integration) — tips for better AI-generated tests
 - [Workflow: Explore vs Tests](/extension/workflow) — start in `explore/`, promote to `tests/`

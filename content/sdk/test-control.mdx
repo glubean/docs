@@ -1,63 +1,45 @@
-# Test Lifecycle & Control
+# Control Flow
 
-The SDK provides mechanisms to dynamically control how and when tests execute via `ctx.skip`, `ctx.fail`, `ctx.setTimeout`, `ctx.pollUntil`, and `ctx.retryCount`.
+These APIs help when real systems are asynchronous, environment-specific, or occasionally flaky.
 
-## Purpose
-To handle the unpredictable nature of testing live systems—dealing with eventual consistency, flakey environments, timeouts, and dynamic feature flags.
+## `ctx.pollUntil()`
 
-## Design Rationale
-- **Dynamic Context:** Environmental realities (like a feature being disabled in Staging but enabled in Prod) require that tests can skip themselves dynamically at runtime, rather than relying solely on static configuration.
-- **Resilience (`pollUntil`):** Modern microservice architectures are heavily asynchronous. Instead of forcing developers to write custom `sleep()` loops, `pollUntil` provides a first-class, timeout-aware polling mechanism.
-- **Orchestration Awareness:** The SDK understands that the Glubean platform handles retries. `ctx.retryCount` exposes this state to the test so developers can adjust logic (like adding heavier backoffs) on subsequent attempts.
-
-## Scenarios
-
-### Waiting for Eventual Consistency
-When an API returns a `202 Accepted` but processing happens asynchronously, use `pollUntil` to wait for the final state.
+Use `pollUntil()` when an action is eventually consistent and a fixed sleep would be wasteful or brittle.
 
 ```typescript
 export const asyncJob = test("async-job", async (ctx) => {
-  // 1. Trigger the job
   const job = await ctx.http.post("/jobs/export").json();
 
-  // 2. Poll the status endpoint until it's ready
   await ctx.pollUntil({ timeoutMs: 30000, intervalMs: 2000 }, async () => {
     const status = await ctx.http.get(`/jobs/${job.id}/status`).json();
-    
-    // Return a truthy value to stop polling
     return status.state === "completed";
   });
-  
-  // 3. Proceed with the test
+
   const file = await ctx.http.get(`/jobs/${job.id}/download`);
   ctx.expect(file.status).toBe(200);
 });
 ```
 
-### Dynamic Skipping
-If a test detects that the environment doesn't support the feature being tested, it can gracefully skip itself instead of failing.
+## `ctx.skip()`
+
+Use `skip()` when the current environment should not run a check.
 
 ```typescript
 export const betaFeature = test("beta-feature", async (ctx) => {
   if (ctx.vars.get("ENV") === "production") {
-    // Aborts execution here and marks the test as "Skipped" in the dashboard
     ctx.skip("Beta features are not enabled in production");
   }
-
-  // ... test logic ...
 });
 ```
 
-### Failing Fast
-If you encounter a scenario that proves the system is broken in a way where further execution is dangerous or pointless, use `ctx.fail()`.
+## `ctx.fail()`
+
+Use `fail()` when further execution would be misleading or dangerous.
 
 ```typescript
 export const checkAuth = test("auth-check", async (ctx) => {
   try {
-    // This should fail because we omitted the token
     await ctx.http.delete(`/admin/database`);
-    
-    // If it succeeds, immediately fail the test
     ctx.fail("CRITICAL: Unauthenticated request to delete database succeeded!");
   } catch (err) {
     ctx.expect(err.response?.status).toBe(403);
@@ -65,29 +47,18 @@ export const checkAuth = test("auth-check", async (ctx) => {
 });
 ```
 
-### Dynamic Timeouts
-Sometimes specific environments or datasets require more time. You can extend the test's execution budget dynamically.
+## `ctx.setTimeout()` and `ctx.retryCount`
+
+Use `setTimeout()` when one check legitimately needs more time. Use `retryCount` when behavior should change on retry attempts.
 
 ```typescript
 export const slowQuery = test("slow-query", async (ctx) => {
-  // Give this test up to 60 seconds before the runner kills it
   ctx.setTimeout(60000);
-  
   await ctx.http.get("/analytics/heavy-report");
 });
 ```
 
-### Adjusting Logic based on Retries
-If the test runner is re-running your test due to a previous flake, you might want to log additional context or increase timeouts.
+## Next
 
-```typescript
-export const flakyEndpoint = test("flaky", async (ctx) => {
-  // ctx.retryCount is 0 on the first attempt, 1+ on retries
-  if (ctx.retryCount > 0) {
-    ctx.log(`This is retry attempt #${ctx.retryCount}. Extending timeout.`);
-    ctx.setTimeout(45000);
-  }
-
-  await ctx.http.get("/flaky");
-});
-```
+- [Assertions](/sdk/assertions)
+- [Logs, Traces, Metrics](/sdk/observability)

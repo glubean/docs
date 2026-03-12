@@ -1,6 +1,8 @@
 # Redaction
 
-When you share test results (via `glubean run --upload` or the upcoming Glubean Cloud), the CLI automatically scans and masks sensitive data before anything leaves your machine. This guide covers how the redaction engine works and how to customize it.
+Redaction is what keeps uploaded runs safe to share.
+
+Before results leave your machine, the CLI scans them and masks sensitive values.
 
 ## How it works
 
@@ -13,13 +15,15 @@ Key-level runs first. If a key is already flagged, value-level scanning is skipp
 
 ## Preview before uploading
 
-Use the `glubean redact` command to see exactly what will be masked — without uploading anything:
+Use `glubean redact` to see exactly what will be masked without uploading anything:
 
 ```bash
 glubean redact .glubean/last-run.result.json
 ```
 
-The console output uses partial masking (`Bea***Xfk`) so you can verify which values are being caught. To write the fully redacted JSON to a file:
+The console preview uses partial masking so you can verify the right values are being caught.
+
+To write the fully redacted JSON to a file:
 
 ```bash
 glubean redact .glubean/last-run.result.json --out redacted.json
@@ -67,7 +71,7 @@ The engine scans all areas of a test result by default:
 
 ## Customizing redaction
 
-Add a `redaction` section to your `glubean.config.ts`:
+Add a `redaction` section to your config:
 
 ```typescript
 import { defineConfig } from "@glubean/sdk";
@@ -153,3 +157,8 @@ glubean run --no-redact tests/
 ```
 
 This is not recommended for production APIs.
+
+## Next
+
+- [Cloud Redaction](/cloud/redaction)
+- [Artifacts](/reference/artifacts)

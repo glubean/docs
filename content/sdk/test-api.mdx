@@ -1,138 +1,80 @@
-# Test API & Builder
+# Test Shape
 
-The `@glubean/sdk` provides a flexible API for defining tests. You can write quick, single-function tests for simple endpoints, or use the Builder API to create complex, multi-step flows with typed state and cleanup logic.
+Use `test()` for simple checks and the builder API for multi-step flows.
 
-## Purpose
-To accommodate both simple endpoint checks and complex end-to-end user journeys without forcing developers into rigid structures.
+## Simple check
 
-## Design Rationale
-- **Two Modes:** Simple tests need low boilerplate, while complex tests need structure. We provide a single `test` function that scales: if you pass a callback, it's a simple test. If you don't, it returns a `TestBuilder` for chaining steps.
-- **Type-Safe State:** In E2E tests, steps depend on data from previous steps (e.g., creating a user, then logging in). The Builder API passes state from step to step, fully typed, preventing "any" or "undefined" errors.
-- **Guaranteed Cleanup:** `teardown` is guaranteed to run even if steps fail or timeout. This ensures test data doesn't pollute your environment.
-
-## Scenarios
-
-### Test Metadata & Tags
-Instead of passing just a string ID to `test()`, you can pass a full metadata object. This is especially important for categorizing your tests with `tags`, giving them descriptions, or setting test-level timeouts.
-
-```typescript
-import { test } from "@glubean/sdk";
-
-// Quick Mode with Metadata
-export const simpleTest = test({
-  id: "health-check",
-  name: "API Health",
-  tags: ["smoke", "p0"], // Filter test runs via CLI: glubean run --tag smoke
-  timeout: 10000,
-}, async (ctx) => {
-  ctx.expect((await ctx.http.get("/health")).status).toBe(200);
-});
-
-// Builder Mode with Metadata
-export const checkout = test({
-  id: "checkout-flow",
-  description: "Ensures a user can add items to cart and pay",
-  tags: ["e2e", "critical"],
-  skip: false,
-  only: false,
-}).step(/* ... */);
-```
-
-You can also apply metadata using the `.meta()` builder method if you prefer chaining:
-```typescript
-export const checkout = test("checkout-flow")
-  .meta({ tags: ["e2e", "critical"], timeout: 60000 })
-  .step(/* ... */);
-```
-
-### Quick Mode (Single Function)
-For simple endpoint checks, use the quick mode.
+This is the default shape for one request or one short assertion path:
 
 ```typescript
 import { test } from "@glubean/sdk";
 
 export const login = test("login", async (ctx) => {
   const res = await ctx.http.post(`${ctx.vars.require("BASE_URL")}/login`, {
-    json: { username: "demo", password: "demo" }
+    json: { username: "demo", password: "demo" },
   });
+
   ctx.expect(res.status).toBe(200);
 });
 ```
 
-### Builder Mode (Multi-Step with State)
-When your test involves multiple dependent actions, use the Builder API.
+## Multi-step flow
+
+Use the builder API when steps depend on shared state or when cleanup matters:
 
 ```typescript
-interface TestState {
+type CheckoutState = {
   baseUrl: string;
   cartId: string;
-}
+};
 
-export const checkout = test<TestState>("checkout-flow")
+export const checkout = test<CheckoutState>("checkout-flow")
   .meta({ tags: ["e2e", "critical"] })
   .setup(async (ctx) => {
-    // Setup runs first. It returns the initial state.
     const baseUrl = ctx.vars.require("BASE_URL");
     const cart = await ctx.http.post(`${baseUrl}/carts`).json<{ id: string }>();
-    
     return { baseUrl, cartId: cart.id };
   })
-  .step("Add item", async (ctx, state) => {
-    // Each step receives the state from the previous step
+  .step("add item", async (ctx, state) => {
     await ctx.http.post(`${state.baseUrl}/carts/${state.cartId}/items`, {
       json: { productId: "product-123" },
     });
-    
-    // Return updated state
-    return state; 
-  })
-  .step("Complete checkout", async (ctx, state) => {
-    const order = await ctx.http.post(`${state.baseUrl}/carts/${state.cartId}/checkout`).json<{ status: string }>();
-    ctx.expect(order.status).toBe("completed");
+    return state;
   })
   .teardown(async (ctx, state) => {
-    // Teardown ALWAYS runs, even if a step failed.
     await ctx.http.delete(`${state.baseUrl}/carts/${state.cartId}`);
   });
 ```
 
-### Focusing and Skipping
-During local development, you often want to run just one test or skip flaky ones.
+## Metadata
+
+Use metadata when the check needs tags, a clearer name, or a custom timeout:
 
 ```typescript
-// Only this test will run when you execute `glubean run`
-export const loginOnly = test.only("login-only", async (ctx) => {
+export const health = test({
+  id: "health",
+  name: "API health",
+  tags: ["smoke"],
+  timeout: 10000,
+}, async (ctx) => {
+  ctx.expect((await ctx.http.get("/health")).status).toBe(200);
+});
+```
+
+## Local focus controls
+
+```typescript
+export const onlyThis = test.only("only-this", async (ctx) => {
   // ...
 });
 
-// This test will be skipped
-export const flakyFlow = test.skip("flaky-flow", async (ctx) => {
+export const skipThis = test.skip("skip-this", async (ctx) => {
   // ...
 });
 ```
 
-### Step Composition and Reusability
-You can reuse sequences of steps using `.use()` or visually group them in reports using `.group()`.
+## Next
 
-```typescript
-import type { TestBuilder } from "@glubean/sdk";
-
-// Define a reusable authentication sequence
-const withAuth = (b: TestBuilder<any>) =>
-  b
-    .step("login", async (ctx) => {
-      const data = await ctx.http.post("/auth/login").json<{ token: string }>();
-      return { token: data.token };
-    })
-    .step("verify token", async (ctx, { token }) => {
-      // ... verify ...
-      return { token };
-    });
-
-export const checkout = test("checkout")
-  // .group works like .use, but creates a visual group in the test report
-  .group("auth", withAuth)
-  .step("pay", async (ctx, { token }) => {
-    // token is available here!
-  });
-```
+- [HTTP Requests](/sdk/http-client)
+- [Assertions](/sdk/assertions)
+- [Control Flow](/sdk/test-control)

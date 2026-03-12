@@ -1,17 +1,17 @@
 # Connect CI
 
-Use the same command locally and in CI to avoid drift.
+Use the same command locally and in CI. That is the simplest way to avoid drift.
 
-## Minimal CI command
+## Recommended command
 
 ```bash
-glubean run ./tests --result-json .glubean/last-run.json --reporter junit:test-results.xml
+npx gb run --ci --result-json .glubean/last-run.json --reporter junit:test-results.xml
 ```
 
-## Why this shape
+This shape works well because:
 
 - `./tests` keeps CI focused on committed regression tests.
-- `--result-json .glubean/last-run.json` gives a stable machine-readable artifact for tools and the extension viewer.
+- `--result-json .glubean/last-run.json` gives you a stable machine-readable artifact.
 - `--reporter junit:test-results.xml` integrates with common CI test dashboards.
 
 ## GitHub Actions example
@@ -25,24 +25,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: denoland/setup-deno@v2
+      - uses: actions/setup-node@v4
         with:
-          deno-version: v2.x
-      - run: deno install -Agf -n glubean jsr:@glubean/cli
-      - run: glubean run ./tests --result-json .glubean/last-run.json --reporter junit:test-results.xml
+          node-version: "22"
+      - run: npm ci
+      - run: npx gb run --ci --result-json .glubean/last-run.json --reporter junit:test-results.xml
 ```
 
-## Upload results to Cloud
+## When you are ready for uploads
 
 Add `--upload` to send results to Glubean Cloud after each CI run:
 
 ```bash
-glubean run ./tests --upload
+npx gb run --ci --upload
 ```
 
-Requires a `GLUBEAN_TOKEN` env var. See [Upload to Cloud](/getting-started/upload-to-cloud) for setup.
+This requires `GLUBEAN_TOKEN`. Setup is covered in [Upload Your First Run](/getting-started/upload-to-cloud).
 
 ## Next
 
-- CI tuning patterns: [CLI Recipes](/cli/recipes)
-- Environment switching: [CLI Environments](/cli/environments)
+- [Upload Your First Run](/getting-started/upload-to-cloud)
+- [CLI Recipes](/cli/recipes)
+- [CLI Environments](/cli/environments)

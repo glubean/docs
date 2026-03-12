@@ -1,81 +1,55 @@
-# Tokens & Authentication
+# Tokens
 
-Glubean Cloud uses two types of tokens. Understanding the difference helps you pick the right one for each scenario.
+Glubean Cloud uses two token types. Most teams only need one rule: use project tokens by default.
 
-## Token Types
+## Project token (`gpt_`)
 
-### Project Token (`gpt_`)
+Use this for:
 
-A project token is scoped to a single project. It can only access that project's data.
+- CI uploads
+- shared team automation
+- local work on one project
 
-- **Created in:** Project Settings → Tokens
-- **Format:** `gpt_xxxxxxxxxxxx`
-- **Scope:** One project only. You choose which permissions it has (e.g. `runs:write`, `bundles:read`)
-- **Revocable:** Yes, per token
-- **Use for:** CI uploads, automation scripts, shared team workflows
+Properties:
 
-### User API Key (`gb_`)
+- created in **Project Settings → Tokens**
+- scoped to one project
+- permissioned by scopes such as `runs:write`
+- easy to revoke without touching a user account
 
-A user API key acts as you. It can access every project you have permission to view or manage.
+## User API key (`gb_`)
 
-- **Created in:** Account Settings → API Keys
-- **Format:** `gb_xxxxxxxxxxxx`
-- **Scope:** All your projects, all permissions you have as a user
-- **Revocable:** Yes, per key
-- **Use for:** Personal local dev, CLI tools that work across multiple projects
+Use this when one person needs access across multiple projects from one credential.
 
-## Which Token Should I Use?
+Properties:
 
-| Scenario | Recommended Token | Why |
-|---|---|---|
-| CI pipeline (GitHub Actions, etc.) | Project token (`gpt_`) | Least privilege — only accesses one project, only the scopes you grant |
-| Local dev on one project | Project token (`gpt_`) | Same reason — keep it scoped |
-| Local dev across multiple projects | User API key (`gb_`) | One key works for all your projects |
-| Shared team automation | Project token (`gpt_`) | Not tied to a person — survives team member offboarding |
-| Quick personal experimentation | Either works | Convenience over security for throwaway use |
+- created in **Account Settings → API Keys**
+- scoped to whatever that user can access
+- useful as a personal fallback
 
-**Rule of thumb:** Use project tokens by default. Only use user API keys when you need cross-project access from one credential.
+## Recommended choice by scenario
 
-## Where to Store Tokens
-
-| Method | Best for | Details |
-|---|---|---|
-| `.env.secrets` | Local dev (project-level) | Gitignored by default. One file per project. |
-| Environment variable | CI | Set `GLUBEAN_TOKEN` in your CI secrets. |
-| `deno.json` glubean.cloud | Quick start / demos | Convenient but visible in version control. CLI warns if git-tracked. |
-| `~/.glubean/credentials.json` | Personal fallback | Created by `glubean login`. Global, not project-specific. |
-
-The CLI checks these locations in order — first match wins. See [Upload Your First Run](/cloud/quickstart#token-resolution-order) for the full resolution chain.
-
-## Token Scopes (Project Tokens)
-
-When creating a project token, you choose which scopes to grant:
-
-| Scope | Allows |
+| Scenario | Recommended token |
 |---|---|
-| `runs:read` | View runs and events |
-| `runs:write` | Upload runs (required for `--upload`) |
-| `bundles:read` | Download test bundles |
-| `bundles:write` | Upload test bundles (sync) |
-| `configs:read` | Read project configuration |
+| CI uploads | `gpt_` |
+| Shared automation | `gpt_` |
+| Local work on one project | `gpt_` |
+| Personal work across many projects | `gb_` |
 
-For CI upload, you only need `runs:write`.
+## Where to store it
 
-## `glubean login`
+| Location | Best for |
+|---|---|
+| `.env.secrets` | local project work |
+| CI secret store | CI uploads |
+| `~/.glubean/credentials.json` via `glubean login` | personal fallback |
+| `package.json` `glubean.cloud` | demos and short-lived setups only |
 
-The `glubean login` command is a convenience for storing credentials globally:
+## Minimal scope for uploads
 
-```bash
-glubean login
-```
+For CI upload, a project token only needs `runs:write`.
 
-It prompts for a token (either `gpt_` or `gb_`), validates it against the API, and saves it to `~/.glubean/credentials.json`.
+## Next
 
-This is the **lowest priority** in the resolution chain — project-level config (`.env.secrets`, `deno.json`) always takes precedence. Use it as a personal fallback when you don't want to configure each project individually.
-
-## Security Tips
-
-- **Never commit tokens** to version control. Use `.env.secrets` (gitignored) or CI secrets.
-- **Prefer project tokens** over user API keys — they limit blast radius if leaked.
-- **Rotate tokens** if you suspect exposure. Revoke in Project Settings → Tokens.
-- **Use minimal scopes** — a CI upload only needs `runs:write`.
+- [Upload Your First Run](/getting-started/upload-to-cloud)
+- [Plans & Quotas](/cloud/quotas)

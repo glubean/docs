@@ -1,12 +1,10 @@
 # Environments & Secrets
 
-This page focuses on the VS Code extension workflow (status bar switching, hover preview, and run behavior). For the canonical rules (file model, resolution order, system fallback, and `${...}` mapping), see [Environments & Secrets](/guides/environments).
+This page focuses on the VS Code extension workflow (status bar switching, hover preview, and run behavior). For the canonical rules (file model, resolution order, system fallback, and `${...}` mapping), see [Environments & Secrets](/cli/environments).
 
 ## Environment files
 
-Use the standard Glubean env file model (`.env`, `.env.staging`, `.env.prod` and matching `.secrets` files) from the canonical guide: [Environments & Secrets](/guides/environments).
-
----
+Use the standard Glubean env file model (`.env`, `.env.staging`, `.env.prod` and matching `.secrets` files) from the canonical guide: [Environments & Secrets](/cli/environments).
 
 ## Switching environments
 
@@ -24,8 +22,6 @@ You can also switch from the Command Palette:
 Glubean: Select Environment
 ```
 
----
-
 ## Accessing variables in tests
 
 Use `ctx.vars` for regular variables and `ctx.secrets` for sensitive values:
@@ -42,8 +38,6 @@ export const getUser = test("get-user", async (ctx) => {
 ```
 For full API semantics (`get` vs `require`, validation behavior), see [SDK Environment & Secrets](/sdk/env-and-secrets).
 
----
-
 ## Hover preview
 
 Hover over any `vars.require("KEY")` or `secrets.require("KEY")` call in your editor to see the resolved value from the currently selected environment:
@@ -55,3 +49,8 @@ const baseUrl = ctx.vars.require("BASE_URL");
 ```
 
 Secret values are masked in the hover tooltip.
+
+## Next
+
+- [Running Tests](/extension/running-tests)
+- [CLI Environments & Secrets](/cli/environments)

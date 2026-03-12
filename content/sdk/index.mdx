@@ -1,31 +1,41 @@
-# Glubean SDK Overview
+# Write Checks
 
-The `@glubean/sdk` provides the core primitives for writing API tests that can run locally via the CLI and seamlessly in the cloud on the Glubean platform, without any code changes.
+The SDK is the authoring surface of Glubean.
 
-## Design Philosophy
+You write checks in TypeScript, commit them to git, run them locally or in CI, and optionally upload the results to Cloud. The code stays the same.
 
-The SDK is built around a few core principles:
-1. **Zero Magic Globals:** Everything a test needs is passed explicitly via the `TestContext` (`ctx`). There are no ambient global variables to guess.
-2. **Fail Fast & Loud:** Missing environment variables, secrets, or failed hard assertions throw immediately, preventing silent, cascading failures deep within test logic.
-3. **Observability First:** Tests don't just pass or fail—they produce rich traces, logs, and metrics. The SDK is deeply integrated with the Glubean dashboard to report this data automatically.
+## The mental model
 
-## Core Concepts
+Every check receives a `ctx` object. That context gives you:
 
-The SDK is divided into several logical areas. Explore the documentation to understand the purpose, design rationale, and scenarios for each.
+- `ctx.http` for requests
+- `ctx.vars` and `ctx.secrets` for runtime values
+- `ctx.expect`, `ctx.assert`, and `ctx.validate` for verification
+- `ctx.log`, `ctx.trace`, and `ctx.metric` for observability
 
-### Test Structure & Organization
-- [Test API & Builder](/sdk/test-api) — `test()`, `.setup()`, `.step()`, `.teardown()`, `.use()`, `.group()`
-- [Data-Driven Tests](/sdk/data-driven) — `test.each()`, `test.pick()`, and data loaders (`fromCsv`, `fromYaml`)
-- [Configuration](/sdk/configuration) — File-level shared setup using `configure()`
+## Start with these pages
 
-### The Test Context (`ctx`)
-Every test function receives a `ctx` object (`TestContext`). This context object is your gateway to making HTTP requests, reading variables, asserting conditions, and logging.
+1. [Test Shape](/sdk/test-api)
+2. [HTTP Requests](/sdk/http-client)
+3. [Assertions](/sdk/assertions)
+4. [Variables & Secrets](/sdk/env-and-secrets)
+5. [Data-Driven](/sdk/data-driven)
 
-- [HTTP Client](/sdk/http-client) — `ctx.http`
-- [Environment & Secrets](/sdk/env-and-secrets) — `ctx.vars`, `ctx.secrets`
-- [Assertions & Validation](/sdk/assertions) — `ctx.expect`, `ctx.assert`, `ctx.warn`, `ctx.validate`
-- [Test Lifecycle & Control](/sdk/test-control) — `ctx.skip`, `ctx.fail`, `ctx.setTimeout`, `ctx.pollUntil`, `ctx.retryCount`
-- [Observability](/sdk/observability) — `ctx.log`, `ctx.trace`, `ctx.metric`, `ctx.getMemoryUsage`
-- [Plugin System](/sdk/plugins) — Defining and registering plugins with `definePlugin()` + `configure()`
-- [Auth Plugin](/sdk/auth-plugin) — `bearer`, `basicAuth`, `apiKey`, `oauth2`, `withLogin`
-- [GraphQL Plugin](/sdk/graphql-plugin) — `graphql`, `createGraphQLClient`, `gql`, `fromGql`
+## A minimal check
+
+```typescript
+import { test } from "@glubean/sdk";
+
+export const health = test("health", async (ctx) => {
+  const baseUrl = ctx.vars.require("BASE_URL");
+  const res = await ctx.http.get(`${baseUrl}/health`);
+
+  ctx.expect(res.status).toBe(200);
+});
+```
+
+## When the suite grows
+
+- use the builder API for multi-step flows
+- use `configure()` and plugins for shared setup
+- emit logs and metrics when a green or red result alone is not enough

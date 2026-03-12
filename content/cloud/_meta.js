@@ -1,9 +1,9 @@
 export default {
   index: 'Overview',
-  tokens: 'Tokens & Auth',
+  tokens: 'Tokens',
   dashboard: 'Dashboard',
   analytics: 'Analytics',
   notifications: 'Notifications',
-  redaction: 'Redaction Policies',
+  redaction: 'Redaction',
   quotas: 'Plans & Quotas',
 }

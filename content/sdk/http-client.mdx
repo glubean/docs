@@ -1,80 +1,59 @@
-# HTTP Client (`ctx.http`)
+# HTTP Requests
 
-The `ctx.http` object is a pre-configured HTTP client provided to every test for making API requests.
+`ctx.http` is the default way to talk to HTTP APIs in Glubean.
 
-## Purpose
-To provide a robust, ergonomic way to interact with HTTP APIs while automatically capturing traces and metrics for the Glubean platform.
+It exists so your requests automatically produce traces and metrics without extra setup.
 
-## Design Rationale
-Under the hood, `ctx.http` is a wrapper around the popular [ky](https://github.com/sindresorhus/ky) library, which is a lightweight and elegant `fetch` wrapper. 
-
-Why wrap it instead of just letting you use `fetch` or `ky` directly?
-- **Automatic Tracing:** Every request sent through `ctx.http` automatically generates an API trace (`ctx.trace()`) with the URL, method, status code, and duration.
-- **Automatic Metrics:** Every request emits an `http_duration_ms` metric (`ctx.metric()`) tagged with the method and path, allowing you to track endpoint performance over time in the dashboard.
-- **Ergonomics:** It provides built-in support for JSON body parsing, retries, and request/response schema validation.
-
-## Scenarios
-
-### Basic Requests
-The most common scenario is hitting an endpoint and parsing the JSON response.
+## Basic usage
 
 ```typescript
 export const getUser = test("get-user", async (ctx) => {
   const baseUrl = ctx.vars.require("BASE_URL");
-  
-  // Method shortcuts (get, post, put, delete, etc.)
+
   const users = await ctx.http.get(`${baseUrl}/users`).json();
-  
-  // POST with a JSON payload
-  const created = await ctx.http.post(`${baseUrl}/users`, { 
-    json: { name: "test" } 
+  const created = await ctx.http.post(`${baseUrl}/users`, {
+    json: { name: "Alice" },
   }).json();
 });
 ```
 
-### Scoped Clients
-If your test makes multiple requests to the same base URL with the same headers (e.g., an Authorization header), you can create a locally scoped client using `.extend()`.
+## Create a scoped client
+
+When multiple requests share a base URL or headers, use `.extend()`:
 
 ```typescript
 export const userFlow = test("user-flow", async (ctx) => {
-  // Create a customized instance of the HTTP client
-  const api = ctx.http.extend({ 
+  const api = ctx.http.extend({
     prefixUrl: ctx.vars.require("BASE_URL"),
-    headers: { Authorization: `Bearer ${ctx.secrets.require("TOKEN")}` }
+    headers: {
+      Authorization: `Bearer ${ctx.secrets.require("TOKEN")}`,
+    },
   });
 
-  // Now you can just use relative paths
-  const user = await api.get("users/1").json();
-  const settings = await api.get("users/1/settings").json();
+  await api.get("users/1").json();
+  await api.get("users/1/settings").json();
 });
 ```
 
-### Retries and Resilience
-When testing against staging or flakey environments, you can configure automatic retries for transient errors (like 502s or 503s).
+## Retries
+
+For flaky environments, you can retry selected status codes:
 
 ```typescript
-const res = await ctx.http.get("https://api.flaky.com/status", {
+await ctx.http.get("https://api.example.com/status", {
   retry: {
     limit: 3,
-    statusCodes: [429, 502, 503, 504]
-  }
-});
-```
-
-### Inline Schema Validation
-If you are using a schema library (like Zod 4, Valibot, or ArkType), `ctx.http` can automatically validate the request body before it is sent, or the response body after it is received.
-
-```typescript
-import { z } from "zod"; // Zod 4
-// import * as v from "valibot"; // Valibot
-
-const UserSchema = z.object({ id: z.number(), name: z.string() });
-// const UserSchema = v.object({ id: v.number(), name: v.string() });
-
-const res = await ctx.http.post(`${baseUrl}/users`, {
-  json: { name: "Alice" },
-  schema: {
-    response: UserSchema, // Automatically validates the response against UserSchema
+    statusCodes: [429, 502, 503, 504],
   },
 });
 ```
+
+## Schema-aware requests
+
+`ctx.http` can also validate request or response payloads with schema libraries such as Zod, Valibot, or ArkType.
+
+## Next
+
+- [Assertions](/sdk/assertions)
+- [Variables & Secrets](/sdk/env-and-secrets)
+- [Logs, Traces, Metrics](/sdk/observability)

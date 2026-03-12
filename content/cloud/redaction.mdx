@@ -1,28 +1,34 @@
 # Cloud Redaction Policies
 
-Glubean redacts sensitive data before results leave your machine. The CLI applies redaction rules from your `deno.json` config during upload (see [Guides: Redaction](/guides/redaction)).
+Glubean redacts sensitive data before results leave your machine. The CLI applies redaction rules from your project config during upload. See [CLI Redaction](/cli/redaction) for the local rules.
 
-Cloud provides a **visual rule editor** for teams — configure rules in the dashboard, then copy the config to your local project.
+Cloud adds a team-facing control surface on top of that local behavior.
 
-## Recommended Workflow
+## Recommended workflow
 
 ```text
 1. Configure rules        2. Export config         3. Use locally
 ┌─────────────────┐      ┌──────────────────┐     ┌──────────────────┐
 │ Cloud dashboard  │ ───► │ Copy as JSON     │ ──► │ Paste into       │
-│ (visual editor)  │      │                  │     │ deno.json        │
+│ (visual editor)  │      │                  │     │ package.json     │
 └─────────────────┘      └──────────────────┘     └──────────────────┘
 ```
 
 1. Use the Cloud dashboard's visual editor to build your redaction rules (easier than writing JSON by hand).
 2. Export the config as JSON.
-3. Paste into your project's `deno.json` under `glubean.redaction`.
+3. Paste into your project's `package.json` under `glubean.redaction`.
 
 The CLI applies these rules **locally before upload** — sensitive data never leaves your machine.
 
-Use the **Export JSON** button to download your rules, then paste into your project's `deno.json` under `glubean.redaction`. See the [config format](#local-config-format) below.
+Use the **Export JSON** button to download your rules, then paste into your project's `package.json` under `glubean.redaction`.
 
-## Configuring Rules in Cloud
+## What this page is for
+
+- understanding how Cloud policies relate to local redaction
+- confirming why uploaded traces are safe to share internally
+- making team-wide masking stricter when needed
+
+## Configuring rules in Cloud
 
 Go to **Team → Redaction** in the Cloud dashboard.
 
@@ -80,7 +86,7 @@ Choose how redacted values appear:
 
 ## Local Config Format
 
-The CLI reads redaction rules from `deno.json`:
+The CLI reads redaction rules from `package.json`:
 
 ```json
 {
@@ -104,7 +110,7 @@ The CLI reads redaction rules from `deno.json`:
 
 The built-in baseline (22 sensitive keys + 5 default patterns) is always active and **cannot be weakened**. Your config can only add rules on top.
 
-## Preview Before Uploading
+## Preview before uploading
 
 Use `glubean redact` to see exactly what will be masked without uploading:
 
@@ -112,10 +118,10 @@ Use `glubean redact` to see exactly what will be masked without uploading:
 glubean redact .glubean/last-run.result.json
 ```
 
-This uses partial masking in the console (`Bea***Xfk`) so you can verify which values are caught. See [Guides: Redaction](/guides/redaction) for details.
+This uses partial masking in the console (`Bea***Xfk`) so you can verify which values are caught. See [Guides: Redaction](/cli/redaction) for details.
 
-## Cloud-Side Redaction (Advanced)
+## Cloud-side redaction
 
 Cloud can also apply redaction policies **server-side** when a run is bound to a `redactionPolicyId`. This is used by cloud workers and scheduled runs — the server redacts event payloads at ingestion time.
 
-For CLI uploads, redaction happens locally before data is sent. Server-side redaction is a safety net for execution modes where the CLI isn't involved.
+For CLI uploads, redaction happens locally before data is sent. Server-side redaction is a safety net for execution modes where the CLI is not involved.

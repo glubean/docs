@@ -1,46 +1,42 @@
-# Workflow: Explore vs Tests
+# Explore vs Tests
 
-Glubean's file conventions map directly to the two main stages of API development and testing: **Exploration** and **Verification**.
+Glubean uses two directories because local exploration and committed verification are different activities.
 
-## Directory structure
+## The layout
 
-When you run `glubean init`, the CLI creates two folders:
+When you run `npx @glubean/cli init`, you get:
 
 ```
 my-project/
-├── explore/   # Interactive API exploration
-├── tests/     # Permanent verification suite
-└── data/      # Shared JSON/CSV for data-driven tests
+├── explore/   # scratchpad checks
+├── tests/     # committed verification suite
+└── data/      # shared JSON/CSV for data-driven checks
 ```
 
 The extension reads this folder structure and groups your tests in the **Test Explorer** sidebar accordingly.
 
-## 1. Explore (The Scratchpad)
+## `explore/`
 
-The `explore/` directory is your scratchpad. This is where you work when you are:
-- Trying out a new endpoint for the first time
-- Replicating a bug reported by a user
-- Asking an AI assistant to generate a test for a new OpenAPI spec
+Use `explore/` when you are:
 
-Tests in `explore/` are meant for quick iteration. You click the gutter **▶ play button**, inspect the Trace Viewer, adjust the code, and run it again. There are no consequences if an exploration test breaks.
+- trying an endpoint for the first time
+- reproducing a bug
+- asking AI to generate a first draft
+- iterating quickly without worrying about CI
 
-*Many teams choose to add `explore/` to their `.gitignore`, treating it purely as a local workspace.*
+These files are meant to be cheap to rewrite.
 
-## 2. Promote to Tests
+Many teams choose to gitignore `explore/` entirely.
 
-Once a test in `explore/` is stable and proves useful (e.g., it successfully covers a critical user flow or reproduces a regression), you should make it permanent.
+## `tests/`
 
-**Simply drag and drop the `.test.ts` file from `explore/` into `tests/`.**
+Move a file to `tests/` when it is stable enough to be part of the regression suite.
 
-That's it. Zero code changes needed. The VS Code Test Explorer will automatically move the test from the "Explore" group into the "Tests" group.
+That is usually the only change required.
 
-## 3. Run in CI
+The same file you ran locally can now run in CI with `glubean run ./tests`.
 
-The `tests/` directory is your permanent verification suite. These files are committed to git, reviewed in Pull Requests, and run automatically by your CI pipeline.
+## Rule of thumb
 
-In GitHub Actions or GitLab CI, you execute:
-```bash
-glubean run tests/
-```
-
-What you ran locally is exactly what runs in CI — the same `.test.ts` files, the same assertions, using the exact same CLI engine. This completely eliminates the "it worked in Postman but failed in Newman" problem.
+- `explore/` is for speed
+- `tests/` is for trust

@@ -1,101 +1,57 @@
-# Scenarios & Recipes
+# Common Recipes
 
-The Glubean CLI is highly configurable. Here are common recipes for day-to-day scenarios, ranging from local debugging to CI/CD integrations.
+These are the command patterns most teams keep using.
 
----
+## CI run with machine-readable output
 
-## 1. Running Tests in CI (GitHub Actions / GitLab)
-
-When running in CI, you care about two things: exiting with a non-zero code on failure, and producing test reports that your CI system understands (like JUnit XML).
-
-**Recipe:**
 ```bash
-# Run tests and generate both Glubean's structured JSON and a standard JUnit XML report
-glubean run --result-json test-results.json --reporter junit:test-results.xml
+glubean run ./tests \
+  --result-json .glubean/last-run.json \
+  --reporter junit:test-results.xml
 ```
 
-**Why it works:**
-- `--result-json` generates the structured payload that Glubean's cloud dashboard and VS Code extension understand.
-- `--reporter junit` generates an XML file that almost all CI systems (Jenkins, GitLab, GitHub Actions) parse natively to show visual test tabs.
+Use this when CI needs both a Glubean result file and a JUnit report.
 
----
+## Switch environments without changing code
 
-## 2. Testing Against Different Environments
-
-A core philosophy of Glubean is running the exact same tests locally, in staging, and in production without changing code.
-
-**Recipe:**
 ```bash
-# 1. Test against local dev (loads .env and .env.secrets by default)
 glubean run
-
-# 2. Test against staging
 glubean run --env-file .env.staging
-
-# 3. Test against production
 glubean run --env-file .env.prod
 ```
 
-**Why it works:**
-The CLI automatically looks for the corresponding `.secrets` file for the selected env file. For exact resolution rules and fallback behavior, see [Environments & Secrets](/guides/environments).
+The CLI automatically pairs each env file with its matching `.secrets` file. The canonical rules live in [Environments & Secrets](/cli/environments).
 
-**Recipe: Reuse local shell variables without copying secrets**
+## Reuse shell values without copying secrets
+
 ```bash
-# Already set in your shell profile
 export GLUBEAN_URL=https://api.example.com
 export GLUBEAN_API_KEY=sk_live_xxx
 
-# Map to test-facing names (no secret value copied into repo files)
 printf "BASE_URL=\${GLUBEAN_URL}\n" > .env
 printf "API_KEY=\${GLUBEAN_API_KEY}\n" > .env.secrets
 
 glubean run
 ```
 
-**Why it works:**
-This mapping pattern keeps test-facing key names stable while reusing shell-level variable names. For canonical resolution and fallback rules, see [Environments & Secrets](/guides/environments).
+This keeps test-facing names stable while reusing shell-level values.
 
----
+## Run only one test or one named example
 
-## 3. Targeting Specific Tests and Data Examples
-
-When debugging, running the whole suite is slow. You often want to isolate a single test or a single edge case in a data-driven test.
-
-**Recipe: Running a specific test by ID or Name**
 ```bash
 glubean run ./tests/users.test.ts --filter "create-user"
-```
-
-**Recipe: Running specific Data Examples (`test.pick`)**
-If you have a test using `test.pick()` with named examples (e.g., `normal`, `edge`, `invalid`), you can force the CLI to run only specific ones instead of picking randomly.
-```bash
 glubean run ./tests/users.test.ts --pick "edge,invalid"
 ```
 
-**Recipe: Running by Tags**
-```bash
-# Run all smoke tests and critical tests (OR logic)
-glubean run --tag smoke --tag critical
+## Run by tags
 
-# Run tests that are BOTH auth AND smoke (AND logic)
+```bash
+glubean run --tag smoke --tag critical
 glubean run --tag auth --tag smoke --tag-mode and
 ```
 
----
+## Save more detail while debugging
 
-## 4. Deep Debugging Locally
-
-When a test fails and the default compact output isn't enough, you need to see exactly what HTTP requests were sent and what the API returned.
-
-**Recipe: Verbose Console Output**
 ```bash
-glubean run ./tests/flaky.test.ts --verbose
+glubean run ./tests/flaky.test.ts --verbose --emit-full-trace
 ```
-*This prints full request/response bodies and every single assertion directly to your terminal.*
-
-**Recipe: Writing HTTP Traces to Disk**
-```bash
-glubean run ./tests/flaky.test.ts --emit-full-trace
-```
-*This saves human-readable `.trace.jsonc` files inside `.glubean/traces/` containing the exact HTTP pairs. It's excellent for diffing requests to see what changed between successful and failed runs.*
-
