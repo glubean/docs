@@ -2,6 +2,8 @@
 
 Glubean provides two scopes for sharing state between tests: **module scope** (within a file) and **session scope** (across files).
 
+Session scope is **per run**. It exists only for a single `glubean run` execution and is not persisted across runs.
+
 ## Module scope — within a file
 
 Tests in the same file run sequentially in a single process. Module-level variables persist between tests:
@@ -153,18 +155,13 @@ const token = ctx.session.require("token");
 
 ### ctx.session.set(key, value)
 
-Sets a value. Available to subsequent test files in sequential mode.
+Sets a value. It is available immediately within the current file, and to subsequent test files in sequential mode. Any JSON-serializable value is supported.
 
 ```ts
 ctx.session.set("orderId", createdOrder.id);
-```
-
-Values must be strings. For objects, use `JSON.stringify()`:
-
-```ts
-ctx.session.set("user", JSON.stringify({ id: 42, name: "test" }));
-// later:
-const user = JSON.parse(ctx.session.require("user"));
+ctx.session.set("user", { id: 42, name: "test" });
+ctx.session.set("tags", ["smoke", "api"]);
+ctx.session.set("retryCount", 3);
 ```
 
 ### ctx.session.entries()
@@ -192,6 +189,8 @@ No assertions are available in session setup/teardown — it's for initializatio
 ## File discovery
 
 The runner looks for `session.ts` or `session.setup.ts` starting from your test directory and walking up toward the project root. This mirrors how config files are resolved.
+
+This also applies when you run a single file. For example, `glubean run tests/api/users.test.ts` still walks up to find the nearest `session.ts`.
 
 ```
 project/
@@ -225,6 +224,12 @@ Useful for debugging individual tests in isolation. `ctx.session` will still exi
 
 ## Current limitations
 
-- **Sequential mode only.** Session state propagates file-to-file in discovery order.
-- **String values only.** Use `JSON.stringify()`/`JSON.parse()` for objects.
+- **Sequential mode only.** Session state propagates file-to-file in discovery order. This is the current v1 behavior, not a long-term parallel execution contract.
+- **JSON-serializable values only.** Strings, numbers, booleans, arrays, plain objects — anything that survives `JSON.stringify()`.
 - **No parallel guarantees.** If parallel execution is added in the future, cross-file session writes will require explicit file dependency configuration.
+
+## What not to store in session
+
+- **Long-term config.** Use `configure()` or env files for stable configuration.
+- **Source-of-truth secrets.** Read secrets from `.env.secrets` and copy only the runtime values you actually need.
+- **Large payloads.** Session crosses process boundaries via JSON — prefer IDs, tokens, and small objects over large datasets.
