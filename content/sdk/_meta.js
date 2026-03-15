@@ -6,6 +6,7 @@ export default {
   'env-and-secrets': 'Variables & Secrets',
   'data-driven': 'Data-Driven',
   'local-data': 'Local Data',
+  'shared-state': 'Shared State',
   'test-control': 'Control Flow',
   observability: 'Logs, Traces, Metrics',
   configuration: 'Shared Config',
