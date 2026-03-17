@@ -11,7 +11,7 @@ import { configure, test, type ExtensionFn } from "@glubean/sdk";
 import { browser, type GlubeanPage } from "@glubean/browser";
 
 const config = configure({
-  vars: { appUrl: "APP_URL" },
+  vars: { appUrl: "{{APP_URL}}" },
   plugins: {
     chrome: browser({ launch: true }),
   },

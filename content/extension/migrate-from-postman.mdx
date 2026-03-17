@@ -305,10 +305,10 @@ Requirements:
 import { configure } from "@glubean/sdk";
 
 export const { vars, secrets, http } = configure({
-  vars: { baseUrl: "BASE_URL" },
-  secrets: { apiToken: "API_TOKEN" },
+  vars: { baseUrl: "{{BASE_URL}}" },
+  secrets: { apiToken: "{{API_TOKEN}}" },
   http: {
-    prefixUrl: "BASE_URL",
+    prefixUrl: "{{BASE_URL}}",
     headers: { Authorization: "Bearer {{API_TOKEN}}" },
   },
 });
