@@ -2,15 +2,13 @@
 
 ## Different tools, different philosophies
 
-Glubean, Postman, and REST Client are all ways to send HTTP requests and inspect responses — but they come from fundamentally different starting points.
+Glubean, Postman, and REST Client all deal with APIs — but they solve different problems.
 
-In an AI-assisted workflow, one-off requests are easy. Glubean focuses on what remains hard: persistent regression tests, traceability, and CI reliability.
+**Postman** is a standalone GUI application. You fill in fields, click buttons, organise requests into collections, and share them via cloud sync. Great for teams with non-developers.
 
-**Postman** is a standalone application built around a visual GUI. You fill in fields, click buttons, organise requests into collections, and share them via cloud sync. No code required.
+**REST Client** (the VS Code extension) lets you write `.http` files with raw HTTP syntax. Simple and lightweight — great for one-off requests.
 
-**REST Client** (the VS Code extension) lets you write `.http` files with raw HTTP syntax directly in your editor. Simple and lightweight — great for one-off requests.
-
-**Glubean** is built around TypeScript. Your tests are `.ts` files, versioned in git, run from the gutter, and executed by the same CLI that runs in CI. The focus is on repeatable, assertable, multi-step tests — not just sending a request.
+**Glubean** is a developer-owned API verification platform. Your verification code is TypeScript, versioned in git, run from the editor or CI. Beyond HTTP, plugins support browser automation, GraphQL, gRPC, and anything Node.js supports. `explore/` replaces Postman collections (with `test.pick` as the equivalent of Postman Examples), `tests/` is your CI regression suite. Vars and secrets are separated at the SDK level — not by convention, by architecture. And it's AI-native: MCP server + skill + schema inference enable an AI self-healing loop where tests are generated, executed, and fixed without leaving the chat.
 
 None of these is objectively better. The right choice depends on how your team works.
 
@@ -19,12 +17,12 @@ None of these is objectively better. The right choice depends on how your team w
 ## Who each tool is best for
 
 **Glubean** fits naturally if you:
-- Live in VS Code and want tests alongside your application code
-- Want collections versioned in git and reviewed in PRs
-- Need real assertions — status codes, response body shape, schema validation
+- Want your API collection in git, not in a proprietary cloud
+- Need real assertions, not just "200 OK"
 - Work with multi-step flows (create → fetch → verify → cleanup)
-- Use AI assistants to generate tests from specs
-- Need the same test suite to run locally and in CI without any changes
+- Use AI to generate and maintain tests (MCP + skill closed loop)
+- Need the same verification to run locally, in CI, and against production
+- Want to verify more than HTTP — browser, GraphQL, gRPC, crypto, or any Node.js code
 
 **Postman** fits naturally if you:
 - Prefer a visual interface over writing code
@@ -43,15 +41,17 @@ None of these is objectively better. The right choice depends on how your team w
 | | Glubean | Postman | REST Client |
 |---|---|---|---|
 | Where it lives | VS Code / Cursor | Standalone app | VS Code |
-| Request authoring | TypeScript | GUI form | `.http` file syntax |
-| Version control | Native — `.ts` files in git | Export/import JSON | Native — `.http` files in git |
-| Assertions | Rich: fluent `expect`, schema validation, custom metrics | Test scripts (JS) | None |
-| Multi-step flows | Built-in `.step()` builder | Collections + variables | Not supported |
-| Trace history & diff | Built-in, per-test | Not built-in | Not built-in |
-| AI-friendly | Designed for it — rich JSDoc, generate from OpenAPI | Limited | Limited |
+| Request authoring | TypeScript code | GUI form | `.http` file syntax |
+| Beyond HTTP | Plugins: browser, GraphQL, gRPC, any Node.js lib | Limited | No |
+| Version control | Git-native — `.ts` files, PR review, merge | Export/import JSON | Git-native — `.http` files |
+| Assertions | Fluent `expect`, schema validation, custom metrics | Test scripts (JS) | None |
+| Data-driven | `test.each` (all cases) + `test.pick` (= Postman Examples) | Collection Runner | Not supported |
+| Multi-step flows | `.step()` builder with shared state | Collections + variables | Not supported |
+| Result history & diff | Per-test history, prev/next navigation, VS Code diff | Not built-in | Not built-in |
+| Vars & secrets | Separated by architecture (`.env` + `.env.secrets`) | Mixed in one environment | Variables in `.env` |
+| AI integration | AI-native: MCP server, skill, schema inference, self-healing loop | Limited | Limited |
 | CI integration | `glubean run` in any pipeline | Newman CLI | Not supported |
-| Environment switching | Status bar picker, `.env` files | Environments UI | Variables in `.env` file |
-| No-code usage | No — requires TypeScript | Yes | Minimal — plain text syntax |
+| Debugging | Full VS Code debugger — breakpoints in any Node.js code | Console-only | Not supported |
 | Pricing | Free, open source | Free + paid tiers | Free, open source |
 
 ---
@@ -62,6 +62,4 @@ REST Client is the right tool when you want a quick, no-setup way to fire off re
 
 Postman is the right tool when your team needs a shared, visual workspace — especially if non-developers are involved.
 
-Glubean is the right tool when your API tests are a first-class part of your codebase: committed, reviewed, and run automatically in CI.
-
-Many teams use all three: REST Client for quick exploration, Postman for sharing with stakeholders, and Glubean for the regression suite.
+Glubean is the right tool when API verification is a first-class part of your codebase: git-safe, developer-owned, AI-accelerated, and running the same code from your editor to production.

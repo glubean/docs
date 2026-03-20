@@ -1,30 +1,70 @@
+---
+title: Environments & Secrets
+description: Switch environments, preview variables on hover, and manage secrets safely.
+---
+
 # Environments & Secrets
 
-This page focuses on the VS Code extension workflow (status bar switching, hover preview, and run behavior). For the canonical rules (file model, resolution order, system fallback, and `${...}` mapping), see [Environments & Secrets](/cli/environments).
+Glubean separates public configuration from sensitive credentials **at the SDK level** — not by convention, by design. `vars` and `secrets` are two different APIs with two different storage files. This makes it impossible to accidentally commit a secret or mix up which values are sensitive.
+
+This is different from most tools where all environment variables live in one place and security depends on discipline.
+
+For the canonical rules (file model, resolution order), see [CLI Environments & Secrets](/cli/environments).
+
+---
+
+## The separation model
+
+| | `.env` (vars) | `.env.secrets` (secrets) |
+|---|---|---|
+| **API** | `ctx.vars.require("KEY")` | `ctx.secrets.require("KEY")` |
+| **Git** | Committed | Gitignored |
+| **Content** | URLs, flags, public IDs | API keys, tokens, passwords |
+| **Hover preview** | Full value shown | Masked (`sk-l****en`) |
+| **Cloud upload** | Visible in dashboard | Redacted by builtin rules (key-name matching) |
 
 ## Environment files
 
-Use the standard Glubean env file model (`.env`, `.env.staging`, `.env.prod` and matching `.secrets` files) from the canonical guide: [Environments & Secrets](/cli/environments).
+- `.env` — default public variables
+- `.env.staging`, `.env.prod`, etc. — named environments
+- `.env.secrets` — sensitive values for the default environment
+- `.env.staging.secrets` — sensitive values for the staging environment
+
+`.env.secrets` files should be added to `.gitignore`.
+
+---
 
 ## Switching environments
 
-The active environment is shown in the status bar at the bottom of the window. Click it to open a quick-pick menu:
+The active environment is shown in the status bar:
 
 ```
-⚙ .env  ▾
+$(server-environment) env: default
 ```
 
-Selecting `.env.staging` immediately switches all subsequent runs to load variables from that file. The matching `.env.staging.secrets` is loaded automatically — no extra step.
+Click it (or run `Glubean: Select Environment` from the Command Palette) to open the environment picker. All subsequent test runs use the selected `.env` file.
 
-You can also switch from the Command Palette:
+### Display names
 
-```
-Glubean: Select Environment
-```
+| File | Shown as |
+|---|---|
+| `.env` | default |
+| `.env.staging` | staging |
+| `.env.prod` | prod |
+
+### Excluded files
+
+These files never appear in the picker:
+
+- `.env.secrets` (and any `*.secrets` variant)
+- `.env.local`
+- `.env.example`
+
+The selection persists across VS Code restarts (stored in workspace state).
+
+---
 
 ## Accessing variables in tests
-
-Use `ctx.vars` for regular variables and `ctx.secrets` for sensitive values:
 
 ```typescript
 export const getUser = test("get-user", async (ctx) => {
@@ -36,21 +76,54 @@ export const getUser = test("get-user", async (ctx) => {
   });
 });
 ```
-For full API semantics (`get` vs `require`, validation behavior), see [SDK Environment & Secrets](/sdk/env-and-secrets).
+
+For full API details (`get` vs `require`, validation), see [SDK Environment & Secrets](/sdk/env-and-secrets).
+
+---
+
+## Template resolution in configure()
+
+When you use `{{KEY}}` templates in `configure()` HTTP options (headers, prefixUrl), the resolution searches **secrets first, then vars**:
+
+```typescript
+export const api = configure({
+  vars: { baseUrl: "BASE_URL" },
+  secrets: { token: "API_TOKEN" },
+  http: {
+    prefixUrl: "{{BASE_URL}}",                    // found in .env (vars)
+    headers: {
+      Authorization: "Bearer {{API_TOKEN}}",      // found in .env.secrets (secrets)
+    },
+  },
+});
+```
+
+This means you _can_ put a secret in `.env` and `{{KEY}}` will still find it — **but you shouldn't.** Keep secrets in `.env.secrets` so they stay gitignored, masked in hover preview, and redacted on Cloud upload.
+
+> **Where to put what:** If the value would be dangerous to leak in a git commit or a dashboard screenshot, it belongs in `.env.secrets`. Everything else goes in `.env`.
+
+---
 
 ## Hover preview
 
-Hover over any `vars.require("KEY")` or `secrets.require("KEY")` call in your editor to see the resolved value from the currently selected environment:
+Hover over `vars.require("KEY")` or `secrets.require("KEY")` in your test file to see the resolved value from the currently selected environment.
 
-```typescript
-const baseUrl = ctx.vars.require("BASE_URL");
-//                                  ^
-//   hover → BASE_URL = "https://api.staging.example.com"
-```
+- **vars** — shows the full value and its source file:
+  ```
+  BASE_URL = "https://api.staging.example.com"  (.env.staging)
+  ```
+- **secrets** — value is masked. Only the first 4 and last 2 characters are shown, the rest is replaced with `****`:
+  ```
+  API_TOKEN = "sk-l****en"  (.env.staging.secrets)
+  ```
+- **Not found** — shows a warning:
+  ```
+  WARNING  BASE_URL — not found in .env.staging
+  ```
 
-Secret values are masked in the hover tooltip.
+---
 
-## Next
+## What's next?
 
-- [Running Tests](/extension/running-tests)
-- [CLI Environments & Secrets](/cli/environments)
+- [Running Tests](/extension/running-tests) — Run tests in the selected environment
+- [CLI Environments & Secrets](/cli/environments) — File model, resolution order, CI usage

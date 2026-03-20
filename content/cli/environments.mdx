@@ -2,17 +2,36 @@
 
 This is the canonical page for env files, secret files, lookup order, and `${...}` mapping.
 
+## Design: vars and secrets are separate by architecture
+
+Most tools mix all environment variables into one bucket. Glubean splits them into two distinct systems at the SDK level:
+
+| | `.env` (vars) | `.env.secrets` (secrets) |
+|---|---|---|
+| **API** | `ctx.vars.require("KEY")` | `ctx.secrets.require("KEY")` |
+| **Git** | Committed — shared baseline | Gitignored — never in repo |
+| **Content** | URLs, feature flags, public IDs | API keys, tokens, passwords |
+| **Cloud upload** | Visible in dashboard | Redacted by builtin rules (key-name matching) |
+| **Hover preview** | Full value | Masked (`sk-l****en`) |
+
+**Why this matters:**
+- You cannot accidentally commit a secret — it's in a different file that's gitignored
+- You cannot accidentally read a secret as a var — the SDK APIs are separate
+- CI environments map naturally — vars from config, secrets from CI secret store
+- Cloud redaction is automatic — secrets are identified by source, not by guessing
+
 ## File model
 
 ```text
-.env
-.env.staging
-.env.prod
-.env.staging.secrets
-.env.prod.secrets
+.env                    # public vars — committed
+.env.secrets            # credentials — gitignored
+.env.staging            # staging vars — committed
+.env.staging.secrets    # staging credentials — gitignored
+.env.prod               # production vars — committed
+.env.prod.secrets       # production credentials — gitignored
 ```
 
-Secrets files should be ignored by git:
+Add this to `.gitignore`:
 
 ```text
 *.secrets
@@ -20,14 +39,33 @@ Secrets files should be ignored by git:
 
 ## What your tests read
 
-- `ctx.vars.require("KEY")` for required config
-- `ctx.vars.get("KEY")` for optional config
-- `ctx.secrets.require("KEY")` for required secrets
+- `ctx.vars.require("KEY")` — reads from `.env`, throws if missing
+- `ctx.vars.get("KEY")` — reads from `.env`, returns `undefined` if missing
+- `ctx.secrets.require("KEY")` — reads from `.env.secrets`, throws if missing
 
 ```typescript
-const baseUrl = ctx.vars.require("BASE_URL");
-const token = ctx.secrets.require("API_TOKEN");
+const baseUrl = ctx.vars.require("BASE_URL");     // from .env
+const token = ctx.secrets.require("API_TOKEN");    // from .env.secrets
 ```
+
+**`vars` never reads `.env.secrets`. `secrets` never reads `.env`.** They are isolated by design.
+
+### Template resolution in configure()
+
+When you use `{{KEY}}` in `configure()` HTTP options, resolution searches **secrets first, then vars**:
+
+```typescript
+export const api = configure({
+  http: {
+    prefixUrl: "{{BASE_URL}}",                  // found in .env
+    headers: {
+      Authorization: "Bearer {{API_TOKEN}}",    // found in .env.secrets
+    },
+  },
+});
+```
+
+> **Rule of thumb:** If leaking the value would be a security incident, put it in `.env.secrets`. Everything else goes in `.env`.
 
 ## Lookup order
 

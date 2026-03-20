@@ -1,6 +1,11 @@
+---
+title: Debugging
+description: Step through tests with breakpoints using the VS Code debugger.
+---
+
 # Debugging
 
-Use this page when traces are not enough and you need to step through execution.
+Glubean tests are real Node.js code. You can import any npm package — crypto libraries, database clients, file parsers, third-party SDKs — and debug them with the full power of VS Code's debugger. This is something GUI tools like Postman fundamentally cannot do: when a crypto function returns an unexpected hash, or a third-party SDK throws a cryptic error, you need to set a breakpoint and inspect the actual runtime state.
 
 ## Breakpoints in test code
 
@@ -9,8 +14,10 @@ Glubean tests run on Node, which exposes the V8 inspector that VS Code already u
 To debug a test:
 
 1. Set a breakpoint anywhere in your `*.test.ts` file — click the gutter to the left of a line number.
-2. Right-click the **▶** button next to the `test(` call and choose **Debug Test**, or select it from the Test Explorer context menu.
+2. Right-click the **Play** button next to the `test(` call and choose **Debug Test**, or select it from the Test Explorer context menu.
 3. Execution pauses at your breakpoint.
+
+> **Tip:** Right-click any Play button and select "Debug Test" to enter debug mode. You can also use the bug icon in Test Explorer.
 
 From there you can:
 - Step through lines with `F10` / `F11`
@@ -18,15 +25,42 @@ From there you can:
 - Evaluate expressions in the Debug Console
 - Hover over any variable in the editor to see its current value
 
-## Inspecting HTTP calls
+## When debugging matters most
 
-The debugger is most useful when you want to inspect a response before the assertion path hides the root cause.
+### Third-party libraries and crypto
+
+When your test involves npm packages beyond HTTP, the debugger is essential — you can't "trace" a crypto function or a database query the way you trace an HTTP call.
+
+```typescript
+import { createHmac } from "node:crypto";
+import { test } from "@glubean/sdk";
+
+export const verifyWebhook = test("verify-webhook", async (ctx) => {
+  const secret = ctx.secrets.require("WEBHOOK_SECRET");
+  const payload = '{"event":"order.created"}';
+
+  const signature = createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");  // set a breakpoint here — inspect the actual hash
+
+  const res = await ctx.http.post("/webhooks", {
+    body: payload,
+    headers: {
+      "x-signature": signature,
+      "content-type": "application/json",
+    },
+  });
+  ctx.expect(res).toHaveStatus(200);
+});
+```
+
+### Inspecting HTTP responses
 
 ```typescript
 export const createAndFetch = test("create-and-fetch")
   .step("create", async (ctx) => {
     const res = await ctx.http.post("/api/users", { json: { name: "Alice" } });
-    const body = await res.json();  // ← set a breakpoint here
+    const body = await res.json();  // set a breakpoint here
     return { id: body.id };
   })
   .step("fetch", async (ctx, { id }) => {
@@ -35,7 +69,7 @@ export const createAndFetch = test("create-and-fetch")
   });
 ```
 
-Pause after `.post()` and inspect `res` directly in the debug console — status code, headers, raw body — before the assertion runs.
+Pause after any `await` and inspect the result directly in the debug console — response body, intermediate variables, computed values — before the assertion runs.
 
 ## Tips
 
@@ -56,7 +90,9 @@ ctx.log("User created", { id: body.id, status: res.status });
 '{\n  "id": 42,\n  "name": "Alice"\n}'
 ```
 
-## Next
+**One test at a time** — the debugger runs a single test per session. This is inherent to how debugging works.
 
-- [Traces & Diff](/extension/traces-and-diff)
+## What's next?
+
+- [Result Viewer](/extension/result-viewer) — Inspect results without stopping execution
 - [CLI Debugging](/cli/debugging)

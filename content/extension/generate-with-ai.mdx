@@ -1,10 +1,35 @@
 import { Callout } from 'nextra/components'
 
-# Test Any Public API in 2 Minutes
+# Generate Tests with AI
+
+## Why Glubean is AI-native
+
+Most API tools were built for humans clicking buttons. AI agents can't click a GUI — but they can read, write, and execute code. Glubean is code-first by design, which makes it the natural fit for AI-assisted workflows.
+
+**The AI closed-loop is already real today:**
+
+1. **Skill** — tells the AI how to write Glubean tests (SDK patterns, project conventions, rules)
+2. **MCP server** — gives the AI tools to discover, run, and inspect tests without leaving the chat
+3. **Schema inference** — large API responses are summarized as JSON Schema, so AI understands the shape without reading megabytes of data
+4. **Structured failures** — when a test fails, AI sees exactly which assertion failed with `expected` vs `actual`, not a wall of text
+
+With the right project context — ideally API source code in the same workspace, or an up-to-date OpenAPI spec, plus skill and lens — we've achieved an AI self-healing loop: describe what to verify → AI writes the test → MCP runs it → AI reads structured failures → fixes and reruns → loop until green. In practice, the quality depends heavily on how much context is available — we're continuously improving this to make it more seamless. But even without perfect setup, AI-generated tests are a strong starting point that you refine, not write from scratch.
+
+### Setup
+
+```bash
+npx glubean config mcp       # install MCP server for your AI editor
+npx glubean config skill     # install the Glubean skill
+npx glubean docs pull        # download @glubean/lens — SDK patterns & reference for AI
+```
+
+After this, your AI tool (Claude Code, Cursor, Codex) can discover tests, run them, and read results — all through structured APIs.
+
+---
+
+## One sentence to a working test
 
 No Postman collection. No complex config. Just your AI and one sentence.
-
-Tell your AI what you want. One sentence is enough.
 
 ---
 
@@ -139,13 +164,12 @@ Each step receives state from the previous step, and `.teardown()` runs even if 
 
 The examples above work with zero setup — great for exploring public APIs. For your own APIs, adding context dramatically improves accuracy:
 
-- **OpenAPI spec** in `context/` — AI knows your exact routes and response shapes, no guessing
-- **Skill file** — AI follows your SDK conventions, auth patterns, and assertion style
-- **MCP tools** — AI runs tests and fixes failures automatically, in the same chat turn
+- **API source code in the same workspace** — the best context is the actual implementation. Put your test project alongside your API repo in the same VS Code workspace and AI can read routes, handlers, validation rules, and response shapes directly from source. This beats any spec because source code is always up to date
+- **OpenAPI spec** in `context/` — when you can't share source code, an OpenAPI spec is the next best option. AI knows your routes and response shapes, though specs can drift from reality
+- **Skill + MCP** (set up above) — AI follows your conventions, runs tests, and fixes failures in the same chat turn
+- **Lens** (`glubean docs pull`) — AI reads SDK patterns and uses advanced features like `test.pick`, `configure()`, auth plugins
 
-With all three, generated tests run on first try instead of needing 2-3 rounds of manual fixes.
-
-→ Read the full **[AI Context Guide](/extension/ai-integration)** for setup instructions.
+With all three, generated tests typically run on first try instead of needing 2-3 rounds of manual fixes.
 
 ---
 
@@ -163,6 +187,6 @@ The file you explored with today catches regressions in CI tomorrow.
 
 ## What's next?
 
-- [AI Context Guide](/extension/ai-integration) — set up OpenAPI specs, skills, and MCP for maximum generation accuracy
 - [Quick Start](/extension/quick-start) — install the extension and create your first project
-- [Migrate from Postman/OpenAPI](/extension/migrate-from-postman) — convert existing collections with AI
+- [Migrate from Postman / OpenAPI](/extension/migrate-from-postman) — convert existing collections with AI
+- [Writing Tests](/extension/writing-tests) — snippets and data-driven patterns for manual authoring

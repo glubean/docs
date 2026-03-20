@@ -1,71 +1,113 @@
+---
+title: Running Tests
+description: Play buttons, Test Explorer, keyboard shortcuts, Tasks Panel, and rerun workflows.
+---
+
 # Running Tests
 
-This page covers the editor-side ways to run Glubean checks.
+The extension provides multiple ways to run tests, from single-click gutter buttons to full project runs.
 
-## Run from the gutter
+---
 
-Every `test()` call gets a **▶** button in the gutter. Use it to run one test immediately.
+## Play buttons
 
-When the run finishes, Glubean updates the gutter state and opens the trace viewer beside your code.
+### Gutter button
 
-## Run the whole file
+Every `test()` call gets a **Play** button in the gutter (line number area). Click to run that single test. The Result Viewer opens automatically when the run finishes.
 
-When a `*.test.ts` file is open, the editor title bar also exposes a run button for the entire file.
+### Editor title bar
 
-## Test Explorer
+When a `.test.ts` or `.test.js` file is open, a **Play** button appears in the editor title bar. It runs all tests in the current file.
 
-Glubean integrates with VS Code's native Test Explorer.
+### Test Explorer
 
-You usually see two groups:
+The Test Explorer sidebar (Testing icon in the Activity Bar) lists all discovered tests. You can run tests at any level: individual test, file, or folder.
 
-- **Explore** for scratchpad checks in `explore/`
-- **Tests** for committed checks in `tests/`
+Tests are grouped into **Explore** (from `explore/`) and **Tests** (from `tests/`). Multi-workspace projects show project-level nodes.
 
-From Test Explorer you can run a folder, file, or single test and inspect the latest pass or fail state.
+> **Right-click for Debug:** right-click any Play button and select **Debug Test** to run with breakpoints. See [Debugging](/extension/debugging).
 
-### Multi-step tests
+---
 
-Builder-style tests appear as trees so you can see which step failed:
+## Keyboard shortcuts
+
+| Shortcut (Mac) | Shortcut (Win/Linux) | Action |
+|---|---|---|
+| `Cmd+Alt+T` | `Ctrl+Alt+T` | Run all tests in the current file |
+| `Cmd+Shift+R` | `Ctrl+Shift+R` | Re-run the last test (single, file, or project) |
+
+---
+
+## Run file / Run project
+
+- **Run file** — Command Palette: `Glubean: Run All Tests in File`, or `Cmd+Alt+T`, or the editor title bar Play button, or right-click a test file in the Explorer sidebar.
+- **Run project** — Command Palette: `Glubean: Run All Tests in Project`, or right-click any folder in the Explorer sidebar. Runs all test files under that folder.
+
+---
+
+## Rerun workflows
+
+### Re-run last
+
+`Cmd+Shift+R` (or `Glubean: Re-run Last Request` from the Command Palette) repeats whatever you ran last — single test, file, or project. If there is no previous run, you get a prompt.
+
+### Rerun Failed
+
+After a run with failures, you can re-run only the failed tests:
+
+- **Result Viewer** — click the `Rerun Failed (N)` button in the header.
+- **Command Palette** — `Glubean: Rerun Failed Tests`.
+
+---
+
+## Test Explorer layout
+
+Configure how tests appear in the sidebar with `glubean.testExplorerLayout`:
+
+| Value | Behavior |
+|---|---|
+| `"flat"` | Files listed directly under the project node, no directory hierarchy |
+| `"tree"` | Full directory hierarchy (e.g. `dummyjson/ > smoke.test.ts`) |
+| `"auto"` (default) | Flat when 15 or fewer files, tree when more |
+
+The layout refreshes automatically when the setting changes.
+
+### Multi-step tests in the tree
+
+Builder-style tests (using `.step()`) display each step as a child node:
 
 ```text
-▼ auth-flow
-  ✓ login          (142ms)
-  ✓ get profile    (89ms)
-  ✗ update name    AssertionError: expected 200, got 422
+auth-flow
+  login          (142ms)
+  get profile    (89ms)
+  update name    AssertionError: expected 200, got 422
 ```
 
-## Re-run the previous target
-
-Use the rerun shortcut for the most recent target:
-- **Mac:** `Cmd + Shift + R`
-- **Windows/Linux:** `Ctrl + Shift + R`
-
-## Data-driven tests
-
-`test.each()` rows appear as child nodes:
-
-```typescript
-export const statusCodes = test.each([
-  { id: 1,   expected: 200 },
-  { id: 999, expected: 404 },
-])("get-item-$id", async (ctx, { id, expected }) => {
-  const res = await ctx.http.get(`/items/${id}`);
-  ctx.expect(res.status).toBe(expected);
-});
-```
-
-You can run a single row from the tree.
-
-`test.pick()` examples show up as CodeLens actions above the test so you can run `normal`, `edge`, or other named examples directly.
+---
 
 ## Tasks Panel
 
-If your team defines `glubean run` commands in `package.json` scripts, the Tasks Panel turns them into clickable presets such as `test:staging` or `test:smoke`.
+If your `package.json` defines scripts containing `glubean run`, they appear in the **Glubean Tasks** panel (inside the Testing sidebar).
 
-This is useful when QA or non-authors need stable run buttons without learning CLI flags.
+Each task shows its name, status (idle / running / passed / failed), and last run summary (e.g. "2/3 passed  5m ago"). Click the **Play** button next to a task to run it.
 
-## Next
+Use the title bar buttons to **Run All Tasks** (sequential) or **Refresh** the list.
 
-- [Traces & Diff](/extension/traces-and-diff)
-- [Environments & Secrets](/extension/environments)
-- [CLI Command Reference](/cli/reference)
+After a task completes, the Result Viewer opens automatically based on the `glubean.openResultAfterTask` setting (`"always"`, `"failures"` (default), or `"never"`).
+
+---
+
+## explore/ vs tests/
+
+- `explore/` is your **API collection** — the code-first replacement for Postman collections. Each file covers one or more endpoints, `test.pick` saves multiple parameter sets per endpoint, and you pick the one you need. Committed to git, shared with the team.
+- `tests/` is your **regression suite** — runs in CI with `glubean run tests/`. Use `test.each` to run every case, every time.
+
+When an exploration becomes stable enough for CI, copy it to `tests/` and switch from `test.pick` to `test.each`.
+
+---
+
+## What's next?
+
+- [Result Viewer](/extension/result-viewer) — Understand what happened after a run
+- [Environments & Secrets](/extension/environments) — Switch environments before running
+- [Writing Tests](/extension/writing-tests) — Snippets and data-driven patterns

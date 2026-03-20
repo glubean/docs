@@ -2,7 +2,7 @@ export default {
   index: 'Home',
   'getting-started': 'Start Here',
   sdk: 'SDK & Plugins',
-  extension: 'Run In Editor',
+  extension: 'VS Code Extension',
   cloud: 'Use In Cloud',
   cli: 'CLI & Config',
   reference: 'Reference',

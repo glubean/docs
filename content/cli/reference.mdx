@@ -25,7 +25,7 @@ glubean run [target] [options]
 - `--fail-after <N>`: Stop the test run after *N* test failures.
 - `--result-json [path]`: Write structured execution results to a JSON file. Prefer an explicit path such as `.glubean/last-run.json`.
 - `--reporter <format>[:<path>]`: Output format for CI integrations. Currently supports `junit` (e.g., `--reporter junit:results.xml`).
-- `--emit-full-trace`: Save full HTTP request/response pairs as `.trace.jsonc` files in `.glubean/traces/` for detailed local debugging.
+- `--emit-full-trace`: Include full HTTP request/response bodies in trace events for detailed debugging.
 - `--inspect-brk [port]`: Enable the V8 Inspector to attach a debugger (e.g., Chrome DevTools) and break on the first line.
 
 ## `glubean init`
