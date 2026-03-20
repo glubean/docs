@@ -87,8 +87,8 @@ When you use `{{KEY}}` templates in `configure()` HTTP options (headers, prefixU
 
 ```typescript
 export const api = configure({
-  vars: { baseUrl: "BASE_URL" },
-  secrets: { token: "API_TOKEN" },
+  vars: { baseUrl: "{{BASE_URL}}" },
+  secrets: { token: "{{API_TOKEN}}" },
   http: {
     prefixUrl: "{{BASE_URL}}",                    // found in .env (vars)
     headers: {
