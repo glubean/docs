@@ -2,35 +2,44 @@
 
 Use the CLI when you want a repeatable terminal-first debug loop.
 
-## Start with one failing target
+## Start with one failing file
 
 ```bash
-glubean run ./tests/users.test.ts --verbose --emit-full-trace
+glubean run tests/users.test.ts --verbose
 ```
 
-This gives you both:
-
-- detailed terminal output
-- full trace artifacts on disk
+`--verbose` prints full HTTP request/response bodies and assertion details to the console.
 
 ## Narrow the scope
 
 ```bash
-glubean run ./tests/users.test.ts --filter "create-user"
-glubean run ./tests/users.test.ts --pick "edge,invalid"
+glubean run tests/users.test.ts --filter "create-user"
+glubean run tests/users.test.ts --pick "edge,invalid"
 ```
 
-Use `--filter` for a test name or ID and `--pick` for named `test.pick()` examples.
+`--filter` matches test name or ID. `--pick` selects specific `test.pick()` examples.
 
-## Step through in the editor
+## Get more detail on disk
 
-In VS Code/Cursor, run **Debug Test** from gutter/Test Explorer to attach the runtime inspector and step through your test.
+```bash
+glubean run tests/users.test.ts --verbose --emit-full-trace
+```
 
-## Trust artifacts, not memory
+`--emit-full-trace` writes full HTTP headers and bodies into trace files under `.glubean/traces/`.
 
-Use [Reference: Artifacts](/reference/artifacts) as the source of truth for where traces/results/metadata live.
+## Attach a debugger
+
+```bash
+glubean run tests/users.test.ts --inspect-brk
+```
+
+This pauses execution until a debugger (Chrome DevTools or VS Code) attaches. In VS Code/Cursor, you can also use **Debug Test** from the gutter or Test Explorer.
+
+## Check result files
+
+After a run, inspect `.glubean/last-run.result.json` for structured output. See [Result Files](/cli/result-files) for the format.
 
 ## Next
 
-- [Traces & Files](/cli/traces-diff)
+- [Result Files](/cli/result-files)
 - [Extension Debugging](/extension/debugging)

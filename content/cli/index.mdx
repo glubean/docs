@@ -1,25 +1,45 @@
-# CLI & Config
+# CLI
 
-Use the CLI when you want the stable, scriptable surface of Glubean.
+The glubean CLI runs API verifications from the terminal. Use it for local development, CI pipelines, and team workflows.
 
-The extension is the best local UI, but the CLI is the source of truth for:
+## Install
 
-- CI execution
-- result files and JUnit output
-- environment switching
-- uploads to Cloud
-- repeatable team workflows
+```bash
+# Global install
+npm install -g @glubean/cli
 
-## The commands that matter most
+# Or run without installing
+npx @glubean/cli <command>
 
-- `npx @glubean/cli init` to scaffold a project
-- `glubean run` to execute checks
-- `glubean scan` to export metadata
-- `glubean validate-metadata` to keep generated metadata honest in CI
+# Or add to your project
+npm install -D @glubean/cli
+```
 
-## Start with these pages
+## Quick start
 
-1. [Command Reference](/cli/reference)
-2. [Environments & Secrets](/cli/environments)
-3. [Debugging](/cli/debugging)
-4. [Common Recipes](/cli/recipes)
+```bash
+# Scaffold a new project
+glubean init
+
+# Run all tests
+glubean run
+
+# Run a single file
+glubean run tests/users.test.ts
+```
+
+## Get help
+
+```bash
+glubean -h              # All commands
+glubean run -h          # Options for a specific command
+```
+
+## Pages in this section
+
+- [Usage Scenarios](/cli/reference) — common commands organized by workflow
+- [Environments & Secrets](/cli/environments) — env files, secrets, switching environments
+- [Debugging](/cli/debugging) — narrowing failures and inspecting output
+- [Common Recipes](/cli/recipes) — copy-paste patterns for CI, tags, and more
+- [Redaction & Privacy](/cli/redaction) — how sensitive data is masked before upload
+- [Result Files](/cli/result-files) — .result.json format and artifacts

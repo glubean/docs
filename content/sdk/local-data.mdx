@@ -6,21 +6,21 @@ Use this page when teammates need personal test data without merge conflicts.
 
 | What changes locally | Mechanism |
 | --- | --- |
-| scalar config like URLs, IDs, flags | `.env.local` and `.env.local.secrets` |
-| structured request bodies or example rows | `*.local.json` next to shared data files |
+| Scalar config like URLs, IDs, flags | `.env.local` and `.env.local.secrets` |
+| Structured request bodies or example rows | `*.local.json` next to shared data files |
 
 ## Local env files
 
 Keep the team baseline committed and personal overrides gitignored:
 
 ```text
-.env
-.env.secrets
-.env.local
-.env.local.secrets
+.env                  # committed — team defaults
+.env.secrets          # gitignored — team credentials
+.env.local            # gitignored — personal overrides
+.env.local.secrets    # gitignored — personal credentials
 ```
 
-Add the personal files to `.gitignore` and switch to them locally with:
+Switch to personal env files locally with:
 
 ```bash
 glubean run --env-file .env.local
@@ -40,24 +40,25 @@ With `fromDir.merge()`, local keys override shared keys. With `fromDir()` or `fr
 
 ## Data mode
 
-`GLUBEAN_DATA_MODE` lets you load:
+`GLUBEAN_DATA_MODE` controls which data files are loaded:
 
-- all data
-- only local files
-- only shared files
+| Mode | Behavior |
+|------|----------|
+| _(default)_ | Load all files (shared + local) |
+| `local_only` | Only `*.local.*` files (skip shared) |
+| `shared_only` | Only shared files (skip `*.local.*` — use for CI) |
 
-This is useful when personal debug data should stay out of CI.
+```bash
+# Only my data
+GLUBEAN_DATA_MODE=local_only glubean run
+
+# Only shared (CI)
+GLUBEAN_DATA_MODE=shared_only glubean run
+```
+
+No test code changes needed. The same `fromDir.*` call reads both shared and local files automatically. `GLUBEAN_DATA_MODE` controls the mix.
 
 ## Next
 
 - [Data-Driven](/sdk/data-driven)
 - [CLI Environments & Secrets](/cli/environments)
-
-Only my data        →  GLUBEAN_DATA_MODE=local_only in .env.local
-                       (fromDir.* skips shared files entirely)
-
-Only shared (CI)    →  GLUBEAN_DATA_MODE=shared_only
-                       (fromDir.* ignores *.local.* files)
-```
-
-No test code changes needed. For env files, just switch `--env-file`. For data files, the same `fromDir.*` call reads both shared and local files automatically. `GLUBEAN_DATA_MODE` controls the mix. Each team member's personal data stays out of Git entirely.

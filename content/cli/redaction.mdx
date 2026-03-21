@@ -1,90 +1,64 @@
-# Redaction
+# Redaction & Privacy
 
-Redaction is what keeps uploaded runs safe to share.
-
-Before results leave your machine, the CLI scans them and masks sensitive values.
+Before results leave your machine, glubean scans them and masks sensitive values.
 
 ## How it works
 
-The engine applies two layers of detection:
+The engine applies two layers:
 
-1. **Key-level** — If a JSON key name contains a sensitive keyword (e.g. `authorization`, `token`, `secret`), the entire value is replaced.
-2. **Value-level** — The engine scans string values for patterns like JWTs, Bearer tokens, AWS keys, and GitHub PATs, replacing only the matched portion.
+1. **Key-level** — If a JSON key name contains a sensitive keyword (`authorization`, `token`, `secret`, etc.), the entire value is replaced.
+2. **Value-level** — String values are scanned for patterns like JWTs, Bearer tokens, AWS keys, and GitHub PATs. Only the matched portion is replaced.
 
-Key-level runs first. If a key is already flagged, value-level scanning is skipped for that field.
+Key-level runs first. If a key is already flagged, value-level is skipped for that field.
 
-## Scope-based redaction
+## Scope-based model
 
-Redaction v2 uses a **scope-based** model. Each scope targets a specific field in a specific event type and has its own rules.
-
-Built-in scopes cover HTTP traces, logs, errors, assertions, and step return state. Plugins (like `@glubean/grpc`) can declare additional scopes for their own data — no changes to the redaction engine needed.
-
-### Built-in scopes
+Each scope targets a specific field in a specific event type. Built-in scopes cover HTTP traces, logs, errors, assertions, and step return state.
 
 | Scope | What it covers |
 |---|---|
-| `http.request.headers` | HTTP request headers (authorization, cookie, etc.) |
-| `http.request.query` | URL query parameters (token, api_key, etc.) |
-| `http.request.body` | POST/PUT/PATCH body content (password, secret, etc.) |
-| `http.response.headers` | HTTP response headers (set-cookie) |
-| `http.response.body` | Response body content |
-| `log.message` | `ctx.log()` message strings |
-| `log.data` | `ctx.log()` data objects |
+| `http.request.headers` | Authorization, cookie, etc. |
+| `http.request.query` | URL query parameters |
+| `http.request.body` | POST/PUT/PATCH body |
+| `http.response.headers` | Set-cookie, etc. |
+| `http.response.body` | Response body |
+| `log.message` / `log.data` | `ctx.log()` output |
 | `error.message` | Error messages |
 | `assertion.message` | Assertion messages |
 | `step.returnState` | Step return values |
 
-Each scope has **scope-specific sensitive keys** (e.g. `authorization` is only flagged in `http.request.headers`, not in `http.response.body`). This prevents false positives where a field named `authorization` holds a harmless boolean.
-
-### Handlers
-
-Each scope uses a **handler** that knows how to interpret its payload:
-
-| Handler | What it does |
-|---|---|
-| `json` | Recursive object/array walker |
-| `raw-string` | Value-pattern matching on plain strings |
-| `url-query` | Parse URL, redact query params, serialize back |
-| `headers` | Header map with cookie/set-cookie parsing |
-
-You don't configure handlers directly — scopes select them automatically.
+Plugins (like `@glubean/grpc`) can declare additional scopes for their own protocol.
 
 ## Preview before uploading
-
-Use `glubean redact` to see exactly what will be masked without uploading anything:
 
 ```bash
 glubean redact .glubean/last-run.result.json
 ```
 
-The console preview uses partial masking so you can verify the right values are being caught.
-
-To write the fully redacted JSON to a file:
+To write fully redacted output to a file:
 
 ```bash
 glubean redact .glubean/last-run.result.json --out redacted.json
 ```
 
-## Default rules
+## Default value patterns
 
-### Value patterns (value-level)
-
-| Pattern | What it detects | Default |
+| Pattern | Detects | Default |
 |---|---|---|
-| `jwt` | JSON Web Tokens (`eyJ…eyJ…`) | on |
+| `jwt` | JSON Web Tokens | on |
 | `bearer` | `Bearer <token>` strings | on |
-| `awsKeys` | AWS Access Key IDs (`AKIA…`) | on |
-| `githubTokens` | GitHub PATs (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`) | on |
+| `awsKeys` | AWS Access Key IDs | on |
+| `githubTokens` | GitHub PATs (`ghp_`, `gho_`, etc.) | on |
 | `creditCard` | 16-digit card numbers | on |
 | `email` | Email addresses | off |
 | `ipAddress` | IPv4 addresses | off |
-| `hexKeys` | Hex strings ≥ 32 chars (commit SHAs, ETags) | off |
+| `hexKeys` | Hex strings 32+ chars | off |
 
-Patterns marked "off" are available but disabled by default because they tend to produce false positives in API testing scenarios.
+Patterns marked "off" are available but disabled by default to avoid false positives.
 
 ## Customizing redaction
 
-Add a `redaction` section to your `glubean.json` or `package.json`:
+Add a `redaction` section to your `package.json` or config file:
 
 ```json
 {
@@ -92,8 +66,7 @@ Add a `redaction` section to your `glubean.json` or `package.json`:
     "redaction": {
       "sensitiveKeys": ["x-internal-token", "session-id"],
       "customPatterns": [
-        { "name": "stripe-key", "regex": "sk_live_[a-zA-Z0-9]{24,}" },
-        { "name": "internal-id", "regex": "INT-[A-Z0-9]{12}" }
+        { "name": "stripe-key", "regex": "sk_live_[a-zA-Z0-9]{24,}" }
       ],
       "replacementFormat": "simple"
     }
@@ -101,70 +74,25 @@ Add a `redaction` section to your `glubean.json` or `package.json`:
 }
 ```
 
-### Adding global sensitive keys
-
-The `sensitiveKeys` array adds keys that are treated as sensitive across **all** scopes:
-
-```json
-{
-  "redaction": {
-    "sensitiveKeys": ["x-internal-token", "session-id"]
-  }
-}
-```
-
-These are additive — the built-in scope-specific keys (like `authorization` in request headers) are always active.
-
-### Adding custom patterns
-
-The `customPatterns` array lets you define project-specific regex patterns:
-
-```json
-{
-  "redaction": {
-    "customPatterns": [
-      { "name": "stripe-key", "regex": "sk_live_[a-zA-Z0-9]{24,}" },
-      { "name": "slack-webhook", "regex": "hooks\\.slack\\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[a-zA-Z0-9]+" }
-    ]
-  }
-}
-```
-
-## Replacement formats
+### Replacement formats
 
 | Format | Output | Use case |
 |---|---|---|
-| `"simple"` | `[REDACTED]` | Clean output for sharing |
-| `"labeled"` | `[REDACTED:jwt]` | Debugging which plugin caught a value |
 | `"partial"` | `Bea***Xfk` | Verify the right values are masked (default) |
-
-## Plugin-declared scopes
-
-Plugins like `@glubean/grpc` declare their own redaction scopes:
-
-```text
-grpc.metadata  — gRPC request/response metadata (authorization, cookie)
-grpc.request   — gRPC request message body
-grpc.response  — gRPC response message body
-```
-
-These scopes are automatically merged with built-in scopes when the plugin is loaded. No configuration needed — the plugin knows which fields are sensitive in its protocol.
+| `"simple"` | `[REDACTED]` | Clean output for sharing |
+| `"labeled"` | `[REDACTED:jwt]` | Debug which rule caught a value |
 
 ## Server-side safety net
 
-When results are uploaded to Glubean Cloud, the server applies baseline redaction **again** before persisting events. This is a safety net — even if CLI redaction is skipped or misconfigured, secrets won't be stored in plaintext.
-
-Already-redacted values (like `[REDACTED]`) pass through unchanged.
+When results are uploaded to glubean Cloud, the server applies baseline redaction again before persisting. Even if CLI redaction is skipped, secrets are not stored in plaintext.
 
 ## Skipping redaction
-
-If you need to upload results without redaction (e.g. a local development server with no real secrets):
 
 ```bash
 glubean run --no-redact tests/
 ```
 
-This is not recommended for production APIs.
+Not recommended for production APIs.
 
 ## Next
 

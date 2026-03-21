@@ -1,28 +1,36 @@
 # Common Recipes
 
-These are the command patterns most teams keep using.
+Copy-paste patterns for common workflows.
 
-## CI run with machine-readable output
+## CI with machine-readable output
 
 ```bash
-glubean run ./tests \
-  --result-json .glubean/last-run.json \
+glubean run tests/ \
+  --result-json results.json \
   --reporter junit:test-results.xml
 ```
 
-Use this when CI needs both a Glubean result file and a JUnit report.
+Produces both a glubean result file and a JUnit XML for CI dashboards.
+
+## CI shorthand
+
+```bash
+glubean run tests/ --ci
+```
+
+`--ci` enables `--fail-fast` and `--reporter junit` in one flag.
 
 ## Switch environments without changing code
 
 ```bash
-glubean run
+glubean run                              # default (.env)
 glubean run --env-file .env.staging
 glubean run --env-file .env.prod
 ```
 
-The CLI automatically pairs each env file with its matching `.secrets` file. The canonical rules live in [Environments & Secrets](/cli/environments).
+The CLI auto-pairs each env file with its `.secrets` counterpart. See [Environments & Secrets](/cli/environments).
 
-## Reuse shell values without copying secrets
+## Map shell variables to test names
 
 ```bash
 export GLUBEAN_URL=https://api.example.com
@@ -34,24 +42,29 @@ printf "API_KEY=\${GLUBEAN_API_KEY}\n" > .env.secrets
 glubean run
 ```
 
-This keeps test-facing names stable while reusing shell-level values.
-
-## Run only one test or one named example
-
-```bash
-glubean run ./tests/users.test.ts --filter "create-user"
-glubean run ./tests/users.test.ts --pick "edge,invalid"
-```
-
 ## Run by tags
 
 ```bash
-glubean run --tag smoke --tag critical
-glubean run --tag auth --tag smoke --tag-mode and
+glubean run --tag smoke
+glubean run --tag smoke --tag auth --tag-mode and
 ```
 
-## Save more detail while debugging
+## Run and upload to Cloud
 
 ```bash
-glubean run ./tests/flaky.test.ts --verbose --emit-full-trace
+glubean run tests/ --upload --project <id>
 ```
+
+Or upload a previous result file:
+
+```bash
+glubean sync -p <project-id>
+```
+
+## Preview redaction before upload
+
+```bash
+glubean redact .glubean/last-run.result.json
+```
+
+See [Redaction & Privacy](/cli/redaction) for details.

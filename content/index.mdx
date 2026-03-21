@@ -1,8 +1,8 @@
 # Glubean
 
-Write verification checks in TypeScript. Run them in your editor, in CI, and against production with the same code.
+Write verification tests in TypeScript. Run them in your editor, in CI, and against production with the same code.
 
-Glubean is for teams that want API checks, workflow checks, traces, and run history without splitting work across five different tools.
+Glubean is for teams that want API tests, workflow tests, traces, and run history without splitting work across five different tools.
 
 ```typescript
 import { test } from "@glubean/sdk";
@@ -18,15 +18,15 @@ export const health = test("health", async (ctx) => {
 ## Start here
 
 1. [VS Code Extension](/extension/quick-start)
-2. [Run your first check](/getting-started/first-test)
+2. [Run your first test](/getting-started/first-test)
 3. [Connect CI](/getting-started/ci)
 4. [Upload runs to Cloud](/getting-started/upload-to-cloud)
 
 ## Choose a path
 
-### I want to write checks
+### I want to write tests
 
-- Start at [Write Checks](/sdk)
+- Start at [Write Tests](/sdk)
 - Then read [Test Shape](/sdk/test-api)
 - Keep [Assertions](/sdk/assertions) nearby
 
@@ -53,7 +53,7 @@ export const health = test("health", async (ctx) => {
 write verification locally  ->  keep in git  ->  run in CI  ->  upload when useful
 ```
 
-- The SDK is where you author checks.
+- The SDK is where you author tests.
 - The VS Code extension is the primary entry point.
 - The CLI is still needed for project init and automation, but you can invoke it with `npx @glubean/cli`.
 - Cloud stores uploaded runs, traces, metrics, and alerts. It does not execute your code.

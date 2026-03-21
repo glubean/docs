@@ -22,7 +22,7 @@ export const asyncJob = test("async-job", async (ctx) => {
 
 ## `ctx.skip()`
 
-Use `skip()` when the current environment should not run a check.
+Use `skip()` when the current environment should not run a test.
 
 ```typescript
 export const betaFeature = test("beta-feature", async (ctx) => {
@@ -38,22 +38,34 @@ Use `fail()` when further execution would be misleading or dangerous.
 
 ```typescript
 export const checkAuth = test("auth-check", async (ctx) => {
-  try {
-    await ctx.http.delete(`/admin/database`);
-    ctx.fail("CRITICAL: Unauthenticated request to delete database succeeded!");
-  } catch (err) {
-    ctx.expect(err.response?.status).toBe(403);
+  const res = await ctx.http.delete("/admin/database", {
+    throwHttpErrors: false,
+  });
+  if (res.status !== 403) {
+    ctx.fail("CRITICAL: Unauthenticated request to delete database was not rejected!");
   }
+  ctx.expect(res.status).toBe(403);
 });
 ```
 
-## `ctx.setTimeout()` and `ctx.retryCount`
+## `ctx.setTimeout()`
 
-Use `setTimeout()` when one check legitimately needs more time. Use `retryCount` when behavior should change on retry attempts.
+Use `setTimeout()` when one test legitimately needs more time than the default 30s:
 
 ```typescript
 export const slowQuery = test("slow-query", async (ctx) => {
   ctx.setTimeout(60000);
+  await ctx.http.get("/analytics/heavy-report");
+});
+```
+
+You can also set timeout via metadata:
+
+```typescript
+export const slow = test({
+  id: "slow-query",
+  timeout: 60000,
+}, async (ctx) => {
   await ctx.http.get("/analytics/heavy-report");
 });
 ```

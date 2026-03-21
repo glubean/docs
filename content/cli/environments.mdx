@@ -1,88 +1,58 @@
 # Environments & Secrets
 
-This is the canonical page for env files, secret files, lookup order, and `${...}` mapping.
+glubean splits environment data into two files by design: public vars and private secrets.
 
-## Design: vars and secrets are separate by architecture
+## File model
 
-Most tools mix all environment variables into one bucket. Glubean splits them into two distinct systems at the SDK level:
+```text
+.env                    # Public vars — committed to git
+.env.secrets            # Credentials — gitignored
+.env.staging            # Staging vars — committed
+.env.staging.secrets    # Staging credentials — gitignored
+```
+
+Add `*.secrets` to `.gitignore`.
+
+## Why two files
 
 | | `.env` (vars) | `.env.secrets` (secrets) |
 |---|---|---|
 | **API** | `ctx.vars.require("KEY")` | `ctx.secrets.require("KEY")` |
 | **Git** | Committed — shared baseline | Gitignored — never in repo |
-| **Content** | URLs, feature flags, public IDs | API keys, tokens, passwords |
-| **Cloud upload** | Visible in dashboard | Redacted by builtin rules (key-name matching) |
-| **Hover preview** | Full value | Masked (`sk-l****en`) |
+| **Cloud upload** | Visible in dashboard | Auto-redacted |
 
-**Why this matters:**
-- You cannot accidentally commit a secret — it's in a different file that's gitignored
-- You cannot accidentally read a secret as a var — the SDK APIs are separate
-- CI environments map naturally — vars from config, secrets from CI secret store
-- Cloud redaction is automatic — secrets are identified by source, not by guessing
+The SDK APIs are separate. `vars` never reads `.env.secrets`. `secrets` never reads `.env`.
 
-## File model
-
-```text
-.env                    # public vars — committed
-.env.secrets            # credentials — gitignored
-.env.staging            # staging vars — committed
-.env.staging.secrets    # staging credentials — gitignored
-.env.prod               # production vars — committed
-.env.prod.secrets       # production credentials — gitignored
-```
-
-Add this to `.gitignore`:
-
-```text
-*.secrets
-```
-
-## What your tests read
-
-- `ctx.vars.require("KEY")` — reads from `.env`, throws if missing
-- `ctx.vars.get("KEY")` — reads from `.env`, returns `undefined` if missing
-- `ctx.secrets.require("KEY")` — reads from `.env.secrets`, throws if missing
+## Reading values in tests
 
 ```typescript
 const baseUrl = ctx.vars.require("BASE_URL");     // from .env
 const token = ctx.secrets.require("API_TOKEN");    // from .env.secrets
 ```
 
-**`vars` never reads `.env.secrets`. `secrets` never reads `.env`.** They are isolated by design.
-
 ### Template resolution in configure()
 
-When you use `{{KEY}}` in `configure()` HTTP options, resolution searches **secrets first, then vars**:
+`{{KEY}}` in `configure()` searches secrets first, then vars:
 
 ```typescript
 export const api = configure({
   http: {
-    prefixUrl: "{{BASE_URL}}",                  // found in .env
+    prefixUrl: "{{BASE_URL}}",
     headers: {
-      Authorization: "Bearer {{API_TOKEN}}",    // found in .env.secrets
+      Authorization: "Bearer {{API_TOKEN}}",
     },
   },
 });
 ```
 
-> **Rule of thumb:** If leaking the value would be a security incident, put it in `.env.secrets`. Everything else goes in `.env`.
-
 ## Lookup order
 
-Glubean resolves each key by name. File values win first, then shell or system environment is used as fallback.
+Each key resolves file-first, then falls back to the system environment:
 
-- `ctx.vars.*("KEY")`: `.env` (or `--env-file`) -> system environment `KEY`
-- `ctx.secrets.*("KEY")`: matching `.secrets` file -> system environment `KEY`
+- `ctx.vars.*("KEY")` — `.env` file, then `process.env.KEY`
+- `ctx.secrets.*("KEY")` — `.env.secrets` file, then `process.env.KEY`
 
-This means if your shell already has `BASE_URL` and `API_KEY`, you can run tests without duplicating those values into local files.
-
-```bash
-export BASE_URL=https://api.example.com
-export API_KEY=sk_live_xxx
-glubean run
-```
-
-If your shell variable names are different from the names used in tests, map them in `.env` / `.env.secrets` with `${...}`.
+If your shell variable names differ from test names, map them with `${...}`:
 
 ```dotenv
 # .env
@@ -92,24 +62,15 @@ BASE_URL=${GLUBEAN_URL}
 API_KEY=${GLUBEAN_API_KEY}
 ```
 
-Then your tests can keep using:
-
-```typescript
-const baseUrl = ctx.vars.require("BASE_URL");
-const apiKey = ctx.secrets.require("API_KEY");
-```
-
 ## Switching environments
 
-- Local default: `.env`
-- Staging: `--env-file .env.staging`
-- Production verification: `--env-file .env.prod`
-
 ```bash
-glubean run ./tests --env-file .env.staging
+glubean run                              # Uses .env (default)
+glubean run --env-file .env.staging      # Uses .env.staging + .env.staging.secrets
+glubean run --env-file .env.prod         # Uses .env.prod + .env.prod.secrets
 ```
 
-The extension can switch the active env from the status bar.
+The CLI automatically pairs each env file with its matching `.secrets` file.
 
 ## Next
 

@@ -17,6 +17,8 @@ Data-driven testing separates the two:
 **Scenario:** You have a list of products, users, or edge cases and want to verify all of them on every CI run. Each row is independent.
 
 ```typescript
+import { test, fromYaml } from "@glubean/sdk";
+
 // data/status-codes.yaml
 // - id: 1
 //   expected: 200
@@ -38,11 +40,11 @@ export const checkStatus = test.each(cases)(
 
 Every row runs. If you add a row to the YAML, CI picks it up automatically. No code changes needed.
 
-### test.pick — same API, multiple parameter sets, pick one
+### test.pick — named parameter sets, pick one
 
-**Scenario:** You're working on a directions API. There are many valid input combinations — different origins, destinations, transport modes. You don't want to run all of them every time, you want to pick the one you're currently working with. This is exactly like Postman's "Examples" feature — save multiple request variations, click the one you need.
+**Scenario:** You're working on a directions API. There are many valid input combinations — different origins, destinations, transport modes. You don't want to run all of them every time, you want to pick the one you're currently working with.
 
-In `explore/`, `test.pick` is essential: you're iterating on one case at a time, switching between parameter sets as you develop.
+This is exactly like Postman's "Examples" feature — save multiple request variations, click the one you need. In VS Code, each case name appears as a CodeLens button. From CLI: `glubean run --pick sg-cross-island`.
 
 ```yaml
 # data/directions/shared.yaml
@@ -56,7 +58,7 @@ sg-cross-island:
     mode: car
   expect:
     minRoutes: 1
-    maxDuration: 3600  # seconds
+    maxDuration: 3600
 
 # Short trip — tests minimum-distance edge case
 sg-short-trip:
@@ -71,6 +73,8 @@ sg-short-trip:
 ```
 
 ```typescript
+import { test, fromDir } from "@glubean/sdk";
+
 type RouteCase = {
   description: string;
   request: { origin: string; destination: string; mode: string };
@@ -83,7 +87,7 @@ export const directions = test.pick(cases)(
   { id: "dir-$_pick", name: "Directions: $_pick", tags: ["geo"] },
   async (ctx, { description, request, expect: exp }) => {
     ctx.log(description);
-    const res = await api.http.post("directions/json", { json: request });
+    const res = await ctx.http.post("directions/json", { json: request });
     ctx.expect(res).toHaveStatus(200);
     const data = await res.json<{ routes: { duration: number }[] }>();
     ctx.expect(data.routes.length).toBeGreaterThanOrEqual(exp.minRoutes);
@@ -91,8 +95,6 @@ export const directions = test.pick(cases)(
   },
 );
 ```
-
-In VS Code, each case name appears as a CodeLens button (`▶ sg-cross-island | ▶ sg-short-trip`). Click one to run just that case. From CLI: `glubean run --pick sg-cross-island`.
 
 ### Key difference
 
@@ -103,7 +105,58 @@ In VS Code, each case name appears as a CodeLens button (`▶ sg-cross-island | 
 | **Like Postman** | Collection Runner (run all) | Examples (pick one, send) |
 | **Data structure** | Array | Key-value (named) |
 | **Best in** | `tests/` (CI) | `explore/` (iteration) |
-| **CodeLens** | Play runs all | ▶ per case name — click the one you need |
+| **CodeLens** | Play runs all | Play per case name — click the one you need |
+
+## Template variables in test IDs
+
+Both `test.each` and `test.pick` support `$variable` placeholders in the test ID and name. These are replaced at runtime with values from each data row.
+
+### `test.each` — `$fieldName`
+
+Use `$fieldName` to insert any field value from the data row:
+
+```typescript
+// Data: [{ id: 1, expected: 200 }, { id: 999, expected: 404 }]
+export const check = test.each(cases)(
+  { id: "status-$id", name: "GET /products/$id → $expected" },
+  async (ctx, { id, expected }) => { ... },
+);
+// Generates: "status-1", "status-999"
+// Names: "GET /products/1 → 200", "GET /products/999 → 404"
+```
+
+Any field in the data row can be used as `$fieldName`. If the field doesn't exist, the placeholder stays as-is.
+
+### `test.pick` — `$_pick`
+
+`$_pick` is a **special variable** that resolves to the **key name** from the key-value data:
+
+```typescript
+// Data: { "sg-cross-island": { ... }, "sg-short-trip": { ... } }
+export const route = test.pick(cases)(
+  { id: "dir-$_pick", name: "Directions: $_pick" },
+  async (ctx, data) => { ... },
+);
+// Generates: "dir-sg-cross-island", "dir-sg-short-trip"
+```
+
+`$_pick` always refers to the object key, not a field inside the value. You can also use `$fieldName` with pick — it resolves from the value object:
+
+```typescript
+// Data: { "sg-cross-island": { description: "Cross-island route", mode: "car" } }
+{ id: "dir-$_pick", name: "$description ($mode)" }
+// Name: "Cross-island route (car)"
+```
+
+### Summary
+
+| Syntax | Works with | Resolves to |
+|--------|-----------|-------------|
+| `$fieldName` | `test.each` and `test.pick` | Value of that field in the data row |
+| `$_pick` | `test.pick` only | The key name from the key-value data |
+| `$_key` | `test.each` only | Auto-generated index (0, 1, 2, ...) |
+
+---
 
 ## Data from files
 
@@ -113,11 +166,12 @@ Don't hardcode data in your test files. Use data loaders:
 |--------|-------|--------|----------|
 | `fromCsv("./file.csv")` | CSV file | `Row[]` | Tabular data, spreadsheet exports |
 | `fromYaml("./file.yaml")` | YAML file | Array or Record | Structured data with comments |
+| `fromJsonl("./file.jsonl")` | JSONL file | `Row[]` | Log-style data, one object per line |
 | `fromDir("./dir/")` | Directory of JSON/YAML | `Row[]` | One file = one case |
 | `fromDir.merge("./dir/")` | Directory of JSON/YAML | `Record<string, T>` | Named cases, supports `.local.json` |
 | `fromDir.concat("./dir/")` | Directory of JSON/YAML | `Row[]` | Arrays concatenated from files |
 
-All paths resolve relative to the test file, not the project root.
+All paths resolve **relative to the calling file**, not the project root. The default file extensions for `fromDir` are `.json`, `.yaml`, and `.yml`.
 
 ## Structured data — not just flat key-value
 

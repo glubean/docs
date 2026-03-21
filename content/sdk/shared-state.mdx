@@ -31,7 +31,7 @@ export const getProfile = test("get-profile", async (ctx) => {
 });
 ```
 
-Module scope is the simplest way to share state. Use it when:
+Use module scope when:
 
 - Tests in the same file share setup (login, seed data, etc.)
 - You want ordered execution with shared context
@@ -92,126 +92,45 @@ export const listUsers = test("list-users", async (ctx) => {
 });
 ```
 
-```ts
-// tests/orders.test.ts
-import { test } from "@glubean/sdk";
-
-export const createOrder = test("create-order", async (ctx) => {
-  const token = ctx.session.require("token");
-  const userId = ctx.session.require("userId");
-
-  const res = await ctx.http.post("/orders", {
-    json: { userId, items: [{ sku: "TEST-001", qty: 1 }] },
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  ctx.expect(res).toHaveStatus(201);
-
-  // Write back to session for downstream files
-  const body = await res.json();
-  ctx.session.set("orderId", body.id);
-});
-```
-
 ### 3. Session lifecycle
 
 ```
 glubean run tests/
-  │
-  ├─ 1. Discover session.ts
-  │
-  ├─ 2. Run setup()
-  │     └─ Sets token, userId
-  │
-  ├─ 3. Run test files (sequential)
-  │     ├─ users.test.ts   → reads token ✓
-  │     ├─ orders.test.ts  → reads token, userId ✓
-  │     │                    writes orderId
-  │     └─ billing.test.ts → reads orderId ✓
-  │
-  ├─ 4. Run teardown()
-  │     └─ Logs out
-  │
-  └─ Done
+  |
+  +- 1. Discover session.ts
+  |
+  +- 2. Run setup()
+  |     Sets token, userId
+  |
+  +- 3. Run test files (sequential)
+  |     users.test.ts   -> reads token
+  |     orders.test.ts  -> reads token, userId; writes orderId
+  |     billing.test.ts -> reads orderId
+  |
+  +- 4. Run teardown()
+  |     Logs out
+  |
+  Done
 ```
 
 ## Session API
 
-### ctx.session.get(key)
-
-Returns the value if present, otherwise `undefined`.
-
-```ts
-const version = ctx.session.get("apiVersion") ?? "v1";
-```
-
-### ctx.session.require(key)
-
-Returns the value or throws a clear error if missing.
-
-```ts
-const token = ctx.session.require("token");
-// throws: "Session key 'token' is required but not set. Check your session.ts setup."
-```
-
-### ctx.session.set(key, value)
-
-Sets a value. It is available immediately within the current file, and to subsequent test files in sequential mode. Any JSON-serializable value is supported.
-
-```ts
-ctx.session.set("orderId", createdOrder.id);
-ctx.session.set("user", { id: 42, name: "test" });
-ctx.session.set("tags", ["smoke", "api"]);
-ctx.session.set("retryCount", 3);
-```
-
-### ctx.session.entries()
-
-Returns all session key-value pairs as a plain object.
-
-```ts
-ctx.log("Session state", ctx.session.entries());
-```
-
-## Session setup context
-
-The `setup()` and `teardown()` functions receive a context with:
-
-| Property | Description |
-|----------|-------------|
-| `ctx.vars` | Environment variables |
-| `ctx.secrets` | Secrets (auto-redacted) |
-| `ctx.http` | Pre-configured HTTP client |
-| `ctx.session` | Session accessor (get/set/require) |
-| `ctx.log()` | Logging |
-
-No assertions are available in session setup/teardown — it's for initialization only.
+| Method | Returns | Behavior |
+|--------|---------|----------|
+| `ctx.session.get(key)` | `T \| undefined` | Returns value if present |
+| `ctx.session.require(key)` | `T` | Returns value or throws |
+| `ctx.session.set(key, value)` | `void` | Sets JSON-serializable value |
+| `ctx.session.entries()` | `Record<string, unknown>` | Returns all key-value pairs |
 
 ## File discovery
 
-The runner looks for `session.ts` or `session.setup.ts` starting from your test directory and walking up toward the project root. This mirrors how config files are resolved.
+The runner looks for `session.ts` or `session.setup.ts` starting from your test directory and walking up toward the project root. Running a single file still walks up to find the nearest `session.ts`.
 
-This also applies when you run a single file. For example, `glubean run tests/api/users.test.ts` still walks up to find the nearest `session.ts`.
-
-```
-project/
-├── session.ts          ← found here
-├── tests/
-│   ├── api/
-│   │   ├── users.test.ts
-│   │   └── orders.test.ts
-│   └── e2e/
-│       └── checkout.test.ts
-```
-
-## Skipping session
-
-Use `--no-session` to run tests without session setup/teardown:
+Use `--no-session` to skip session setup/teardown:
 
 ```bash
 glubean run tests/users.test.ts --no-session
 ```
-
-Useful for debugging individual tests in isolation. `ctx.session` will still exist but will be empty — `get()` returns `undefined`, `require()` throws.
 
 ## When to use which
 
@@ -224,12 +143,6 @@ Useful for debugging individual tests in isolation. `ctx.session` will still exi
 
 ## Current limitations
 
-- **Sequential mode only.** Session state propagates file-to-file in discovery order. This is the current v1 behavior, not a long-term parallel execution contract.
-- **JSON-serializable values only.** Strings, numbers, booleans, arrays, plain objects — anything that survives `JSON.stringify()`.
-- **No parallel guarantees.** If parallel execution is added in the future, cross-file session writes will require explicit file dependency configuration.
-
-## What not to store in session
-
-- **Long-term config.** Use `configure()` or env files for stable configuration.
-- **Source-of-truth secrets.** Read secrets from `.env.secrets` and copy only the runtime values you actually need.
-- **Large payloads.** Session crosses process boundaries via JSON — prefer IDs, tokens, and small objects over large datasets.
+- **Sequential mode only.** Session state propagates file-to-file in discovery order.
+- **JSON-serializable values only.** Strings, numbers, booleans, arrays, plain objects.
+- **No parallel guarantees.** Cross-file session writes require sequential execution.

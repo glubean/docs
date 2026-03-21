@@ -1,8 +1,8 @@
 # Test Shape
 
-Use `test()` for simple checks and the builder API for multi-step flows.
+Use `test()` for simple tests and the builder API for multi-step flows.
 
-## Simple check
+## Simple test
 
 This is the default shape for one request or one short assertion path:
 
@@ -46,9 +46,11 @@ export const checkout = test<CheckoutState>("checkout-flow")
   });
 ```
 
+The `.build()` call is optional. The builder auto-finalizes via microtask after all synchronous chaining completes.
+
 ## Metadata
 
-Use metadata when the check needs tags, a clearer name, or a custom timeout:
+Use metadata when the test needs tags, a clearer name, or a custom timeout:
 
 ```typescript
 export const health = test({
@@ -61,20 +63,46 @@ export const health = test({
 });
 ```
 
-## Local focus controls
+## Reusable step sequences
+
+Use `.use()` to apply reusable builder transforms, and `.group()` to visually group steps in reports:
+
+```typescript
+import { test, type TestBuilder } from "@glubean/sdk";
+
+// TestBuilder<T> generic = accumulated state from previous steps (input constraint)
+// unknown = no dependency on prior state; use { token: string } if this transform needs a token
+const withAuth = (b: TestBuilder<unknown>) => b
+  .step("login", async (ctx) => {
+    const data = await ctx.http.post("/login", { json: creds }).json<{ token: string }>();
+    return { token: data.token };
+  });
+
+export const testA = test("test-a").use(withAuth).step("act", async (ctx, { token }) => { /* ... */ });
+export const testB = test("test-b").group("auth", withAuth).step("verify", async (ctx, { token }) => { /* ... */ });
+```
+
+## Focus and skip
 
 ```typescript
 export const onlyThis = test.only("only-this", async (ctx) => {
-  // ...
+  // Only this test runs (local debugging)
 });
 
 export const skipThis = test.skip("skip-this", async (ctx) => {
-  // ...
+  // This test is excluded
 });
+```
+
+Builder mode also supports `.only()` and `.skip()`:
+
+```typescript
+export const focused = test("focused").only().step("do it", async (ctx) => { /* ... */ });
 ```
 
 ## Next
 
 - [HTTP Requests](/sdk/http-client)
 - [Assertions](/sdk/assertions)
+- [Data-Driven](/sdk/data-driven)
 - [Control Flow](/sdk/test-control)

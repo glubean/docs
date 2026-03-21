@@ -6,17 +6,11 @@
 
 ## Install
 
-```typescript
+```bash
 npm install @glubean/graphql
 ```
 
-Then import it:
-
-```typescript
-import { graphql } from "@glubean/graphql";
-```
-
-## Quick Start (`configure` plugin mode)
+## Quick Start (configure plugin mode)
 
 ```typescript
 import { configure, test } from "@glubean/sdk";
@@ -25,8 +19,8 @@ import { graphql } from "@glubean/graphql";
 const { gql } = configure({
   plugins: {
     gql: graphql({
-      endpoint: "{{graphql_url}}",
-      headers: { Authorization: "Bearer {{api_key}}" },
+      endpoint: "{{GRAPHQL_URL}}",
+      headers: { Authorization: "Bearer {{API_KEY}}" },
       throwOnGraphQLErrors: true,
     }),
   },
@@ -63,7 +57,7 @@ export const quick = test("quick-gql", async (ctx) => {
 
 ### `gql` tagged template
 
-Identity tag for better GraphQL editor highlighting.
+Identity tag for better GraphQL editor highlighting:
 
 ```typescript
 import { gql } from "@glubean/graphql";
@@ -77,7 +71,7 @@ const GET_USER = gql`
 
 ### `fromGql(path)`
 
-Load query text from `.gql` files.
+Load query text from `.gql` files:
 
 ```typescript
 import { fromGql } from "@glubean/graphql";
@@ -87,15 +81,20 @@ const GET_USER = await fromGql("./queries/get-user.gql");
 
 ## Client methods
 
-- `gql.query<T>(query, options?)`
-- `gql.mutate<T>(mutation, options?)`
+- `gql.query<T>(query, options?)` — execute a query
+- `gql.mutate<T>(mutation, options?)` — execute a mutation
 
 Both return `Promise<{ data: T | null; errors?: GraphQLError[] }>`.
 
 ## Options
 
-- `endpoint` (`string`, required)
-- `headers` (`Record<string, string>`, optional)
-- `throwOnGraphQLErrors` (`boolean`, default `false`)
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `endpoint` | `string` | _(required)_ | GraphQL endpoint URL (`{{KEY}}` supported) |
+| `headers` | `Record<string, string>` | `{}` | Default headers (`{{KEY}}` supported) |
+| `throwOnGraphQLErrors` | `boolean` | `false` | Throw when `errors` array is non-empty |
 
-See package docs: [@glubean/graphql on JSR](https://jsr.io/@glubean/graphql)
+## Next
+
+- [Plugins](/sdk/plugins)
+- [Configuration](/sdk/configuration)

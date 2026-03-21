@@ -18,6 +18,8 @@ export const orderTest = test("order-test", async (ctx) => {
 });
 ```
 
+Logs appear in the Result Viewer timeline and are uploaded to Cloud with the run.
+
 ## `ctx.metric()`
 
 Use metrics for values you want to chart over time.
@@ -60,7 +62,14 @@ export const customClientTest = test("custom-client", async (ctx) => {
 
 ## `ctx.getMemoryUsage()`
 
-Use this when a heavy check may be leaking memory or processing large payloads.
+Use this when a heavy test may be leaking memory or processing large payloads.
+
+## Result output
+
+All events (logs, metrics, traces, assertions) are written to `.result.json` files after each run. These files are consumed by:
+
+- **Result Viewer** (VS Code extension) — visual timeline of all events
+- **Cloud dashboard** — uploaded via `glubean run --upload`
 
 ## Next
 

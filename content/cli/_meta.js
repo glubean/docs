@@ -1,9 +1,9 @@
 export default {
   index: 'Overview',
-  reference: 'Command Reference',
+  reference: 'Usage Scenarios',
   environments: 'Environments & Secrets',
   debugging: 'Debugging',
-  'traces-diff': 'Traces & Files',
   recipes: 'Common Recipes',
+  'result-files': 'Result Files',
   redaction: 'Redaction & Privacy',
 }
