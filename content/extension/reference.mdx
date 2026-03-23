@@ -34,6 +34,12 @@ All commands are accessible via the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift
 | `Run Task` | Run a single Glubean Task (from Tasks panel) |
 | `Run All Tasks` | Run all Glubean Tasks sequentially |
 | `Refresh Tasks` | Rescan `package.json` and refresh the Tasks panel |
+| `Glubean: Pin Test` | Pin the current test to the Glubean Panel (triggered by CodeLens) |
+| `Glubean: Unpin Test` | Remove a pinned test from the Glubean Panel |
+| `Glubean: Run Pinned Test` | Run a pinned test from the Glubean Panel |
+| `Glubean: Pin File` | Pin the current test file to the Glubean Panel |
+| `Glubean: Unpin File` | Remove a pinned file from the Glubean Panel |
+| `Glubean: Run Pinned File` | Run all tests in a pinned file |
 
 ---
 
@@ -72,6 +78,9 @@ All settings are under the `glubean.*` namespace in VS Code settings.
 | Editor title bar (run area) | View as Result | File is `.result.json` and not in Result Viewer |
 | File Explorer (right-click file) | Run All Tests in File | File matches `*.test.ts/js/mjs` |
 | File Explorer (right-click folder) | Run All Tests in Project | Folder is not `node_modules`, `.git`, or `dist` |
+| File Explorer (right-click file) | Pin to Glubean | File matches `*.test.ts/js/mjs` |
+| Glubean Panel — Pinned Tests (inline) | Run Pinned Test / Unpin Test | Item is a pinned test |
+| Glubean Panel — Pinned Files (inline) | Run Pinned File / Unpin File | Item is a pinned file |
 | Tasks panel (inline) | Run Task | Item is a Glubean Task |
 | Tasks panel (title bar) | Run All Tasks / Refresh Tasks | Tasks view is visible |
 

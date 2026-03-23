@@ -85,6 +85,41 @@ auth-flow
 
 ---
 
+## Glubean Panel
+
+The **Glubean** panel lives in the Testing sidebar and gives you quick access to pinned tests, pinned files, and tasks.
+
+### Pinned Tests
+
+Pin individual tests to the panel so you can re-run them without scrolling through the Test Explorer.
+
+**How to pin:**
+- Click the `$(pin)` CodeLens that appears next to each `test()` call.
+
+**How to use:**
+- **Click** the test name to open the source file at that test.
+- **`▶`** runs the test.
+- **`✕`** removes it from the panel.
+
+### Pinned Files
+
+Pin entire test files for quick access.
+
+**How to pin:**
+- Click the `$(pin)` CodeLens at the top of any `.test.ts` / `.test.js` file.
+- Or right-click a test file in the Explorer sidebar → **Pin to Glubean**.
+
+**How to use:**
+- **Click** to open the file.
+- **`▶`** runs all tests in the file.
+- **`✕`** removes it from the panel.
+
+### Persistence
+
+Pinned tests and files are stored in your workspace state and persist across editor restarts. They are per-workspace, so different projects have their own pinned items.
+
+---
+
 ## Tasks Panel
 
 If your `package.json` defines scripts containing `glubean run`, they appear in the **Glubean Tasks** panel (inside the Testing sidebar).
