@@ -185,6 +185,22 @@ The file you explored with today catches regressions in CI tomorrow.
 
 ---
 
+## AI Closed-Loop in Action
+
+Here's what the full loop looks like in practice — one chat session, no manual editing:
+
+1. **You:** _"/glubean write a smoke test for the users API"_
+2. **AI** reads lens docs and your project layout, writes a test file with `ctx.http.get`, assertions, and proper environment variables.
+3. **AI** calls MCP `glubean_run_local_file` — executes the test and gets a structured result back.
+4. **Result:** 1 failed — `expected 200, got 401`.
+5. **AI** reads the failure, recognizes the auth issue, adds an `Authorization` header using `ctx.secrets.require("API_TOKEN")`.
+6. **AI** reruns via MCP — result: 1 passed.
+7. **AI:** _"Done. Test passes against staging. Want me to add boundary tests for 404 and 422?"_
+
+No copy-pasting error messages. No switching between terminal and editor. The AI reads structured results, understands what went wrong, and fixes it — all in one conversation turn.
+
+---
+
 ## What's next?
 
 - [Quick Start](/extension/quick-start) — install the extension and create your first project
