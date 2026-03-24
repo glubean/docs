@@ -6,4 +6,5 @@ export default {
   cloud: 'Use In Cloud',
   cli: 'CLI & Config',
   reference: 'Reference',
+  blog: 'Blog',
 }
