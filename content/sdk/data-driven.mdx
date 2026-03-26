@@ -27,7 +27,7 @@ import { test, fromYaml } from "@glubean/sdk";
 // - id: -1
 //   expected: 400
 
-const cases = await fromYaml<{ id: number; expected: number }>("./data/status-codes.yaml");
+const cases = await fromYaml("./data/status-codes.yaml");
 
 export const checkStatus = test.each(cases)(
   { id: "status-$id", tags: ["regression"] },
@@ -73,15 +73,9 @@ sg-short-trip:
 ```
 
 ```typescript
-import { test, fromDir } from "@glubean/sdk";
+import { test, fromYaml } from "@glubean/sdk";
 
-type RouteCase = {
-  description: string;
-  request: { origin: string; destination: string; mode: string };
-  expect: { minRoutes: number; maxDuration: number };
-};
-
-const cases = await fromDir.merge<RouteCase>("./data/directions/");
+const cases = await fromYaml.map("./data/directions/shared.yaml");
 
 export const directions = test.pick(cases)(
   { id: "dir-$_pick", name: "Directions: $_pick", tags: ["geo"] },
@@ -164,7 +158,7 @@ export const route = test.pick(cases)(
 By default, `test.each` runs cases sequentially. For independent API calls that don't share state, run them in parallel:
 
 ```typescript
-const cases = await fromYaml<{ id: number; expected: number }>("./data/status-codes.yaml");
+const cases = await fromYaml("./data/status-codes.yaml");
 
 export const checkStatus = test.each(cases, { parallel: true })(
   { id: "status-$id", tags: ["regression"] },
@@ -187,14 +181,24 @@ Each case runs in its own subprocess with isolated state — one slow or failing
 
 Don't hardcode data in your test files. Use data loaders:
 
+### Array loaders — for `test.each`
+
 | Loader | Input | Output | Best for |
 |--------|-------|--------|----------|
+| `fromYaml("./file.yaml")` | YAML file | `T[]` | Structured data with comments |
+| `fromJson("./file.json")` | JSON file | `T[]` | JSON arrays (like native import, but with path resolution) |
 | `fromCsv("./file.csv")` | CSV file | `Row[]` | Tabular data, spreadsheet exports |
-| `fromYaml("./file.yaml")` | YAML file | Array or Record | Structured data with comments |
 | `fromJsonl("./file.jsonl")` | JSONL file | `Row[]` | Log-style data, one object per line |
-| `fromDir("./dir/")` | Directory of JSON/YAML | `Row[]` | One file = one case |
-| `fromDir.merge("./dir/")` | Directory of JSON/YAML | `Record<string, T>` | Named cases, supports `.local.json` |
-| `fromDir.concat("./dir/")` | Directory of JSON/YAML | `Row[]` | Arrays concatenated from files |
+| `fromDir("./dir/")` | Directory | `T[]` | One file = one case |
+| `fromDir.concat("./dir/")` | Directory | `T[]` | Arrays concatenated from files |
+
+### Map loaders — for `test.pick`
+
+| Loader | Input | Output | Best for |
+|--------|-------|--------|----------|
+| `fromYaml.map("./file.yaml")` | YAML file | `Record<string, T>` | Named scenarios in a single file |
+| `fromJson.map("./file.json")` | JSON file | `Record<string, T>` | Named scenarios in a single file |
+| `fromDir.merge("./dir/")` | Directory | `Record<string, T>` | Named cases split across files, supports `.local.json` |
 
 All paths resolve **relative to the calling file**, not the project root. The default file extensions for `fromDir` are `.json`, `.yaml`, and `.yml`.
 
