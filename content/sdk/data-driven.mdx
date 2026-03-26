@@ -105,6 +105,7 @@ export const directions = test.pick(cases)(
 | **Like Postman** | Collection Runner (run all) | Examples (pick one, send) |
 | **Data structure** | Array | Key-value (named) |
 | **Best in** | `tests/` (CI) | `explore/` (iteration) |
+| **Parallel** | `{ parallel: true }` option | Not supported |
 | **CodeLens** | Play runs all | Play per case name — click the one you need |
 
 ## Template variables in test IDs
@@ -155,6 +156,30 @@ export const route = test.pick(cases)(
 | `$fieldName` | `test.each` and `test.pick` | Value of that field in the data row |
 | `$_pick` | `test.pick` only | The key name from the key-value data |
 | `$_key` | `test.each` only | Auto-generated index (0, 1, 2, ...) |
+
+---
+
+## Parallel execution
+
+By default, `test.each` runs cases sequentially. For independent API calls that don't share state, run them in parallel:
+
+```typescript
+const cases = await fromYaml<{ id: number; expected: number }>("./data/status-codes.yaml");
+
+export const checkStatus = test.each(cases, { parallel: true })(
+  { id: "status-$id", tags: ["regression"] },
+  async (ctx, { id, expected }) => {
+    const res = await ctx.http.get(`/products/${id}`);
+    ctx.expect(res).toHaveStatus(expected);
+  },
+);
+```
+
+Each case runs in its own subprocess with isolated state — one slow or failing case doesn't block others. The CLI controls the concurrency level with `--concurrency` (default: CPU cores).
+
+**When to use:** Cases are independent (no shared state, no ordering dependency). Typical speedup is 3-5x on multi-core machines.
+
+**When not to use:** Cases depend on each other, share a session, or hit a rate-limited API where parallel requests would cause throttling.
 
 ---
 
