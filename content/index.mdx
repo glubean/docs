@@ -1,8 +1,10 @@
 # Glubean
 
-AI can generate tests. Glubean makes them runnable, inspectable, and fixable — or write your own.
+Glubean is a workflow verification platform. Write tests in TypeScript, commit to git, run locally or in CI. Supports HTTP, GraphQL, gRPC, and browser automation through plugins.
 
-Glubean is the layer between generated code and trusted verification: structured execution, typed failures, and artifacts that survive from `explore/` drafts all the way to CI.
+The VSCode extension serves two roles: a **visual and review layer** for the Glubean workflow (run, inspect, debug), and a **code-first replacement for Postman** — your `explore/` folder is your API collection, versioned in git, shared with the team, no per-seat pricing.
+
+The same TypeScript file works as both an API collection entry and a CI regression test. No export step, no format conversion, no tool fragmentation.
 
 ```ts
 // Agent-generated workflow — runs as-is, no rewrite needed
