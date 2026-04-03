@@ -170,23 +170,19 @@ npx glubean config mcp
 npx skills add glubean/skill
 ```
 
-Place the relevant files in the repo:
-
-- Postman collection
-- Apifox export
-- OpenAPI spec
-- `.http` files
-- old test files
-- supporting docs or request notes
-
-If you have more than one source, keep them together. The agent should cross-check them instead of trusting only one export.
-
-Then start the chat with a skill-directed prompt:
+Tell the agent where your source assets are — do not copy them into the Glubean project:
 
 ```text
 /glubean I want to migrate existing API assets into Glubean tests.
 Use a phased workflow and do not generate files yet.
+
+Sources:
+- Postman collection: /path/to/collection.json
+- OpenAPI spec: ../api/openapi.yaml
+- Legacy tests: ../backend/tests/api/
 ```
+
+The agent will read from those paths directly. If you have multiple sources, list them all — the agent should cross-check instead of trusting one export.
 
 ### Phase 1: Run a feasibility scan only
 
@@ -194,14 +190,10 @@ Start with a scan-only prompt:
 
 ```text
 /glubean do a migration feasibility scan only. Do not generate files yet.
-Follow a phased migration workflow.
 
-Read first:
-- package.json
-- GLUBEAN.md if present
-- tests/, explore/, types/, schemas/, and existing configure/auth helpers
+Read the Glubean project first (package.json, GLUBEAN.md, tests/, config/).
 
-Then read these migration sources:
+Then read these source assets (do not copy them into the project):
 - [paths to Postman / Apifox / OpenAPI / .http / legacy tests]
 
 Return:
