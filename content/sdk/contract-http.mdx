@@ -1,0 +1,194 @@
+# Contract HTTP
+
+Use `contract.http()` to declare endpoint behavior as named cases. Each case becomes a runnable test — no `test()` wrapper needed.
+
+## When to use
+
+- You want to define what an API **should do** before implementing it
+- You want structured, scannable specs that tools can extract without running code
+- You want one declaration to cover success, error, and edge cases for a single endpoint
+
+## Basic contract
+
+```typescript
+import { contract, configure } from "@glubean/sdk";
+
+const { api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
+
+export const createUser = contract.http("create-user", {
+  endpoint: "POST /users",
+  feature: "User Registration",
+  description: "Create a new user account",
+  client: api,
+  cases: {
+    success: {
+      description: "Valid registration creates user and returns profile",
+      body: { email: "test@example.com", password: "secure123" },
+      expect: { status: 201 },
+    },
+    duplicateEmail: {
+      description: "Already registered email is rejected",
+      body: { email: "existing@example.com", password: "secure123" },
+      expect: { status: 409 },
+    },
+    missingPassword: {
+      description: "Missing required field returns validation error",
+      body: { email: "test@example.com" },
+      expect: { status: 400 },
+    },
+  },
+});
+```
+
+Each case key (`success`, `duplicateEmail`, `missingPassword`) becomes a test with ID `create-user.success`, etc.
+
+## Contract-level fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `endpoint` | `string` | Yes | HTTP method + path, e.g. `"POST /users"` |
+| `client` | HTTP client | No | Default client for all cases (from `configure()`) |
+| `feature` | `string` | No | Groups contracts in projection output (e.g. `"User Registration"`) |
+| `description` | `string` | No | What this endpoint does, in business language |
+| `request` | Zod schema | No | Request body schema (documentation, not enforced) |
+| `tags` | `string[]` | No | Inherited by all cases |
+
+## Case fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `description` | `string` | **Yes** | Why this case exists — business behavior, not HTTP details |
+| `expect` | object | Yes | `{ status: number, schema?: ZodSchema }` |
+| `body` | object / fn | No | Request body. Can be a function of state: `(state) => ({...})` |
+| `headers` | object / fn | No | Request headers. Can be a function of state |
+| `params` | object | No | URL path parameters (e.g. `{ id: "123" }` for `/users/:id`) |
+| `query` | object | No | Query string parameters |
+| `client` | HTTP client | No | Override contract-level client (useful for auth testing) |
+| `setup` | fn | No | Run before request: `async (ctx) => state` |
+| `teardown` | fn | No | Run after request (always, even on failure): `async (ctx, state) => void` |
+| `verify` | fn | No | Custom assertions after response: `async (ctx, response) => void` |
+| `deferred` | `string` | No | Mark case as not yet runnable, with reason |
+| `requires` | `string` | No | `"headless"` (default), `"browser"`, or `"out-of-band"` |
+| `defaultRun` | `string` | No | `"always"` (default) or `"opt-in"` |
+| `tags` | `string[]` | No | Case-specific tags (merged with contract-level tags) |
+
+## Schema validation
+
+Use `expect.schema` with a Zod schema to validate response shape:
+
+```typescript
+import { z } from "zod";
+
+const UserSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  createdAt: z.string().datetime(),
+});
+
+export const getUser = contract.http("get-user", {
+  endpoint: "GET /users/:id",
+  client: api,
+  cases: {
+    found: {
+      description: "Returns full user profile by ID",
+      params: { id: "user-123" },
+      expect: { status: 200, schema: UserSchema },
+    },
+  },
+});
+```
+
+## Custom verification
+
+Use `verify` for assertions beyond status and schema:
+
+```typescript
+cases: {
+  success: {
+    description: "Created user has correct email",
+    body: { email: "new@example.com", password: "secure123" },
+    expect: { status: 201 },
+    verify: async (ctx, res) => {
+      const body = await res.json();
+      ctx.expect(body.email).toBe("new@example.com");
+      ctx.expect(body.id).toBeDefined();
+    },
+  },
+}
+```
+
+## Deferred cases
+
+Mark cases that can't run yet:
+
+```typescript
+cases: {
+  rateLimit: {
+    description: "Excessive requests are throttled",
+    deferred: "Rate limiting not deployed yet",
+    body: { email: "spam@example.com", password: "x" },
+    expect: { status: 429 },
+  },
+}
+```
+
+Deferred cases are skipped during execution and show as `⊘` in projection output.
+
+## Per-case auth
+
+Use different clients to test auth boundaries:
+
+```typescript
+const { api, adminApi, unauthenticated } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
+
+export const deleteUser = contract.http("delete-user", {
+  endpoint: "DELETE /users/:id",
+  client: adminApi,
+  cases: {
+    success: {
+      description: "Admin can delete a user",
+      params: { id: "user-123" },
+      expect: { status: 204 },
+    },
+    forbidden: {
+      description: "Regular user cannot delete others",
+      client: api,
+      params: { id: "user-123" },
+      expect: { status: 403 },
+    },
+    unauthenticated: {
+      description: "Anonymous access is rejected",
+      client: unauthenticated,
+      params: { id: "user-123" },
+      expect: { status: 401 },
+    },
+  },
+});
+```
+
+## Projection
+
+Run `glubean contracts` to see all contracts as a human-readable report:
+
+```bash
+glubean contracts                    # markdown outline (default)
+glubean contracts --format json      # machine-readable JSON
+```
+
+The output groups contracts by `feature` and lists cases with descriptions. Technical descriptions trigger lint warnings.
+
+## Description guidelines
+
+Case descriptions should use business language:
+
+| Bad | Good |
+|-----|------|
+| POST creates a user | Valid registration creates user and returns profile |
+| Returns 409 | Already registered email is rejected |
+| Validates request body | Missing required field returns validation error |
+
+`glubean contracts` warns about descriptions that start with HTTP methods, contain status codes, or use jargon like "endpoint", "payload", or "request body".
