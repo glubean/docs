@@ -12,84 +12,117 @@ For single-endpoint specs, use [contract.http()](/sdk/contract-http) instead.
 
 ## Basic flow
 
+A flow composes **existing contract cases**. You don't redeclare endpoints inside the flow — you reference cases already defined in your `contract.http.with()` specs and wire them together with pure lens functions.
+
 ```typescript
-import { contract, configure } from "@glubean/sdk";
+import { contract } from "@glubean/sdk";
+import { login } from "./auth.contract.ts";
+import { getProfile } from "./profile.contract.ts";
 
-const { api } = configure({
-  http: { prefixUrl: "{{BASE_URL}}" },
-});
-
-export const userLifecycle = contract.flow("user-lifecycle")
-  .http("create", {
-    endpoint: "POST /users",
-    client: api,
-    body: { email: "flow@example.com", password: "secure123" },
-    expect: { status: 201 },
+// @flow
+export const loginThenGetProfile = contract
+  .flow("login-then-profile")
+  .meta({
+    description: "Login, then fetch profile using the returned token",
+    tags: ["e2e"],
   })
-  .returns((res) => ({ id: res.id }))
-  .http("retrieve", {
-    endpoint: "GET /users/:id",
-    client: api,
-    params: (state) => ({ id: state.id }),
-    expect: { status: 200 },
+  // Step 1: call login.case("success"). The case already encodes its body.
+  // `out` captures data from the response into flow state.
+  .step(login.case("success"), {
+    out: (_state, res) => ({
+      token: res.body.accessToken as string,
+      userId: res.body.id as number,
+    }),
   })
-  .returns((res) => ({ id: res.id }))
-  .http("delete", {
-    endpoint: "DELETE /users/:id",
-    client: api,
-    params: (state) => ({ id: state.id }),
-    expect: { status: 204 },
-  })
-  .build();
+  // Pure sync transform. String concatenation isn't a lens operation,
+  // so it lives in a `.compute()` step.
+  .compute((s) => ({
+    ...s,
+    authHeader: `Bearer ${s.token}`,
+  }))
+  // Step 2: feed the header into the next case via the `in` lens.
+  .step(getProfile.case("authorized"), {
+    in: (s) => ({ headers: { Authorization: s.authHeader } }),
+  });
 ```
+
+The `// @flow` marker above the export is required for VSCode CodeLens. It has no runtime effect — it's a UI hint for the editor.
 
 ## How it works
 
-1. Each `.http()` step sends one HTTP request
-2. `.returns(res => state)` extracts data from the response for the next step
-3. `params`, `body`, and `headers` can be functions that receive the current state
-4. Steps execute in order — the flow stops on the first failure
+1. Each `.step(ref, { in, out })` invokes one already-defined contract case.
+2. `in` is a **pure lens** that reads from flow state and produces the case's inputs (e.g. `params`, `body`, `headers`). No I/O, no method calls, no branching — just field lookup and repacking.
+3. `out` is a **pure lens** that reads the case's response and produces the new flow state.
+4. `.compute(fn)` runs any synchronous TS expression (template literals, `.map()`, method calls) that lenses can't express. Its read/write dependencies are recorded, not the formula itself.
+5. Steps execute in order — the flow stops on the first failure.
 
-## State passing
+## Why lens functions must be pure
 
-The flow carries state between steps via `.returns()`:
+The scanner, MCP, and Cloud dashboards extract the field-level dependencies of your flow **without running it**. They do this by dry-running `in` / `out` against a traced Proxy. If a lens calls a method, branches, or does I/O, it throws `LensPurityError` at projection time.
+
+Anything the lens can't express belongs in `.compute()`.
 
 ```typescript
-.http("create-order", {
-  endpoint: "POST /orders",
-  client: api,
-  body: { items: [{ productId: "p1", qty: 2 }] },
-  expect: { status: 201 },
+// ❌ Not a lens — `"Bearer " + token` calls String.prototype methods
+.step(next.case("..."), {
+  in: (s) => ({ headers: { Authorization: `Bearer ${s.token}` } }),
 })
-.returns((res) => ({ orderId: res.id, total: res.total }))
-.http("pay", {
-  endpoint: "POST /orders/:id/pay",
-  client: api,
-  params: (state) => ({ id: state.orderId }),
-  body: (state) => ({ amount: state.total }),
-  expect: { status: 200 },
+
+// ✅ Build the value in compute, then inject with a pure lens
+.compute((s) => ({ ...s, authHeader: `Bearer ${s.token}` }))
+.step(next.case("..."), {
+  in: (s) => ({ headers: { Authorization: s.authHeader } }),
 })
 ```
 
-## Combining with contract.http()
+## Setup and teardown
 
-Each endpoint in a flow should also have its own `contract.http()` for comprehensive case coverage. The flow verifies that endpoints **work together**; `contract.http()` verifies that each endpoint **handles all cases**.
+`.setup()` is the **only** I/O-capable callback in a flow. Use it to seed the initial state from external systems. `.teardown()` runs in the outer finally and receives the last-committed state; if `.setup()` throws, teardown does NOT run.
 
 ```typescript
-// Spec cases for the create endpoint
-export const createUser = contract.http("create-user", {
-  endpoint: "POST /users",
-  client: api,
+export const orderLifecycle = contract
+  .flow("order-lifecycle")
+  .setup(async (ctx) => ({
+    userId: ctx.vars.require("TEST_USER_ID"),
+  }))
+  .step(createOrder.case("success"), {
+    in: (s) => ({ body: { userId: s.userId, items: [...] } }),
+    out: (s, res) => ({ ...s, orderId: res.body.id }),
+  })
+  .step(payOrder.case("success"), {
+    in: (s) => ({ params: { id: s.orderId } }),
+  })
+  .teardown(async (ctx, s) => {
+    await ctx.http.delete(`/orders/${s.orderId}`);
+  });
+```
+
+## Combining with `contract.http()`
+
+Flows and single-endpoint contracts are complementary:
+
+- A `contract.http.with()` **case-per-endpoint** spec verifies that the endpoint handles all relevant cases (success, invalid input, auth errors, edge cases).
+- A `contract.flow()` verifies that cases from different endpoints **work together** — the output of one case feeds the next.
+
+The flow doesn't duplicate the case's body or expectations — it references the case and adds only the state-wiring lenses.
+
+```typescript
+// Single endpoint — cases cover all behaviors
+export const createOrder = orderApi("create-order", {
+  endpoint: "POST /orders",
   cases: {
-    success: { description: "...", body: {...}, expect: { status: 201 } },
-    duplicate: { description: "...", body: {...}, expect: { status: 409 } },
+    success: { body: {...}, expect: { status: 201 } },
+    invalidItems: { body: {...}, expect: { status: 400 } },
+    unauthorized: { body: {...}, expect: { status: 401 } },
   },
 });
 
-// Flow verifying endpoints work together
-export const userLifecycle = contract.flow("user-lifecycle")
-  .http("create", { endpoint: "POST /users", ... })
-  .returns(res => ({ id: res.id }))
-  .http("get", { endpoint: "GET /users/:id", ... })
-  .build();
+// Flow — composes cases from multiple contracts
+export const checkoutFlow = contract.flow("checkout")
+  .step(createOrder.case("success"), {
+    out: (_s, res) => ({ id: res.body.id }),
+  })
+  .step(payOrder.case("success"), {
+    in: (s) => ({ params: { id: s.id } }),
+  });
 ```
