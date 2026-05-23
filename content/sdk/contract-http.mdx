@@ -79,7 +79,7 @@ Instance defaults:
 | `security` | security scheme | `"bearer"`, `"basic"`, `{ type: "apiKey", ... }`, `{ type: "oauth2", ... }`, or `null` for public |
 | `tags` | `string[]` | Merged additively with contract + case tags |
 | `feature` | `string` | Default feature grouping key |
-| `extensions` | `Record<\`x-${string}\`, unknown>` | OpenAPI `x-*` extensions inherited by all contracts |
+| `extensions` | `Extensions` ([see below](#openapi-extensions)) | OpenAPI `x-*` extensions inherited by all contracts |
 
 Instances can be chained: `userApi.with("scoped", { ... })` creates a nested instance where tags and extensions merge.
 
@@ -93,7 +93,7 @@ Instances can be chained: `userApi.with("scoped", { ... })` creates a nested ins
 | `request` | `RequestSpec` | No | Request spec — schema shorthand or `{ body, contentType, headers, example, examples }` |
 | `tags` | `string[]` | No | Inherited by all cases |
 | `deprecated` | `string` | No | Mark entire endpoint deprecated with reason; propagates to all cases |
-| `extensions` | `Record<\`x-${string}\`, unknown>` | No | OpenAPI `x-*` extensions at the operation level |
+| `extensions` | `Extensions` ([see below](#openapi-extensions)) | No | OpenAPI `x-*` extensions at the operation level |
 
 Per-case `client` is still allowed and overrides the instance's client. `client` is **never** set at the spec level — it belongs on the `.with()` instance.
 
@@ -118,7 +118,7 @@ Per-case `client` is still allowed and overrides the instance's client. `client`
 | `requires` | `"headless" \| "browser" \| "out-of-band"` | No | Physical capability required (default: `"headless"`) |
 | `defaultRun` | `"always" \| "opt-in"` | No | Whether case runs automatically (default: `"always"`) |
 | `tags` | `string[]` | No | Case-specific tags (merged with contract-level tags) |
-| `extensions` | `Record<\`x-${string}\`, unknown>` | No | OpenAPI `x-*` extensions on the case, merged over contract + instance |
+| `extensions` | `Extensions` ([see below](#openapi-extensions)) | No | OpenAPI `x-*` extensions on the case, merged over contract + instance |
 
 ## `expect`
 
@@ -441,7 +441,13 @@ The structured form lets you attach request examples, header schema, and non-JSO
 
 ## OpenAPI extensions
 
-For tool-interop metadata that doesn't fit a standard OpenAPI field, use `extensions`. Keys **must start with `x-`** (TypeScript enforces this via template literal type):
+For tool-interop metadata that doesn't fit a standard OpenAPI field, use `extensions`. Keys **must start with `x-`** — TypeScript enforces this via a template literal type:
+
+```typescript
+type Extensions = Record<`x-${string}`, unknown>
+```
+
+Example usage on instance, contract, and case:
 
 ```typescript
 const adminApi = contract.http.with("admin", {
