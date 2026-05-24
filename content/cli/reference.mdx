@@ -56,9 +56,13 @@ glubean spec split openapi.yaml          # Split spec into per-endpoint files
 ## Cloud authentication
 
 ```bash
-glubean login                            # Interactive login
-glubean login --token <token>            # Non-interactive
+glubean login                            # Interactive: paste a user API key (gb_...)
+glubean login --token <token>            # Non-interactive variant
 ```
+
+Use `glubean login` for personal local development across multiple Glubean projects. It saves a user API key (`gb_…`) to `~/.glubean/credentials.json`, which the CLI then uses as a fallback whenever no project-local credential is set.
+
+**Do not use `glubean login` in CI.** In CI, store a project token (`gpt_…`) in your provider's secret store and inject it as the `GLUBEAN_TOKEN` env var. See [Tokens](/cloud/tokens) and [Upload your first run](/getting-started/upload-to-cloud).
 
 ## Configuration
 
