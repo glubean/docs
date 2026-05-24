@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "next dev -p 4500",
-    "build": "next build",
+    "dev": "next dev --webpack -p 4500",
+    "build": "next build --webpack",
     "start": "next start -p 4500",
     "check:links": "node scripts/check-doc-links.mjs",
     "check:docs": "npm run check:links && npm run build"
@@ -28,6 +28,14 @@
     "nextra-theme-docs": "^4.6.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
+  },
+  "overrides": {
+    "zod": "4.1.12"
+  },
+  "pnpm": {
+    "overrides": {
+      "zod": "4.1.12"
+    }
   },
   "packageManager": "pnpm@10.13.1+sha512.37ebf1a5c7a30d5fabe0c5df44ee8da4c965ca0c5af3dbab28c3a1681b70a256218d05c81c9c0dcf767ef6b8551eb5b960042b9ed4500c59242336377e01cfad"
 }

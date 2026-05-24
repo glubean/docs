@@ -15,5 +15,6 @@ export default {
   plugins: 'Plugins',
   'auth-plugin': 'Auth Plugin',
   'graphql-plugin': 'GraphQL Plugin',
+  'grpc-plugin': 'gRPC Plugin',
   'browser-plugin': 'Browser Plugin',
 }
