@@ -5,5 +5,6 @@ export default {
   analytics: 'Analytics',
   notifications: 'Notifications',
   redaction: 'Redaction',
+  'agent-access': 'Agent Access',
   quotas: 'Plans & Quotas',
 }
