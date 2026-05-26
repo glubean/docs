@@ -63,8 +63,8 @@ Authorization: Bearer gpt_xxxxxxxxxxxxxxxx
 ## Why a dedicated endpoint vs `GET /runs/{id}/events`?
 
 Tested informally: a 200-event run is **~30K agent tokens** in context just to
-find 3 failures. The dedicated `/failures` endpoint is **<1K tokens** for the
-same outcome — a 10-30× reduction. The endpoint also normalizes
+find 3 failures. The dedicated `/failures` endpoint is **under 1K tokens** for
+the same outcome — a 10-30× reduction. The endpoint also normalizes
 reason shape across runtimes (assertion / exception / timeout) so the agent
 doesn't have to thread event IDs back to test IDs by hand.
 
