@@ -5,9 +5,9 @@ Commands organized by what you are trying to do. For the full option list, run `
 ## Daily development
 
 ```bash
-glubean run                              # Run tests/ directory
-glubean run --explore                    # Run explore/ directory
-glubean run tests/users.test.ts          # Run a single file
+glubean run                              # Run the `local` profile (tests/)
+glubean run --profile explore            # Run the `explore` profile
+glubean run tests/users.test.ts          # Run a single file (ad-hoc)
 glubean run --filter "create-user"       # Filter by test ID or name
 glubean run --tag smoke                  # Filter by tag
 glubean run --tag smoke --tag auth --tag-mode and   # Require all tags
@@ -19,7 +19,7 @@ glubean run --verbose                    # Show HTTP traces in console
 
 ```bash
 glubean init                             # Interactive wizard
-glubean init --minimal                   # Minimal template (explore only)
+glubean init --contract-first            # Contract-first scaffold (contracts/ + tests/)
 glubean init --hooks --github-actions    # With git hooks and CI workflow
 ```
 
@@ -33,18 +33,23 @@ npx skills add glubean/skill              # Install test-writing skill (docs bun
 ## CI / CD
 
 ```bash
-glubean run tests/ --ci                  # Enables --fail-fast + junit reporter
-glubean run tests/ --result-json results.json --reporter junit:results.xml
-glubean run tests/ --upload              # Run and upload to glubean Cloud
+glubean ci run                           # Run the `ci` profile (fail-fast + junit reporter, from glubean.yaml)
+glubean ci run --reporter junit:results.xml --result-json results.json
+glubean ci run --upload                  # Run the `ci` profile and upload to glubean Cloud
 ```
 
-## Metadata and sync
+`glubean ci run` is equivalent to `glubean run --profile ci`. The fail-fast +
+reporter behavior comes from `profiles.ci` in `glubean.yaml` (see
+[Configuration](#configuration) below), not a CLI preset.
+
+## Metadata
 
 ```bash
 glubean scan                             # Generate metadata.json
 glubean validate-metadata                # Check metadata is in sync (CI gate)
-glubean sync -p <project-id>             # Sync test bundle to Cloud
 ```
+
+To upload results to Cloud, add `--upload` to a run (see [Upload your first run](/getting-started/upload-to-cloud)).
 
 ## OpenAPI tools
 
@@ -66,33 +71,51 @@ Use `glubean login` for personal local development across multiple Glubean proje
 
 ## Configuration
 
-glubean reads config from `package.json` (under the `"glubean"` key) or from a standalone JSON file passed with `--config`.
+glubean reads config from `glubean.yaml` at the project root. It declares
+**suites** (where runnable files live), **profiles** (named run plans you
+select with `--profile`), and shared **defaults**. `glubean init` scaffolds one.
 
-```json
-{
-  "glubean": {
-    "run": {
-      "testDir": "./tests",
-      "exploreDir": "./explore",
-      "envFile": ".env",
-      "failFast": false,
-      "perTestTimeoutMs": 30000,
-      "concurrency": 1
-    },
-    "redaction": {
-      "sensitiveKeys": ["x-internal-token"],
-      "customPatterns": [
-        { "name": "stripe-key", "regex": "sk_live_[a-zA-Z0-9]{24,}" }
-      ]
-    }
-  }
-}
+```yaml
+version: 1
+
+defaults:
+  redaction:
+    sensitiveKeys: [x-internal-token]
+    customPatterns:
+      - { name: stripe-key, regex: "sk_live_[a-zA-Z0-9]{24,}" }
+
+suites:
+  tests:
+    target: ./tests
+    kinds: [test]
+  explore:
+    target: ./explore
+    kinds: [test]
+
+profiles:
+  local:
+    suites: [tests]
+  ci:
+    suites: [tests]
+    selection:
+      excludeTags: [manual, destructive]
+    execution:
+      failFast: true
+      concurrency: 2
+    reporters:
+      junit: .glubean/results/junit.xml
+    thresholds:
+      http_duration_ms: { p95: "<500" }
+  explore:
+    suites: [explore]
 ```
 
-Multiple config files merge left-to-right:
+- `glubean run` (no `--profile`) uses `local`; `glubean ci run` uses `ci`.
+- Run a specific profile with `glubean run --profile <name>`, or narrow a
+  multi-suite profile to one suite with `--suite <name>`.
+- Load an alternate config with `--config ./path/to/glubean.yaml`.
 
-```bash
-glubean run --config base.json,staging.json
-```
+Secrets (cloud `token`, `apiUrl`) never live in `glubean.yaml` — they come from
+`.env.secrets`, environment variables, or `glubean login`. See [Tokens](/cloud/tokens).
 
 Run `glubean -h` or `glubean <command> -h` for the full option list.

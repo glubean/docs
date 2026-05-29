@@ -105,7 +105,7 @@ export default myPlugin;
 A plugin manifest has **no effect** until `installPlugin(manifest)` runs. The canonical place to call it is `glubean.setup.ts` at the project root:
 
 ```typescript
-// glubean.setup.ts  (project root, alongside ci-config/ and tests/)
+// glubean.setup.ts  (project root, alongside glubean.yaml and tests/)
 import { installPlugin } from "@glubean/sdk";
 import graphqlPlugin from "@glubean/graphql";
 import grpcPlugin from "@glubean/grpc";

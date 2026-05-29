@@ -20,25 +20,19 @@ For when to use a project token vs a user API key, see [Tokens](/cloud/tokens).
 
 ### Local development
 
-Put the token in `.env.secrets` (must be gitignored), and the project ID in `package.json`:
+Put the token in `.env.secrets` (must be gitignored), and the project ID in `.env` (committed):
 
 ```bash
 # .env.secrets — NOT committed
 GLUBEAN_TOKEN=gpt_your_project_token
 ```
 
-```json
-// package.json — committed; shared by every contributor
-{
-  "glubean": {
-    "cloud": {
-      "projectId": "proj_abc123"
-    }
-  }
-}
+```dotenv
+# .env — committed; shared by every contributor
+GLUBEAN_PROJECT_ID=prj_abc123
 ```
 
-Project ID isn't sensitive and belongs in the repo. Token is sensitive and goes in `.env.secrets`.
+The project ID isn't sensitive and belongs in the repo (`.env`). The token is sensitive and goes in `.env.secrets`. Because it's an env var, every run mode — `glubean run --upload`, `glubean ci run --upload`, or a filtered/tagged run — uploads to the same project.
 
 > **Working on multiple Glubean projects from one laptop?** See [Multi-workspace setup](/cloud/tokens#multi-workspace-setup).
 
@@ -52,15 +46,15 @@ GitHub Actions example:
 - name: Upload Glubean run
   env:
     GLUBEAN_TOKEN: ${{ secrets.GLUBEAN_TOKEN }}
-  run: npx glubean run --ci --upload
+  run: npx glubean ci run --upload
 ```
 
-The project ID is in `package.json`, so no second secret is needed.
+The project ID is in `.env`, so no second secret is needed.
 
 ## 3. Upload a run
 
 ```bash
-npx glubean run --ci --upload
+npx glubean ci run --upload
 ```
 
 You can still target a file, folder, filter, or tag:
@@ -86,10 +80,11 @@ The CLI uses the first matching credential source for `GLUBEAN_TOKEN`, `GLUBEAN_
 1. `--token` / `--project` / `--api-url` CLI flags
 2. `GLUBEAN_TOKEN` / `GLUBEAN_PROJECT_ID` / `GLUBEAN_API_URL` env vars
 3. `.env` and `.env.secrets` files in the project root
-4. `package.json` → `glubean.cloud.token` / `.projectId` / `.apiUrl`
-5. `~/.glubean/credentials.json` (written by `glubean login`)
+4. `~/.glubean/credentials.json` (written by `glubean login`)
 
-The chain is per-field — for example, the token can come from env var while the project ID comes from `package.json`. This is what makes the recommended CI pattern (1 secret) work.
+The chain is per-field — for example, the token can come from an env var while the project ID comes from `.env`. This is what makes the recommended CI pattern (1 secret) work. Keep token *values* in `.env.secrets` (gitignored) — a literal `GLUBEAN_TOKEN` in the committed `.env` **is** read, so never commit one there.
+
+For project ID, a profile's `upload.projectAlias` in `glubean.yaml` is also honored when you run that profile — and it takes precedence over `GLUBEAN_PROJECT_ID`. See [Tokens](/cloud/tokens#where-to-store-it) for the exact order.
 
 ## Next
 
