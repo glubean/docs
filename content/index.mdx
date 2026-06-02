@@ -14,7 +14,7 @@ Two ways to use it:
 | Component | What it does | Get started |
 |-----------|-------------|-------------|
 | **SDK** (`@glubean/sdk`) | Author tests — `test()`, `configure()`, assertions, builder flows, data-driven patterns. Tests are plain TypeScript, no proprietary format. | [SDK overview →](/sdk) |
-| **CLI** (`@glubean/cli`) | Run tests, emit traces, manage environments, initialize projects. Same runner in local dev and CI. | [CLI reference →](/cli) |
+| **CLI** (`glubean`) | Run tests, emit traces, manage environments, initialize projects. Same runner in local dev and CI. | [CLI reference →](/cli) |
 | **MCP server** (`@glubean/mcp`) | Lets AI agents run tests, read structured results, and self-repair — the bridge between agent and runner. | [MCP setup →](/extension/generate-with-ai#setup) |
 | **Skill** (`glubean/skill`) | Teaches AI agents SDK patterns, project conventions, and migration workflows. Agents write better tests with it. | [Skill setup →](/extension/generate-with-ai#setup) |
 
@@ -64,7 +64,7 @@ The agent writes the test, runs it via MCP, reads structured failures, fixes, an
 ### By hand
 
 ```bash
-npx @glubean/cli init
+npx glubean init
 ```
 
 1. [Extension Quick Start](/extension/quick-start) — install and create a project
