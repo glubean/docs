@@ -1,6 +1,7 @@
 export default {
   index: 'Overview',
   reference: 'Usage Scenarios',
+  config: 'Configuration (glubean.yaml)',
   environments: 'Environments & Secrets',
   debugging: 'Debugging',
   recipes: 'Common Recipes',
