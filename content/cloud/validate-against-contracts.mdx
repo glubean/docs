@@ -1,0 +1,69 @@
+# Validate a response against a contract (no code)
+
+A contract describes the shape your API promises — the status and response
+schema for an endpoint. In Glubean Cloud you can check a **live response**
+against that contract from the browser, with **zero code**. This is the
+non-developer path to the same guarantee your tests enforce in CI: not a
+hand-written assertion, but your real contract.
+
+> **Who this is for.** QA, product, and support — anyone who can send a request
+> in a browser. You do not need to read or write TypeScript.
+
+## Two contract sources — both work here
+
+Explore's **Validate** picker draws from **both** contract surfaces in your
+project, grouped and labeled so you can tell them apart:
+
+- **Synced** (`glubean sync`) — contracts authored in code
+  (`contract.http.with(...)`) and synced from your repo. These are the same
+  contracts reviewable on the **Specs** page, each listed by its own contract
+  id (e.g. `inventory-items-shape`). This is the "code writes the contract"
+  path.
+- **Designed** (the **APIs** tab) — specs imported (OpenAPI) or hand-built in
+  the browser. This is the non-dev-authored path, useful when no synced code
+  contract exists yet for an endpoint.
+
+Either one gives you the same guarantee once picked: the response is checked
+against a real, documented schema — not a hand-written assert. Pick whichever
+source has the contract you need; if both exist for the same endpoint, either
+is a valid choice (they're two ways to arrive at the same promise).
+
+## What you need
+
+- A **contract** for the endpoint, from either source above:
+  - a synced code contract (developer-authored, synced via `glubean sync` or
+    `glubean run --upload`), or
+  - a designer spec on the **APIs** page (imported OpenAPI or hand-built).
+- A request that calls that endpoint (you build this in **Explore**).
+
+## Steps
+
+1. Open **Explore** in the left sidebar and create (or open) a request.
+2. Set the request's **URL**. Use a full URL (e.g.
+   `https://api.example.com/inventory/items`) or pick a **Server** from the
+   environment — a bare relative path will not resolve on its own.
+3. Click **Send** and confirm you get the response you expect.
+4. Turn the request into a one-step **flow**, then open the **Validate** tab on
+   that step.
+5. Choose the **contract** — it's grouped in the dropdown under **Synced
+   (glubean sync)** and **Designed (APIs)** — then choose the **operation**
+   (e.g. `GET /api/inventory/items`).
+6. **Run** the flow. Glubean sends the request and checks the response against
+   the chosen contract's response schema. You'll see:
+   - **PASS** — `response matches GET /api/inventory/items`, or
+   - **FAIL** — with the field that broke the promised shape.
+
+## Why this beats a manual check
+
+- It validates the **whole documented shape** (every field and type), not just
+  the status code.
+- The contract is the **same source of truth** developers test against in CI —
+  so a PASS here means the same thing a green CI run means, whichever source
+  (synced or designed) you picked.
+- When the API drifts (a renamed or dropped field), the validation fails on the
+  exact field, the same way a contract test would.
+
+## Related
+
+- [Tokens](/cloud/tokens) — how runs and contracts get into your project.
+- [Dashboard](/cloud/dashboard) — read run history and pass rates.
