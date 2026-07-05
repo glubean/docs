@@ -133,9 +133,11 @@ profiles:
 > `upload.projectAlias` is the deprecated former name for `projectId` — it still
 > works (with a warning) but use `projectId`.
 
-**API URL** (self-hosted only) resolves from `--api-url`, then
-`GLUBEAN_API_URL` (env var or `.env` / `.env.secrets`), then the API URL saved
-by `glubean login`.
+**API URL** normally needs no configuration — the CLI talks to Glubean Cloud by
+default. If you're pointed at a different Glubean-hosted environment (e.g.
+staging), set `GLUBEAN_API_URL` (env var or `.env` / `.env.secrets`) to that
+environment's host — `https://api.<env>.glubean.com` — and the CLI
+automatically derives the matching Platform ingest host from it.
 
 ---
 

@@ -77,12 +77,14 @@ After upload, the CLI prints a Cloud URL. Open it to inspect:
 
 The CLI uses the first matching credential source for `GLUBEAN_TOKEN`, `GLUBEAN_PROJECT_ID`, and `GLUBEAN_API_URL`:
 
-1. `--token` / `--project` / `--api-url` CLI flags
+1. `--token` / `--project` CLI flags
 2. `GLUBEAN_TOKEN` / `GLUBEAN_PROJECT_ID` / `GLUBEAN_API_URL` env vars
 3. `.env` and `.env.secrets` files in the project root
 4. `~/.glubean/credentials.json` (written by `glubean login`)
 
 The chain is per-field — for example, the token can come from an env var while the project ID comes from `.env`. This is what makes the recommended CI pattern (1 secret) work. Keep token *values* in `.env.secrets` (gitignored) — a literal `GLUBEAN_TOKEN` in the committed `.env` **is** read, so never commit one there.
+
+`GLUBEAN_API_URL` normally needs no configuration — the CLI talks to Glubean Cloud by default. Set it only when pointing at a different Glubean-hosted environment (e.g. staging), using that environment's `https://api.<env>.glubean.com` host — the CLI automatically derives the matching ingest host from it. See [Tokens](/cloud/tokens#where-to-store-it) for details.
 
 For project ID, a profile's `upload.projectId` in `glubean.yaml` is also honored when you run that profile — and it takes precedence over `GLUBEAN_PROJECT_ID`. A profile can also set `upload.tokenEnv` (the name of the env var holding *its* token) so different profiles upload to different projects. See [Tokens](/cloud/tokens#where-to-store-it) for the exact order and the full config reference at [Configuration](/cli/config).
 
