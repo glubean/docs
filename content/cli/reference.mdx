@@ -15,6 +15,22 @@ glubean run --pick edge,invalid          # Run specific test.pick() examples
 glubean run --verbose                    # Show HTTP traces in console
 ```
 
+## Load testing
+
+```bash
+glubean load                             # Run the load suite/profile from glubean.yaml
+glubean load tests/load/shop.load.ts     # Run a single *.load.ts plan (ad-hoc)
+glubean load --upload                     # Run + upload (kind=load) to a target
+glubean load --upload --target tgt_abc    # Upload to a specific target
+```
+
+Load plans (`*.load.ts`) drive concurrent, sustained traffic to measure latency
+percentiles, throughput, and error rate under pressure — opt-in, since they
+generate real traffic. Uploaded load runs surface under
+[Performance](/cloud/performance) in Cloud. Thresholds (the pass/fail SLA gate)
+are declared in the runner and documented in
+[Configuration](/cli/config#thresholds).
+
 ## Project setup
 
 ```bash
@@ -61,13 +77,22 @@ glubean spec split openapi.yaml          # Split spec into per-endpoint files
 ## Cloud authentication
 
 ```bash
-glubean login                            # Interactive: paste a user API key (gb_...)
-glubean login --token <token>            # Non-interactive variant
+glubean login                            # Intended: RFC 8628 device flow (browser approval)
+glubean login --token glb_...            # Provide a dashboard token directly
 ```
 
-Use `glubean login` for personal local development across multiple Glubean projects. It saves a user API key (`gb_…`) to `~/.glubean/credentials.json`, which the CLI then uses as a fallback whenever no project-local credential is set.
+`glubean login` is meant to run the device-authorization flow and save the
+resulting `glb_` token to `~/.glubean/credentials.json`, which the CLI then uses
+as a fallback whenever no project-local credential is set.
 
-**Do not use `glubean login` in CI.** In CI, store a project token (`gpt_…`) in your provider's secret store and inject it as the `GLUBEAN_TOKEN` env var. See [Tokens](/cloud/tokens) and [Upload your first run](/getting-started/upload-to-cloud).
+> **Today:** the server device endpoints aren't live yet, so the browser flow
+> can't complete. Create a `glb_` token in the dashboard (Settings → Tokens) and
+> provide it via `--token glb_…`, the `GLUBEAN_TOKEN` env var, or `.env.secrets`.
+
+**Do not use `glubean login` in CI.** In CI, store a **scoped** token (`glb_…`,
+`runs:write`) in your provider's secret store and inject it as the
+`GLUBEAN_TOKEN` env var. See [Tokens](/cloud/tokens) and [Upload your first
+run](/getting-started/upload-to-cloud).
 
 ## Configuration
 

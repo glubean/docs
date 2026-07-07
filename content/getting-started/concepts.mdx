@@ -87,8 +87,20 @@ export const checkout = test("checkout-flow")
 
 Two levels of workflow: **shared state across tests** (module variables) and **shared state within a test** (builder steps). Together they cover everything from simple CRUD to complex multi-service orchestration.
 
+## Load & Performance
+
+Functional tests ask _"does it behave correctly?"_. A **load test** asks _"how does it behave under concurrency?"_ — latency percentiles, throughput, and error rate while sustained traffic is in flight. Load plans live in `*.load.ts` files and run with `glubean load` (opt-in, since they generate real traffic).
+
+Uploaded load runs feed the **Performance** surface in Cloud. Two lenses:
+
+- **Trend** — one implementation over time (is it getting faster or slower?).
+- **Compare** — several implementations of the same API side by side. Here each implementation is a **source** (e.g. a Bun server vs an Express server of the same endpoints), and a **benchmark** is the group you declare comparable.
+
+The vocabulary is worth pinning early: what the dashboard calls a **target** (an upload destination) _is_ a source when you compare implementations. See [Performance](/cloud/performance).
+
 ## What's next?
 
 - [First Test](/getting-started/first-test) — Write and run your first test
 - [SDK Reference](/sdk) — The full API surface
+- [Performance](/cloud/performance) — Load-test results, trends, and cross-source comparison
 - [Limitations](/reference/limitations) — Trade-offs and known constraints

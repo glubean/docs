@@ -1,7 +1,8 @@
 export default {
   index: 'Overview',
   'contract-http': 'Contract HTTP',
-  'contract-flow': 'Contract Flow',
+  'contract-flow': 'Workflow',
+  'contract-browser': 'Contract Browser',
   'test-api': 'Test Shape',
   'http-client': 'HTTP Requests',
   assertions: 'Assertions',

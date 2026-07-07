@@ -1,0 +1,103 @@
+---
+title: Performance
+description: Read load-test results in Cloud — Trend for one source over time, and Compare for several sources (implementations) of the same API side by side.
+---
+
+# Performance
+
+The **Performance** surface is where uploaded load runs become readable. A functional run answers _"does the API behave correctly?"_; a load run answers _"how does it behave under concurrency?"_ — latency percentiles, throughput, and error rate while sustained traffic is in flight.
+
+Performance has two lenses over the same load data:
+
+- **Trend** — one source over time. Is this implementation getting faster or slower, run over run?
+- **Compare** — several sources side by side. Which of these implementations of the same API is faster, and where does each fall over as load climbs?
+
+Trend lives on a single target (the **Performance** tab). Compare is project-scoped and lives under **Benchmarks**.
+
+## Producing load runs
+
+Performance reads whatever `glubean load --upload` sends up. A load plan is a `*.load.ts` file: a **scenario** (the workload each virtual user repeats) plus a **runner** (concurrency, duration, thresholds).
+
+```typescript
+import { loadScenario, loadRunner, http } from "@glubean/sdk";
+
+const shop = loadScenario("shop").step("browse", async (ctx) => {
+  const res = await http.get("/catalog", { searchParams: { q: "pen" } });
+  ctx.expect(res.status).toBe(200);
+});
+
+export const shopLoad = loadRunner("shop-load", {
+  scenario: shop,
+  concurrency: 500,          // virtual users in flight — this is the "load level"
+  duration: "60s",
+  thresholds: {
+    transaction: { errorRate: "<1%", p95: "<400ms" },
+  },
+});
+```
+
+```bash
+glubean load --upload --target tgt_abc    # run + upload as a kind=load run
+```
+
+Each upload becomes one **load run** on that target, carrying a rich artifact: per-endpoint and per-step latency distributions, a run timeline, threshold pass/fail, and bounded failure samples. See [`glubean load`](/cli/reference) for the command and the [Configuration reference](/cli/config) for the full threshold schema.
+
+> **A threshold-failed load run is still valid Performance data.** Failing a p95 gate turns the run red, but the numbers it measured are real and comparable — Performance reads it like any other completed run.
+
+## Trend — one source over time
+
+Open a target's **Performance** tab to see its load history as a timeline:
+
+- **Latency** (p50/p95/p99), **throughput**, and **error rate** plotted run over run.
+- **Capacity** — how p95 and throughput move as you push the load level higher, so you can see where this implementation saturates.
+- Breakdowns **by endpoint, scenario, and step**, and the threshold (SLA) verdict per run.
+
+Pin a **baseline run** to measure drift against a known-good point. Trend is strictly longitudinal — every point is the _same_ target (the same system under test) at a different time. That is exactly why it cannot answer "Bun vs Express": two implementations uploaded to one target would interleave into a single line and read as _one_ implementation changing over time. Comparing implementations is what **Compare** is for.
+
+## Compare — several sources side by side
+
+A **benchmark** groups several targets you declare comparable — for example a **Bun** implementation and an **Express** implementation of the same API. In Compare, each grouped target is a **source**.
+
+The data you're navigating is a grid of **source × load level × time**, and you walk all three axes:
+
+- **source** — Bun vs Express vs …
+- **load level** — 500 vs 1000 vs 5000 concurrent (an axis you _walk_, not a setting frozen into the benchmark)
+- **time** — which run each cell draws from (latest by default; pin a specific run to freeze a cell)
+
+The only hard requirement for a benchmark is a **shared load plan** — the same `loadRunner` id across all sources, so everyone is running the same workload. Everything else is a comparison axis or a warning input (below), never a barrier.
+
+### The two views
+
+**Leaderboard** — fix a load level; columns are the sources. Rows are endpoints (and scenario variants); each cell shows **p95**, **error rate**, and **throughput** (throughput is shown but de-emphasized — it's the noisiest metric to compare across machines). Nominate one source as the **baseline** and every other cell renders a `±%` delta against it, worst regression first.
+
+**Capacity** — walk the load levels; one curve per source overlaid on the same axes. This is the "Express's capacity curve vs Bun's" read — where each implementation's p95 knees upward and where throughput plateaus.
+
+Every cell shows the exact **run id** and **start time** it drew from, so any number on the page is traceable back to a specific run.
+
+### Warnings, not gates
+
+Two runs are rarely _perfectly_ matched. Glubean's stance (progressive strictness — see [Core Concepts](/getting-started/concepts)) is to **show the comparison and flag what differs**, never to hide it:
+
+A compared set of cells is **clean** only when every run in it shares the same **execution model**, the same **load-config shape** (duration / iteration bound / scenario composition), and the same **environment**. Anything else is **warned** — the deltas still render, but a chip spells out exactly what diverges, and the raw configs are one click away, side by side, so you can judge whether the comparison is fair. Nothing is ever silently equated, and nothing is ever hidden.
+
+| Warning | Means |
+|---|---|
+| **execution model differs / unknown** | Sources ran under different load runtimes (ramp, pacing, engine), or one couldn't be determined. |
+| **load shape differs / unknown** | Different duration, iteration bound, or scenario mix — or a legacy run whose shape isn't recorded. |
+| **environments mixed** | The compared runs came from different environment labels. |
+| **source missing this row/level** | A source has no qualifying run at that endpoint or load level. |
+| **pin ignored** | A pinned run no longer qualifies (e.g. it was deleted) so the cell fell back to the latest run. |
+
+A legacy run uploaded before this data was recorded stays permanently "shape unknown" — that's visible debt, shown rather than dropped.
+
+## When to reach for which
+
+- **One implementation, drift over time / CI gate** → the target's **Performance** tab (Trend) and thresholds.
+- **Two or more implementations of the same API, "which is faster / who scales better"** → a **benchmark** and **Compare**.
+
+## Next
+
+- [`glubean load`](/cli/reference) — produce and upload load runs
+- [Configuration](/cli/config) — thresholds and the full load schema
+- [Dashboard](/cloud/dashboard) — per-run detail
+- [Analytics](/cloud/analytics) — functional-suite trends (pass rate, flakiness)

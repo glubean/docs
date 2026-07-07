@@ -1,0 +1,234 @@
+# Contract Browser
+
+Use `contract.browser.with()` to declare a **browser journey** — a login flow, a
+checkout, a dashboard render — as a named, declarative contract. One journey spec
+is consumed two ways: the runner can **replay** it and judge it authoritatively,
+or an agent can **self-QA** against it and file an attested report.
+
+## When to use
+
+- You want to describe a multi-step UI flow (open → fill → submit → land) as a
+  spec, not an imperative script
+- You want the terminal URL, DOM, backend calls, and console health of a journey
+  checked against a fixed, reviewable questionnaire
+- You want the journey to double as an agent-QA checklist for exploratory passes
+- You want the browser flow to assert that it triggered a specific
+  `contract.http` case (the `expect.calls` link below)
+
+## Two modes
+
+The same journey spec feeds both:
+
+- **Mode A — `glubean run`.** The runner replays each step's `action` with
+  `@glubean/browser`, freezes an evidence window (network trace, console,
+  screenshots, terminal URL), and judges every `expect` **authoritatively**. A
+  failed `expect` is a real test failure.
+- **Mode B — `glubean qa`.** An agent reads each step's `intent` and the
+  `expect` list, drives its own browser, and self-checks each `expect` with
+  evidence. Judgement is **referential** — the output is a fixed
+  `agent-qa-report/v1`, and a Mode B `expect` fail is an agent-attested finding,
+  not a test failure.
+
+## Wiring a project
+
+Mode A needs **two** install paths — the browser **client** (via `configure`)
+and the contract **adapter** (via `installPlugin`):
+
+```typescript
+// glubean.setup.ts  (project root — the runner auto-discovers and bootstraps it)
+import { installPlugin } from "@glubean/sdk";
+import browserPlugin from "@glubean/browser";
+
+installPlugin(browserPlugin); // registers the contract.browser Mode A adapter
+```
+
+```typescript
+// surfaces/dashboard-ui.ts
+import { configure, contract } from "@glubean/sdk";
+import { browser } from "@glubean/browser";
+
+const { chrome } = configure({
+  // browser()'s `baseUrl` is a runtime VARIABLE NAME (resolved from vars), so
+  // relative paths like page.goto("/login") hit the right environment.
+  plugins: { chrome: browser({ launch: true, baseUrl: "BASE_URL" }) },
+});
+
+// Scoped instance — every journey shares this client, feature, tags.
+export const dashboardUI = contract.browser.with("dashboardUI", {
+  client: chrome,
+  baseUrl: "https://app.example.com", // projection/display only; navigation uses the client's baseUrl
+  feature: "auth",
+  tags: ["e2e", "staging"],
+});
+```
+
+`browser()` (the client) and `browserPlugin` (the adapter) are separate — you
+need both. `contract.browser.with(...)` throws at import if the plugin isn't
+installed first, so keep the `installPlugin` call in `glubean.setup.ts`.
+
+## Basic journey
+
+```typescript
+import { dashboardUI } from "../surfaces/dashboard-ui.ts";
+import { signInEmail } from "./auth.contract.ts"; // reuse a contract.http case
+
+// @contract
+export const loginJourney = dashboardUI("auth.login.journey", {
+  entry: "/login",
+  agentNotes: [
+    "Watch for layout overlap between the login page and the dashboard.",
+    "Watch for a double-submit on the sign-in button.",
+  ],
+  cases: {
+    happyPath: {
+      description: "Valid credentials sign in and land on the dashboard.",
+      steps: [
+        {
+          id: "open",
+          intent: "Open /login and wait for the email + password inputs.",
+          action: async (page) => {
+            await page.goto("/login", { waitUntil: "domcontentloaded" });
+          },
+        },
+        {
+          id: "submit",
+          intent: "Fill the credentials and submit; do not click any OAuth button.",
+          action: async (page, _input, ctx) => {
+            await page.fill('input[type="email"]', ctx.secrets.require("TEST_LOGIN_EMAIL"));
+            await page.fill('input[type="password"]', ctx.secrets.require("TEST_LOGIN_PASSWORD"));
+            await page.click('button[type="submit"]');
+            await page.waitForURL(/\/(?!login$)/, { timeout: 20_000 });
+          },
+        },
+      ],
+      // A fixed questionnaire — stable ids, one kind per entry.
+      expect: [
+        { id: "url-dashboard", url: { path: "/dashboard", notPath: "/login" } },
+        { id: "dom-welcome", dom: { visible: { role: "heading", name: "Welcome back" } } },
+        { id: "calls-signin", calls: signInEmail.case("validStagingCredentials") },
+        { id: "console-clean", console: { errors: 0, allow: ["favicon"] } },
+      ],
+      screenshot: "on-failure",
+    },
+  },
+});
+```
+
+Each case key becomes a runnable case with ID `auth.login.journey.happyPath`.
+
+## Contract-level fields
+
+Passed to `contract.browser.with(name, {...})` (shared across every journey) or
+to a journey `id(...)`:
+
+| Field | Meaning |
+|-------|---------|
+| `client` | The `GlubeanBrowser` from `configure({ plugins: { … : browser(...) } })` — the Mode A executor |
+| `baseUrl` | Display/projection base URL (navigation uses the client's `baseUrl`) |
+| `feature` | Feature grouping for the projection |
+| `tags` | Tags applied to every case |
+| `entry` | The journey's entry path (e.g. `/login`) |
+| `agentNotes` | Mode B attention hints (spec-external coverage) — **not** part of the journey hash |
+
+## Case fields
+
+| Field | Meaning |
+|-------|---------|
+| `description` | What the case proves |
+| `steps` | Ordered steps; each has an `id`, an `intent` (Mode B instruction, in the hash), and an optional `action(page, input, ctx)` (Mode A replay) |
+| `needs` | Optional Zod schema for logical input (`defineBrowserCase<Input>` types `action(page, input)`) |
+| `expect` | The fixed questionnaire (below) |
+| `screenshot` | `"final"` (default) · `"each-step"` · `"on-failure"` |
+| `verify` | Escape hatch over the frozen evidence: `(ctx, evidence, input) => { … }` |
+
+A step with **no** `action` marks the case Mode-A **unimplemented** (a visible
+debt in the projection) and skips it; Mode B is unaffected, since `intent` is its
+instruction. Empty `steps: []` is a runnable page-load contract (open `entry`,
+judge url/dom/console).
+
+## The `expect` questionnaire
+
+`expect` is an **array** of entries, each with a stable `id` and exactly one
+kind. P1 vocabulary is `url` / `dom` / `calls` / `console`:
+
+```typescript
+expect: [
+  { id: "url-dashboard", url: { path: ["/", "/dashboard"], notPath: "/login" } },
+  { id: "dom-welcome",   dom: { visible: { role: "heading", name: "Welcome back" }, containsText: "Welcome back" } },
+  { id: "calls-signin",  calls: signInEmail.case("validStagingCredentials") },
+  { id: "console-clean", console: { errors: 0, allow: ["favicon", "/analytics"] } },
+]
+```
+
+| Kind | Shape |
+|------|-------|
+| `url` | `{ path?: string \| string[]; pattern?: string; notPath?: string \| string[] }` — the terminal URL. `path` matches the pathname, `pattern` (a RegExp source) matches the full URL, `notPath` asserts the pathname is none of the given paths. |
+| `dom` | `{ visible?: Locator; absent?: Locator; containsText?: string }`. `absent` asserts **zero** matches (a hidden-but-present element still fails). `Locator = { role?, name?, text?, label?, testId?, selector? }`. |
+| `calls` | A `contract.http` case reference — `httpContract.case("caseKey")`. See below. |
+| `console` | `{ errors?: number; allow?: string[] }` — product-domain console/uncaught error count; `allow` substrings mark third-party/resource noise. |
+
+### `expect.calls` — assert a backend call fired
+
+`calls` links a browser journey to a `contract.http` case: it asserts the
+journey **triggered** that endpoint. The matcher checks the referenced case's
+method + normalized `:param` path template + status, that it happened at least
+once, and a best-effort response-schema check (host and query string are not
+part of route identity). If the response body is absent or truncated, the schema
+part is reported `unverified` — **not** a failure. An unknown case key fails
+loudly.
+
+```typescript
+import { signInEmail } from "./auth.contract.ts";
+
+// … inside a journey's expect:
+{ id: "calls-signin", calls: signInEmail.case("validStagingCredentials") }
+```
+
+## Mode A — `glubean run`
+
+Run a journey like any other contract. The runner launches Chrome, replays each
+step's `action`, freezes the evidence, and judges every `expect`:
+
+```bash
+glubean run surfaces/journeys/login.browser.ts --env-file .env
+```
+
+Every `expect` verdict, the network trace, console, and screenshots upload as a
+`contract` run and render on the Cloud dashboard.
+
+## Mode B — `glubean qa`
+
+For an exploratory, agent-driven pass, the QA recorder passively watches a
+browser the agent drives and seals an `agent-qa-report/v1`. Two entry points:
+
+```bash
+# Launch an instrumented browser, print its CDP endpoint, record until stop:
+glubean qa open --file surfaces/journeys/login.browser.ts --case happyPath --model claude-sonnet-5
+
+# Or attach (observation-only) to a tab in the agent's own browser:
+glubean qa attach --endpoint ws://127.0.0.1:9222/… --file … --case happyPath --url /login
+
+# Seal the report (network/console/final-URL judged, DOM left to the agent):
+glubean qa stop
+```
+
+The model id comes from `--model` or `GLUBEAN_QA_MODEL` (required — a report
+without a precise model id is unattributable). `--contract <id>` disambiguates
+when several contracts in one file reuse a case key; `attach --url <substr>`
+selects the journey tab when several are open. The recorder runtime-judges the
+`url` / `calls` / `console` expects; `dom` verdicts are the agent's. The output
+is always the fixed `agent-qa-report/v1`, tagged `provenance: agent-judged`.
+
+> **Secret stance.** A Mode B agent genuinely operates the browser, so the
+> password enters the agent's context — this is inherent. Run Mode B **only with
+> dedicated low-sensitivity test credentials** (e.g. a shared dogfood staging
+> account); high-sensitivity credential journeys are **Mode A only**. Reports are
+> redacted through `@glubean/redaction` before they touch disk, and secrets/tokens
+> must never appear in any report field.
+
+## Next
+
+- [Contract HTTP](/sdk/contract-http) — the `contract.http` cases that
+  `expect.calls` references
+- [Browser Plugin](/sdk/browser-plugin) — the lower-level `browser()` client
+  that Mode A drives
