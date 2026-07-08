@@ -4,6 +4,7 @@ export default {
   'contract-flow': 'Workflow',
   'contract-browser': 'Contract Browser',
   'test-api': 'Test Shape',
+  'load-testing': 'Load Testing',
   'http-client': 'HTTP Requests',
   assertions: 'Assertions',
   'env-and-secrets': 'Variables & Secrets',

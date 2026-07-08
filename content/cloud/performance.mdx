@@ -40,7 +40,7 @@ export const shopLoad = loadRunner("shop-load", {
 glubean load --upload --target tgt_abc    # run + upload as a kind=load run
 ```
 
-Each upload becomes one **load run** on that target, carrying a rich artifact: per-endpoint and per-step latency distributions, a run timeline, threshold pass/fail, and bounded failure samples. See [`glubean load`](/cli/reference) for the command and the [Configuration reference](/cli/config) for the full threshold schema.
+Each upload becomes one **load run** on that target, carrying a rich artifact: per-endpoint and per-step latency distributions, a run timeline, threshold pass/fail, and bounded failure samples. See [`glubean load`](/cli/reference) for the command and [Load Testing](/sdk/load-testing) for the full scenario/runner API and threshold schema.
 
 > **A threshold-failed load run is still valid Performance data.** Failing a p95 gate turns the run red, but the numbers it measured are real and comparable — Performance reads it like any other completed run.
 

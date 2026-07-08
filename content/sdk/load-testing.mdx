@@ -1,0 +1,165 @@
+# Load Testing
+
+Glubean runs **load tests** — concurrent, sustained traffic against an API to measure latency percentiles, throughput, and error rate under pressure — as a first-class primitive alongside `test`, `contract`, and `workflow`. Load plans live in `*.load.ts` files, run with `glubean load`, and upload as `kind=load` runs that produce a rich load artifact (per-endpoint/step breakdown, latency distribution, timeline, threshold pass/fail, bounded failure samples).
+
+This is distinct from recording a single-request [metric](/sdk/observability) inside a functional test. Load testing measures **aggregate behavior under concurrency**, not one request in isolation.
+
+## When to reach for it
+
+Write a load test when you're asking about performance under load, capacity, throughput/RPS, p95/p99 latency, "can this handle N concurrent users," soak/stress behavior, or gating a performance SLO in CI. Load is **opt-in** — it generates real concurrent traffic, so don't add it as part of routine functional/contract coverage.
+
+## Define a load plan
+
+A load plan is a **scenario** (the workload, reused across runs) plus a **runner** (concurrency, duration, thresholds). Import both from `@glubean/sdk`:
+
+```typescript
+import { loadScenario, loadRunner, feeder, http } from "@glubean/sdk";
+
+// 1. Scenario — the steps each virtual user repeats. Steps run in order;
+//    each step's requests are attributed to its endpoint + step in the report.
+const shopScenario = loadScenario<{ q: string }>("shop")
+  .step("browse", async (ctx) => {
+    const res = await http.get("load/catalog", { searchParams: { q: ctx.input.q } });
+    ctx.expect(res.status).toBe(200);
+  })
+  .step("checkout", async (ctx) => {
+    const res = await http.post("load/checkout", { json: { items: [{ sku: "A1", qty: 1 }] } });
+    ctx.expect(res.status).toBe(201);
+  });
+
+// 2. Runner — concurrency + duration + thresholds. Export it so the CLI finds it.
+export const shopLoad = loadRunner("shop-load", {
+  scenario: shopScenario,
+  concurrency: 25,                 // virtual users in flight
+  duration: "20s",                 // "60s" / "2m" / ms — total run length
+  rampUp: "3s",                     // optional: ramp concurrency up over this window
+  feeders: { term: feeder.fromArray([{ q: "pen" }, { q: "notebook" }], { key: "q" }).roundRobin() },
+  input: ({ feed }) => ({ q: (feed.term as { q: string }).q }),   // per-iteration input
+  thresholds: {
+    transaction: { errorRate: "<5%", p95: "<400ms" },             // whole-scenario gate
+    endpoints: {
+      "GET /load/catalog":  { p95: "<120ms", p99: "<400ms", errorRate: "<0.5%" },
+      "POST /load/checkout": { p95: "<180ms", errorRate: "<4%" },
+    },
+  },
+  report: { failureTraces: 10, slowTransactionSummaries: 10 },   // bounded sample caps
+});
+```
+
+## LoadContext
+
+A load step's `ctx` is a **LoadContext**, not the full `TestContext` from a functional test — some APIs don't make sense under concurrency.
+
+**Kept:** `http`, `vars`, `secrets`, `session`, `expect`, `assert`, `skip`, `fail`, `log`, `warn`, `pollUntil`, `setTimeout`.
+
+**Added for load:** `input` (per-iteration input from feeders), `iteration` (`{ id, index }`), `producerSlot` (`{ id, index }`), `now()`, `report` (checkpoint / primaryComplete).
+
+**Removed:** `validate`, `trace`, `metric`, `action`, `event`, `getMemoryUsage`, `retryCount` — these don't fit concurrent load. Use a functional test if you need `ctx.metric()` for a custom business metric.
+
+## Config keys
+
+| Key | Meaning |
+|-----|---------|
+| `concurrency` | Virtual users in flight |
+| `duration` | Total run length (`"60s"`, `"2m"`, or ms) |
+| `iterations` | Alternative to `duration`: fixed iteration count |
+| `rampUp` | Ramp concurrency up over this window |
+| `feeders` | Data providers (`feeder.fromArray/fromCsv/...`, `.roundRobin()` / `.random()`) |
+| `input` | `({ feed, iteration, producerSlot }) => sceneInput` per iteration |
+| `pacing.thinkTime` | Delay between steps (`"100ms"` or a distribution) |
+| `thresholds` | Pass/fail gates (see below) |
+| `report` | Bounded sample caps: `failureTraces`, `slowTransactionSummaries` |
+| `assertions.onFailure` | `"continue"` \| `"skipRemainingSteps"` \| `"abortIteration"` |
+| `abort` | `"precise"` (default) \| `"coarse"` — how a run abort reaches in-flight requests |
+
+## Thresholds — the pass/fail gate
+
+Thresholds turn a load run green or red, and are what gates CI. They apply at three scopes:
+
+```typescript
+thresholds: {
+  transaction: { errorRate: "<1%", p95: "<2000ms", p99: "<4000ms", throughputPerSec: ">500" },
+  endpoints: { "GET /api/foo": { p95: "<200ms", errorRate: "<0.5%" } },
+  steps:     { "checkout":    { p95: "<800ms" } },
+}
+```
+
+Expressions are comparison strings: `"<400ms"`, `"<5%"`, `">500"`. Each evaluated threshold lands in the artifact's `summary.thresholds[]` with its `actual` value and `pass` verdict.
+
+> A threshold-failed load run is still valid data. Failing a p95 gate turns the run red, but the numbers it measured are real and comparable — [Performance](/cloud/performance) reads it like any other completed run.
+
+## Traffic mix & table expansion
+
+Run multiple weighted scenarios in one plan:
+
+```typescript
+export const mixedLoad = loadRunner("mixed", {
+  scenarios: [
+    loadMixEntry({ id: "checkout", scenario: checkoutScenario, weight: 70 }),
+    loadMixEntry({ id: "refund",   scenario: refundScenario,   weight: 30 }),
+  ],
+  concurrency: 300,
+  duration: "60s",
+});
+```
+
+Or expand one plan per data row (e.g. per region):
+
+```typescript
+export const regionLoad = loadRunner.each(REGIONS)("region-{region}", (row) => ({
+  scenario: scenarioForRegion(row.region),
+  concurrency: 100,
+  duration: "30s",
+}));
+```
+
+## Run & upload
+
+```bash
+glubean load tests/load/shop.load.ts     # Run one plan locally
+glubean load                             # Run the load suite/profile from glubean.yaml
+glubean load --upload                    # Run + upload (kind=load) to a target
+glubean load --upload --target tgt_abc   # Upload to a specific target
+```
+
+In `glubean.yaml`, mark a suite as load by listing `load` in its `kinds`:
+
+```yaml
+suites:
+  load:
+    target: ./tests/load
+    kinds: [load]
+profiles:
+  perf:
+    suites: [load]
+    upload: { enabled: true, targetId: tgt_abc, tokenEnv: GLUBEAN_TOKEN }
+```
+
+See the [CLI Reference](/cli/reference) for command flags and [Upload Your First Run](/getting-started/upload-to-cloud) for auth/upload setup.
+
+## What a load run produces
+
+A load run's artifact (`schemaVersion: "glubean.load.v1"`) is what the Cloud dashboard renders:
+
+- **`summary`** — `pass` (threshold verdict), `totalIterations`, `successfulIterations`, `failedIterations`, `errorRate`, `throughputPerSec`, `latency` (`{ p50, p90, p95, p99, max }` ms), `latencyDistribution[]` (fixed-ladder histogram), `thresholds[]` (each `{ scope, metric, expression, actual, pass }`), `advisories[]`.
+- **`endpoints[]`** — per route (`routeKey`, `method`): `requestCount`, `errorRate`, `latency`, `throughputPerSec`, `latencyDistribution`, `statusCounts`.
+- **`steps[]`** — per scenario step: `invocationCount`, `errorRate`, `latency`.
+- **`scenarios[]`** — per scenario aggregate.
+- **`matrix[]`** — scenario-step × endpoint (which endpoint each step hit).
+- **`timeline`** — fixed-width windows over the run: `{ offsetMs, requests, errors, throughputPerSec, latency, iterations, peakInFlight }`.
+- **`samples`** — bounded `failureTraces[]` (failed iterations) and `slowTransactions[]` (slow-but-passing), capped by `report`.
+
+These surface in the target's **Performance** tab (load-run table, run-vs-run comparison, and cross-source Compare) and the **Runs** tab (per-run detail: config, KPI cards, over-time timeline, latency histogram, per-endpoint table, transaction breakdown, threshold table, samples). See [Performance](/cloud/performance).
+
+## Best practices
+
+- **Start small.** Default to modest `concurrency` and a short `duration` (e.g. 25 virtual users / `"20s"`) and scale up from there — don't open with 1000 VUs.
+- **Always set thresholds** so the run has a pass/fail verdict and can gate CI. Base them on your SLOs, or start conservative and tighten over time.
+- **Reuse functional knowledge.** A load scenario makes the same `http` calls as a functional test, just without per-request assertions beyond status/shape.
+- **Don't call `ctx.metric()` in a load step** — it isn't available there. For a custom business metric, use a [functional test](/sdk/observability) instead.
+
+## Next
+
+- [Performance](/cloud/performance) — read load runs: Trend for one source over time, Compare for several sources side by side
+- [CLI Reference](/cli/reference) — `glubean load` command and flags
+- [Configuration](/cli/config) — `glubean.yaml` suites, profiles, and upload directives

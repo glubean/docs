@@ -96,11 +96,12 @@ Uploaded load runs feed the **Performance** surface in Cloud. Two lenses:
 - **Trend** — one implementation over time (is it getting faster or slower?).
 - **Compare** — several implementations of the same API side by side. Here each implementation is a **source** (e.g. a Bun server vs an Express server of the same endpoints), and a **benchmark** is the group you declare comparable.
 
-The vocabulary is worth pinning early: what the dashboard calls a **target** (an upload destination) _is_ a source when you compare implementations. See [Performance](/cloud/performance).
+The vocabulary is worth pinning early: what the dashboard calls a **target** (an upload destination) _is_ a source when you compare implementations. See [Load Testing](/sdk/load-testing) for writing a load plan and [Performance](/cloud/performance) for reading results.
 
 ## What's next?
 
 - [First Test](/getting-started/first-test) — Write and run your first test
 - [SDK Reference](/sdk) — The full API surface
+- [Load Testing](/sdk/load-testing) — Write a load plan with `loadScenario` and `loadRunner`
 - [Performance](/cloud/performance) — Load-test results, trends, and cross-source comparison
 - [Limitations](/reference/limitations) — Trade-offs and known constraints

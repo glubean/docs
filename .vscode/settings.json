@@ -1,8 +1,8 @@
 {
   "files.associations": {
-    "*.mdx": "mdx"
+    "*.mdx": "markdown"
   },
-  "[mdx]": {
+  "[markdown]": {
     "editor.defaultFormatter": "unifiedjs.vscode-mdx"
   }
 }

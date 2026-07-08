@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "next dev --webpack -p 4500",
+    "dev": "WATCHPACK_POLLING=true next dev --webpack -p 4500",
     "build": "next build --webpack",
     "start": "next start -p 4500",
     "check:links": "node scripts/check-doc-links.mjs",
