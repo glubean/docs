@@ -36,14 +36,14 @@ const myClient = (opts: { endpointKey: string }) =>
     };
   });
 
-const { api } = configure({
+const { internalApi } = configure({
   plugins: {
-    api: myClient({ endpointKey: "INTERNAL_API_URL" }),
+    internalApi: myClient({ endpointKey: "INTERNAL_API_URL" }),
   },
 });
 
 export const health = test("internal-health", async (ctx) => {
-  const status = await api.getStatus();
+  const status = await internalApi.getStatus();
   ctx.expect(status.ok).toBe(true);
 });
 ```
@@ -73,7 +73,15 @@ export const health = test("internal-health", async (ctx) => {
 
 Use this when you want to publish an npm package that adds process-wide behavior: custom `ctx.expect(...)` matchers, a new contract protocol (e.g. `contract.graphql`), or a one-time `setup()` hook that runs before any tests load.
 
-This is what `@glubean/graphql`, `@glubean/grpc`, `@glubean/auth`, and `@glubean/browser` are.
+This is what `@glubean/graphql`, `@glubean/grpc`, and `@glubean/browser` are.
+`@glubean/auth` is different: it provides HTTP auth helper functions and a
+builder transform, so you use it through `configure({ http: ... })` or
+`test().use(...)` rather than `installPlugin(...)`.
+
+This is also the openness boundary for contracts. `contract.http` and
+`contract.browser` are first-party paths, but protocols are not closed: GraphQL
+and gRPC install `contract.graphql` / `contract.grpc`, and a team plugin can
+register another protocol the same way.
 
 ### Authoring a manifest
 
@@ -125,9 +133,14 @@ A top-level `import "@glubean/graphql"` is **not** a side-effect registration an
 
 ## First-party plugin manifests
 
-- [Auth (`@glubean/auth`)](/sdk/auth-plugin) — OAuth, API key, and custom auth flows
-- [Browser (`@glubean/browser`)](/sdk/browser-plugin) — Puppeteer-powered browser automation
-- [GraphQL (`@glubean/graphql`)](/sdk/graphql-plugin) — Typed GraphQL queries, mutations, and contract protocol
-- [gRPC (`@glubean/grpc`)](/sdk/grpc-plugin) — gRPC status matchers and contract protocol
+- [Browser (`@glubean/browser`)](/sdk/plugins/browser) — Puppeteer-powered browser automation
+- [GraphQL (`@glubean/graphql`)](/sdk/plugins/graphql) — Typed GraphQL queries, mutations, and contract protocol
+- [gRPC (`@glubean/grpc`)](/sdk/plugins/grpc) — gRPC status matchers and contract protocol
 
-All of these require `await installPlugin(...)` in `glubean.setup.ts`.
+All of these require `await installPlugin(...)` in `glubean.setup.ts` when you
+use their global matchers or contract protocols.
+
+## First-party helper packages
+
+- [Auth (`@glubean/auth`)](/sdk/plugins/auth) — bearer, API key, Basic Auth,
+  OAuth helpers, and `withLogin(...)` builder transforms

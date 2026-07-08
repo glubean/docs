@@ -1,41 +1,48 @@
 ---
 title: VS Code Extension
-description: Run, inspect, and debug API verification tests from your editor.
+description: Run, inspect, and debug Glubean work from the IDE plane.
 ---
 
 # VS Code Extension
 
-The Glubean extension turns VS Code into a complete API verification workbench. It uses the same runner engine that powers the CLI, so tests behave identically whether you click play in the editor or run them in CI.
+The VS Code extension is part of the IDE and local plane.
+
+Use it when you want a visual layer over source-authored Glubean work: gutter
+runs, Test Explorer, environment switching, result inspection, and debugging.
+It is no longer the center of the product narrative; it is one way power users
+operate the same SDK and CLI workflow.
+
+The most complete extension surface today is local `test()` authoring and
+inspection in `*.test.ts/js/mjs` files. Contracts and workflows remain the
+recommended source-of-truth layer for durable API behavior; author them in the
+repo, then run and sync them through the CLI, MCP, package scripts, CI, or
+Cloud.
 
 ## Pages by journey
 
 ### Getting started
 
-- [Editor Experience](/extension/editor-experience) — CodeLens, Result Viewer, Panel, Environments — the complete editor workflow
-- [Quick Start](/extension/quick-start) — Install, run your first test in under a minute (Scratch Mode or full project)
-- [Writing Tests](/extension/writing-tests) — Snippets, CodeLens, data-driven patterns, project structure
+- [Editor Experience](/extension/editor-experience)
+- [Quick Start](/extension/quick-start)
+- [Writing Tests](/extension/writing-tests)
 
 ### Running and inspecting
 
-- [Running Tests](/extension/running-tests) — Play buttons, Test Explorer, keyboard shortcuts, Tasks Panel
-- [Result Viewer](/extension/result-viewer) — Traces, assertions, events, history navigation, diff
-- [Environments & Secrets](/extension/environments) — Switch `.env` files, hover preview, secret masking
+- [Running Tests](/extension/running-tests)
+- [Result Viewer](/extension/result-viewer)
+- [Environments & Secrets](/extension/environments)
 
 ### Advanced
 
-- [Debugging](/extension/debugging) — Breakpoints, step-through, Debug Console
-- [Diagnostics](/extension/diagnostics) — Diagnose command, common problems, CLI status bar
+- [Debugging](/extension/debugging)
+- [Diagnostics](/extension/diagnostics)
 
 ### AI and migration
 
-- [Generate Tests with AI](/extension/generate-with-ai) — One sentence to a working test, with or without OpenAPI specs
-- [Migrate from Postman / OpenAPI](/extension/migrate-from-postman) — Convert existing collections with AI assistance
+- [Generate with AI](/extension/generate-with-ai)
+- [Migrate from Postman / OpenAPI](/extension/migrate-from-postman)
 
-### For QA teams
+## Product map
 
-- [Glubean for QA Teams](/extension/for-qa-teams) — AI writes tests, you run and review them from the Panel
-
-### Reference
-
-- [Comparison](/extension/comparison) — Glubean vs Postman, Playwright, Jest, monitoring tools
-- [Commands & Settings](/extension/reference) — Full command palette, keybindings, configuration, menus
+For the current product model, read [How Glubean Works](/how-glubean-works) and
+[IDE & Local](/ide).

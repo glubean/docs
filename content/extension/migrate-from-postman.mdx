@@ -1,8 +1,8 @@
 import { Callout, Steps, Tabs } from 'nextra/components'
 
-# Migrate Existing API Assets into Glubean Tests
+# Migrate Existing API Assets into Glubean
 
-You do **not** need to rewrite your suite by hand.
+You do **not** need to rewrite every collection, spec, or legacy suite by hand.
 
 But you also should not treat migration as a blind format conversion job.
 
@@ -16,6 +16,15 @@ The right workflow is:
 
 That works for Postman, Apifox, OpenAPI, `.http` files, cURL snippets, and legacy test code.
 
+For stable API promises, migrate toward contracts and workflows when possible.
+Use raw `test()` for migration slices, custom setup, diagnostics, or behavior
+that needs unrestricted TypeScript.
+
+The goal is not "Postman JSON becomes one test file." The goal is **one set of
+Glubean assets**: executable contracts for durable promises, workflows for
+lifecycle behavior, and raw `test()` checks where unrestricted TypeScript is the
+right tool.
+
 <Callout type="warning">
 **Run migration inside a real Glubean project.**
 
@@ -25,7 +34,10 @@ Do not ask AI to convert collections or specs in a random folder. Start with:
 npx glubean init
 ```
 
-The agent needs to see `package.json`, `@glubean/sdk`, your `tests/` layout, and any existing config helpers. Without that context it will default to generic Node or Jest-style output instead of Glubean patterns.
+The agent needs to see `package.json`, `@glubean/sdk`, your `contracts/`,
+`tests/`, `glubean.yaml`, and any existing config helpers. Without that context
+it will default to generic Node or Jest-style output instead of Glubean
+patterns.
 </Callout>
 
 ---
@@ -37,21 +49,23 @@ Do not approach migration with a generic “convert this collection” prompt.
 Install and use the Glubean skill first:
 
 ```bash
-npx glubean config mcp
 npx skills add glubean/skill
+npx glubean config mcp
 ```
 
 Then invoke the skill in chat when your editor supports it:
 
 ```text
-/glubean help me migrate these API assets into Glubean tests
+/glubean help me migrate these API assets into Glubean contracts, workflows, and tests
 ```
 
 Why this matters:
 
 - the skill tells the agent to read project structure first
 - it routes migration work through a migration-specific workflow instead of generic code generation
-- it nudges the agent toward `configure()`, builder flows, types, schemas, and CI-safe structure
+- it nudges the agent toward contracts/workflows when durable behavior should
+  become source of truth, and toward `configure()`, builder-style raw tests,
+  types, schemas, and CI-safe structure when raw `test()` is the better fit
 - it is much more likely to stop and ask when auth or secret mapping is unclear
 
 If your AI tool does not support slash commands, still mention the skill explicitly in the prompt:
@@ -66,7 +80,7 @@ Use the glubean skill and follow a phased migration workflow.
 
 Migration is not “translate this JSON into code.”
 
-It is a **test architecture** task:
+It is a **verification architecture** task:
 
 - keep the useful request definitions you already have
 - classify which requests are isolated vs stateful
@@ -75,7 +89,9 @@ It is a **test architecture** task:
 - convert one representative slice first
 - then reuse that pattern across the rest of the suite
 
-If you skip those decisions, bulk conversion usually creates a large pile of weak or broken tests.
+If you skip those decisions, bulk conversion usually creates a large pile of
+weak assets: contracts that do not describe real promises, workflows that do not
+prove useful lifecycles, and tests that only check status codes.
 
 ---
 
@@ -121,7 +137,8 @@ AI is **not** good at guessing:
 
 - auth strategy
 - which values are secrets vs public config
-- whether two requests belong in one workflow or separate tests
+- whether two requests belong in one contract workflow, one builder-style raw
+  test, or separate checks
 - whether status-only assertions are enough
 - what custom pre-request scripts were really doing
 
@@ -139,14 +156,14 @@ The user guidance should be explicit and phased:
 4. lock minimal project shape (config, vars/secrets, grouping)
 5. build one representative slice to validate that shape
 6. freeze reusable style from the slice, then batch-convert
-7. run and tighten the migrated suite
+7. run and tighten the migrated assets
 
 The first prompt should produce a **plan**, not files.
 
 <Callout type="error">
 **Confirm auth before writing any test code.**
 
-Source assets almost never describe auth correctly. Postman inherits from folder-level settings, Apifox uses globals, OpenAPI `securitySchemes` rarely match runtime behavior, and `.http` files hardcode expired tokens. Ask the agent to present its auth evidence and proposed strategy, then confirm or correct before code generation starts.
+Source assets almost never describe auth correctly. Postman inherits from folder-level settings, Apifox uses globals, OpenAPI `securitySchemes` rarely match runtime behavior, and `.http` files hardcode expired tokens. Ask the agent to present its auth evidence and proposed strategy, then confirm or correct before it writes contracts, workflows, or tests.
 </Callout>
 
 <Callout type="warning">
@@ -166,14 +183,14 @@ If the source has more than about 20 requests, or it mixes auth flows and write 
 Install the skill and MCP if you have not already:
 
 ```bash
-npx glubean config mcp
 npx skills add glubean/skill
+npx glubean config mcp
 ```
 
 Tell the agent where your source assets are — do not copy them into the Glubean project:
 
 ```text
-/glubean I want to migrate existing API assets into Glubean tests.
+/glubean I want to migrate existing API assets into Glubean contracts, workflows, and tests.
 Use a phased workflow and do not generate files yet.
 
 Sources:
@@ -216,7 +233,7 @@ Auth is the single most common migration failure. Before approving any code gene
 
 - **Auth strategy**: bearer token, API key, OAuth, cookie, or none
 - **Secret classification**: what goes in `.env.secrets` vs `.env`
-- **Auth plugin**: whether `@glubean/auth` is needed or plain `configure()` headers are enough
+- **Auth helpers**: whether `@glubean/auth` is needed or plain `configure()` headers are enough
 
 If the agent says "I'll use what Postman has," push back — Postman env variables and pre-request scripts do not translate directly.
 
@@ -254,7 +271,7 @@ Review before expanding. If the shape is wrong, fix it now — before it spreads
 Once the slice is approved, freeze the remaining conventions from what worked:
 
 - assertion depth: status-only vs key fields vs schema
-- when to use builder flows vs independent tests
+- when to use `workflow()` vs builder-style raw tests vs independent checks
 - teardown policy for write tests
 - test ID naming conventions
 - when to extract to `types/` or `schemas/`
@@ -296,12 +313,13 @@ Fix real failures, tighten weak assertions, and keep unresolved logic as explici
 | Source concept | Glubean target |
 |---|---|
 | base URL env var | `configure({ http: { prefixUrl: "{{BASE_URL}}" } })` |
-| secret token | `configure({ secrets: { token: "{{API_TOKEN}}" } })` or auth plugin config |
+| secret token | `configure({ secrets: { token: "{{API_TOKEN}}" } })` or auth helper config |
 | repeated authenticated requests | shared configured client such as `api` |
 | source script stores IDs | builder state between steps |
 | source folder or tag | candidate file grouping |
-| one request block | one test export |
-| one workflow with setup and cleanup | builder flow |
+| one request block | one `contract.http` case or one `test()` export |
+| one durable lifecycle | `workflow()` composed from contract cases |
+| one custom runtime sequence with setup and cleanup | builder-style raw `test()` |
 | repeated body or response shape | extract to `types/` or `schemas/` |
 
 ### Postman
@@ -380,14 +398,16 @@ Implement only one group first.
 Requirements:
 - create or reuse a shared configured client
 - classify secrets vs vars explicitly
-- use builder flows only for stateful sequences
-- keep isolated requests as separate tests
+- use `workflow()` for durable lifecycle promises and builder-style raw tests
+  only for custom runtime sequences
+- keep durable isolated requests as `contract.http` cases and ad-hoc checks as
+  separate `test()` exports
 - add status + key field assertions
 - mark unclear script behavior with TODO instead of guessing
 
 Return:
 1) shared config changes
-2) one migrated test file
+2) one migrated Glubean asset file
 3) short manual follow-up items
 ```
 
@@ -422,7 +442,10 @@ Implement one representative slice first.
 Requirements:
 - preserve the scenario intent
 - move repeated request config into a shared client
-- convert setup/cleanup into builder flows only when state truly carries across steps
+- convert setup/cleanup into `workflow()` or builder-style raw tests only when
+  state truly carries across steps
+- prefer contracts for durable API promises, workflows for reusable lifecycles,
+  and raw `test()` for custom runtime behavior
 - keep strong assertions from the old suite
 - replace framework-specific helpers with Glubean patterns
 ```
@@ -454,7 +477,7 @@ export const { http: api, vars, secrets } = configure({
 });
 ```
 
-Then use the shared client in tests:
+Then use the shared client from contracts, workflows, or raw tests:
 
 ```ts
 import { test } from "@glubean/sdk";
@@ -462,7 +485,7 @@ import { api } from "../config/api";
 
 export const listUsers = test("list-users", async (ctx) => {
   const res = await api.get("users");
-  ctx.expect(res.status).toBe(200);
+  ctx.expect(res).toHaveStatus(200);
 });
 ```
 
@@ -477,8 +500,9 @@ export const listUsers = test("list-users", async (ctx) => {
 - [ ] minimal project shape (config, vars/secrets, grouping) was locked before the slice
 - [ ] one representative slice was reviewed before expansion
 - [ ] reusable style was frozen from the slice before batch work
-- [ ] stateful flows use builders only when needed
-- [ ] write tests include reliable cleanup
+- [ ] durable endpoint behavior became contracts where possible
+- [ ] stateful sequences use `workflow()` or builders only when needed
+- [ ] write-path assets include reliable cleanup or a documented cleanup policy
 - [ ] critical endpoints have more than status-only assertions
 - [ ] unclear script logic is marked and isolated instead of guessed
 

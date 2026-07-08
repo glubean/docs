@@ -1,0 +1,292 @@
+# How Glubean Works
+
+Glubean turns **API behavior** into **executable assets**.
+
+**In one sentence:** Glubean makes **API tests become the source of truth** for
+**specs**, **docs**, **workflows**, **reports**, and **AI agents**.
+
+Most teams express the **same API truth** again and again: OpenAPI specs,
+Postman collections, tests, docs, CI logs, dashboards, and AI prompts. These
+artifacts are useful, but they **drift apart**.
+
+Glubean changes the **center of gravity**: you **author TypeScript contracts
+once**, run them as **real checks**, compose them into **workflows**, and
+**derive evidence, specs, docs, reports, and agent context** from the same
+source.
+
+Think of it as **API tests that become the source of truth**, not just a safety
+net.
+
+```text
+one authored source -> many derived surfaces
+```
+
+## The old workflow
+
+A common API workflow looks like this:
+
+| Step | Tool people often use | Output |
+| --- | --- | --- |
+| Design the API | OpenAPI, docs, issue tracker | A spec or document |
+| Try requests manually | Postman, REST Client, curl | A collection, saved examples, local notes |
+| Add regression checks | Jest, Vitest, pytest, custom scripts | Test output and CI logs |
+| Check browser behavior | Playwright, Cypress | Browser traces, screenshots, videos |
+| Check performance | k6, Artillery, custom load scripts | Load reports and threshold results |
+| Publish docs | Docs portal, static site, API catalog | Human-facing documentation |
+| Ask an agent for help | Chat prompts, copied logs, pasted docs | A reconstructed context window |
+| Debug failures | CI logs, observability, chat, screenshots | A human investigation trail |
+
+None of this is wrong. The problem is that the **outputs are disconnected**.
+
+The **OpenAPI file** does not know which CI failure broke it. The **Postman
+collection** does not naturally become a release gate. The **load report** is
+separate from the contract promise. The **browser trace** is separate from the
+API evidence. A writer may polish **docs that drift away** from the executable
+checks. An agent has to **reconstruct context from fragments** before it can
+generate code, explain a failure, or suggest a fix.
+
+The deeper cost is that **each row is authored separately**. Someone writes the
+OpenAPI file. Someone maintains the Postman collection. Someone writes tests.
+Someone writes k6 scripts. Someone writes docs. Someone debugs logs. The team
+keeps **re-expressing the same API truth** in different formats.
+
+## The Glubean workflow
+
+Glubean keeps the useful jobs, but changes the **artifact at the center**.
+
+Instead of authoring tests, collections, specs, docs, dashboards, and agent
+context as separate sources of truth, Glubean starts from **contracts in code**.
+
+In the contract-first path, the **one thing you intentionally author** is the
+**contract layer**:
+
+- `contract.*` for durable API, browser, or plugin-protocol promises
+- `workflow()` to compose contract cases into business lifecycles
+
+Everything else should be an **execution result**, **projection**, **overlay**,
+or **analysis** derived from that source.
+
+| Step | What happens in Glubean | Output |
+| --- | --- | --- |
+| **Author** | A developer or IDE agent writes contracts and workflows in TypeScript. | **The source of truth in git** |
+| **Execute** | The runner executes contract cases and workflows locally or in CI. | **Structured evidence**: requests, responses, assertions, traces, timings, artifacts |
+| **Upload** | Meaningful runs are uploaded to a Cloud Target. | **Derived run history**, failures, endpoint health, regressions, performance trends |
+| **Sync/project** | Contract definitions are synced and projected. | **Derived Specifications**, OpenAPI-shaped output, contract coverage, docs base |
+| **Overlay** | Writers or product teammates polish the projected API docs. | **Human-facing prose**, examples, names, and publishing metadata layered over the contract |
+| **Reuse** | The webapp reads the same evidence and projections. | **Derived Explore validation**, APIs, Portals, Reports, webapp Agent answers |
+| **Repair** | A developer or IDE agent uses evidence to update source contracts or application code. | **A new verified run** and updated source truth |
+
+The important difference is **authorship**. You do not author a Postman
+collection, an OpenAPI file, a docs page, a dashboard model, and an agent
+knowledge base as separate truth. You **author the contract source**. The other
+surfaces are **derived from it**, with optional overlays where humans need
+presentation control.
+
+## Start with a runnable API behavior contract
+
+In the old workflow, a contract often means "a spec file that says what should
+happen." Someone still has to write separate tests to prove whether it happens.
+
+In Glubean, a **contract case is itself executable**. It is a promise that can
+run.
+
+For example, this is one authored contract with two runnable cases:
+
+```typescript
+import { contract, configure } from "@glubean/sdk";
+import { z } from "zod";
+
+const { http: api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
+
+const users = contract.http.with("users", {
+  client: api,
+  security: "bearer",
+  tags: ["users"],
+});
+
+const User = z.object({
+  id: z.string(),
+  email: z.string().email(),
+});
+
+// @contract
+export const getUser = users("get-user", {
+  endpoint: "GET /users/:id",
+  feature: "Users",
+  description: "Read a user profile",
+  cases: {
+    success: {
+      description: "Existing user returns a user profile",
+      params: { id: "usr_123" },
+      expect: { status: 200, schema: User },
+    },
+    missing: {
+      description: "Missing user returns not found",
+      params: { id: "usr_missing" },
+      expect: { status: 404 },
+    },
+  },
+});
+```
+
+The **authored source is the contract**. From it, Glubean can run
+`get-user.success`, run `get-user.missing`, project a **Specification**,
+produce an **OpenAPI operation**, validate **Explore responses**, and join
+future failures back to `get-user`.
+
+That gives one authored artifact several derived outputs:
+
+| One contract case can produce | Why it matters |
+| --- | --- |
+| **A local or CI check** | It proves the API behavior against a real target. |
+| **Structured run evidence** | It records the request, response, assertion, timing, and failure object. |
+| **A Specification** | It gives the team a readable API promise in the webapp. |
+| **An OpenAPI projection** | It gives docs and integrations a machine-readable base. |
+| **Explore validation** | It lets someone compare a live response with the promised shape. |
+| **Target failure joins** | It shows which documented promise broke in an uploaded run. |
+| **Agent context** | It gives IDE and webapp agents a precise object to reason about. |
+
+That is why Glubean pushes contract/workflow first. Not because raw tests are
+bad, but because durable API behavior should produce more than pass/fail output.
+The contract is the **authored source**; everything downstream should be
+**derived or overlaid**, not rewritten as another source of truth.
+
+## Richer than OpenAPI as implementation context
+
+OpenAPI is good at describing an **HTTP surface**: paths, methods, parameters,
+schemas, status codes, and examples. Glubean contracts and workflows can express
+**more of the behavior an implementation actually needs**:
+
+- executable success and error cases
+- preconditions with `given`
+- logical inputs with `needs`
+- business rules and semantic descriptions
+- custom runtime verification when shape alone is not enough
+- workflows that show how endpoint promises compose over time
+- browser, GraphQL, gRPC, or team-defined protocol promises through plugins
+
+That makes **contract/workflow source** a stronger **spec context** for an IDE
+coding agent. Instead of asking the agent to infer behavior from prose, an
+OpenAPI file, and scattered examples, you give it **executable promises**. The
+agent can generate production code against those promises, then run the same
+contracts and workflows to see whether the implementation is aligned.
+
+This is close to **TDD**, but the **test is also the spec**. If the contract
+source is the intended API surface, then **coverage is naturally measured
+against that source**: which contract cases and workflow nodes are implemented,
+runnable, and passing. The loop is:
+
+```text
+author contract/workflow -> generate or write implementation -> run contracts -> repair until green
+```
+
+The result is not just "tests passed." The result is: the implementation matches
+the **executable spec** that also powers docs, Cloud analysis, and agent context.
+
+## Workflow connects endpoint promises
+
+Most bugs do not live inside one request. They live in lifecycles:
+
+```text
+create user -> read profile -> update settings -> receive webhook -> clean up
+```
+
+In older stacks, this often becomes a script, a Postman flow, a Playwright test,
+or a CI job whose output is hard to connect back to the **API promises**.
+
+In Glubean, `workflow()` **composes existing contract cases**. You are not
+authoring another disconnected flow collection. You are deriving a lifecycle
+from the **same contract source**. The output is both a **run** and a
+**lifecycle model**:
+
+```typescript
+import { workflow } from "@glubean/sdk";
+import { createUser, getUser, deleteUser } from "./users.contract.ts";
+
+export const userLifecycle = workflow({
+  id: "user-lifecycle",
+  name: "User lifecycle",
+})
+  .call("create-user", createUser.case("success"), {
+    out: (_state, res) => ({ userId: res.body.id as string }),
+  })
+  .call("read-user", getUser.case("success"), {
+    in: (state) => ({ params: { id: state.userId } }),
+  })
+  .call("delete-user", deleteUser.case("success"), {
+    in: (state) => ({ params: { id: state.userId } }),
+  });
+```
+
+- which contract case ran at each step
+- what state moved from one step to the next
+- which node failed
+- which API promise the failure belongs to
+- what evidence the team and agents can inspect
+
+That is the difference between "a script made several requests" and "**this
+business lifecycle broke at this promised behavior**."
+
+## Raw tests still matter
+
+`test()` is still **first-class**. It is the **raw TypeScript surface** for
+checks that do not belong in the contract source, or where the fastest honest
+expression is code:
+
+- smoke checks
+- diagnostics
+- setup and teardown
+- complex branching
+- migration work while discovering an API
+- plugin-specific or system-adjacent behavior
+
+The distinction is about **source of truth**. Use `test()` when **runtime
+evidence is enough**. Use `contract.*` and `workflow()` when the same behavior
+should become a **Specification**, docs base, Explore validator, failure join,
+or agent context. In the contract-first workflow, `test()` does not replace the
+contract source; it covers checks that should stay raw.
+
+## Where the agents fit
+
+There are two agent loops.
+
+Your **IDE coding agent** works in the **source plane**. It reads the repo, uses
+the Glubean skill, writes or repairs contracts/workflows/tests, runs them
+through MCP or the CLI, and produces evidence.
+
+The **Glubean webapp Agent** works in the **evidence plane**. It reads the
+current Target, run, Specification, Explore request, API editor, Portal draft,
+report, or performance page. It explains what is on screen: why a run failed,
+which contract broke, whether p95 latency is getting risky, what docs copy
+needs polish, or what test idea follows from the current evidence.
+
+They are different agents, but they can work from the **same structured assets**.
+
+## The shortest version
+
+The old workflow creates many useful artifacts that drift apart.
+
+Glubean makes **contracts the central authored artifact** and derives the rest:
+
+```text
+contracts and workflows in git
+  -> executable run evidence
+  -> Target analytics
+  -> Specifications and OpenAPI projections
+  -> Explore validation, APIs, Portals, Reports, Agents
+  -> source repair and the next verified run
+```
+
+That is how Glubean works: not by replacing every familiar tool category with a
+new authoring surface, but by making contracts produce the evidence and
+projections that other teams used to maintain separately.
+
+## Related
+
+- [Why Glubean](/why-glubean)
+- [Agent](/cloud/agent)
+- [Core Concepts](/getting-started/concepts)
+- [Contract HTTP](/sdk/contract-http)
+- [Workflow](/sdk/contract-flow)

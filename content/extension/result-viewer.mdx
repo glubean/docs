@@ -29,7 +29,6 @@ When the result contains one test, the viewer shows:
 - **PASSED / FAILED** status badge (green / red)
 - Test name and execution duration
 - **Newer / Older** navigation arrows to browse history
-- **Open Full Viewer** button (links to Cloud viewer when available)
 
 ### Tabs
 
@@ -83,13 +82,18 @@ In the Trace tab, click **Copy as cURL** on any request to copy it as a ready-to
 
 ## Result history
 
-Every test run saves a result file to:
+The extension keeps per-test history for local editor runs under:
 
 ```
 .glubean/results/{fileName}/{testId}/{timestamp}.result.json
 ```
 
 Each test keeps up to N history files (default 20, configurable via `glubean.resultHistoryLimit`). Older results are automatically deleted.
+
+Full CLI or package-script runs also write the latest project result to
+`.glubean/last-run.result.json`. Open that file directly, or use
+`Glubean: Open Latest Result`, when you want to inspect the most recent
+project-level run rather than a single test's local history.
 
 ### Navigation
 

@@ -8,7 +8,7 @@ export default {
   environments: 'Environments & Secrets',
   debugging: 'Debugging',
   diagnostics: 'Diagnostics',
-  'generate-with-ai': 'Generate Tests with AI',
+  'generate-with-ai': 'Generate with AI',
   'migrate-from-postman': 'Migrate from Postman / OpenAPI',
   'for-qa-teams': 'For QA Teams',
   comparison: 'Comparison',

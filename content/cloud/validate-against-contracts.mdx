@@ -16,7 +16,7 @@ project, grouped and labeled so you can tell them apart:
 
 - **Synced** (`glubean sync`) — contracts authored in code
   (`contract.http.with(...)`) and synced from your repo. These are the same
-  contracts reviewable on the **Specs** page, each listed by its own contract
+  contracts reviewable on **Specifications**, each listed by its own contract
   id (e.g. `inventory-items-shape`). This is the "code writes the contract"
   path.
 - **Designed** (the **APIs** tab) — specs imported (OpenAPI) or hand-built in
@@ -31,8 +31,7 @@ is a valid choice (they're two ways to arrive at the same promise).
 ## What you need
 
 - A **contract** for the endpoint, from either source above:
-  - a synced code contract (developer-authored, synced via `glubean sync` or
-    `glubean run --upload`), or
+  - a synced code contract (developer-authored, synced via `glubean sync`), or
   - a designer spec on the **APIs** page (imported OpenAPI or hand-built).
 - A request that calls that endpoint (you build this in **Explore**).
 
@@ -65,5 +64,5 @@ is a valid choice (they're two ways to arrive at the same promise).
 
 ## Related
 
-- [Tokens](/cloud/tokens) — how runs and contracts get into your project.
+- [Tokens](/cloud/tokens) — authentication for uploads and projection sync.
 - [Dashboard](/cloud/dashboard) — read run history and pass rates.

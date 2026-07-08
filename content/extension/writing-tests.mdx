@@ -7,6 +7,11 @@ description: Snippets, CodeLens buttons, data-driven patterns, and project struc
 
 The extension provides in-editor tools that make writing tests faster: code snippets, CodeLens buttons, and full support for data-driven patterns.
 
+This page is about the extension's raw `test()` authoring surface. For durable
+API behavior that should become specs, docs, reports, and agent context, start
+with [HTTP Contracts](/sdk/contract-http) and [Workflows](/sdk/contract-flow).
+Use raw `test()` when you need the full TypeScript escape hatch.
+
 ---
 
 ## Snippets
@@ -19,7 +24,7 @@ Type a prefix in any `.ts` or `.js` file and press Tab to expand.
 | `gb-t` / `gbt` | Simple test |
 | `gb-ti` / `gbti` | Simple test with import |
 | `gb-tm` / `gbtm` | Test with meta (tags, name) |
-| `gb-flow` / `gbf` | Builder multi-step flow |
+| `gb-flow` / `gbf` | Builder-style multi-step `test()` |
 | `gb-each` / `gbe` | `test.each` inline data-driven |
 | `gb-each-csv` / `gbec` | `test.each` + `fromCsv` |
 | `gb-each-yaml` / `gbey` | `test.each` + `fromYaml` builder |
@@ -34,6 +39,10 @@ Type a prefix in any `.ts` or `.js` file and press Tab to expand.
 | `gb-ip` / `gbip` | Import configure + defineClientFactory |
 | `gb-expect` / `gbx` | `ctx.expect(...).orFail()` assertion guard |
 | `gb-assert` / `gba` | `ctx.assert()` structured assertion |
+
+`gb-flow` is a legacy-friendly snippet name for a builder-style `test()` chain.
+It is different from the SDK `workflow()` API, which composes contract cases as
+durable business behavior.
 
 ---
 
@@ -69,17 +78,26 @@ Each test definition shows a `Results (N)` button with the count of saved histor
 
 ## Data-driven patterns
 
+These snippets focus on extension behavior. In real project files, create a
+shared client with `configure()` and import it into the test file.
+
 ### test.each — array of cases
 
 Run the same test logic with different inputs. Each row appears as a child node in Test Explorer.
 
 ```typescript
+import { configure, test } from "@glubean/sdk";
+
+const { http: api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
+
 export const statusCodes = test.each([
   { id: 1,   expected: 200 },
   { id: 999, expected: 404 },
 ])("get-item-$id", async (ctx, { id, expected }) => {
-  const res = await ctx.http.get(`/items/${id}`);
-  ctx.expect(res.status).toBe(expected);
+  const res = await api.get(`items/${id}`);
+  ctx.expect(res).toHaveStatus(expected);
 });
 ```
 
@@ -95,15 +113,18 @@ const cases = await fromDir.merge<UserCase>("./data/users/");
 export const getUser = test.pick(cases)(
   { id: "get-user-$_pick", name: "Get user: $_pick" },
   async (ctx, { id, expected }) => {
-    const res = await ctx.http.get(`/users/${id}`);
-    ctx.expect(res.status).toBe(expected);
+    const res = await api.get(`users/${id}`);
+    ctx.expect(res).toHaveStatus(expected);
   },
 );
 ```
 
 Data files can be JSON or YAML (with comments). Each team member can add a `*.local.json` file with personal test cases that won't conflict with the shared baseline.
 
-For the full data-driven guide — including `fromDir.merge`, `fromCsv`, `fromYaml`, structured data patterns, and `.local.json` overrides — see [Data-Driven](/sdk/data-driven) and [Local Data](/sdk/local-data).
+For the full data-driven guide — including `fromDir.merge`, `fromCsv`,
+`fromYaml`, structured data patterns, personal `*.local.json` files, and merge
+ordering — see [Data-Driven](/sdk/test/data-driven) and
+[Local Data](/sdk/test/local-data).
 
 ---
 
@@ -132,9 +153,16 @@ Tests defined with `browserTest` are discovered and appear in Test Explorer alon
 | `explore/` | Quick experiments, AI-generated drafts, bug reproduction | Requires `--profile explore` or explicit path |
 | `tests/` | Committed regression suite | Default `glubean run` (the `local` profile) |
 
-Test Explorer groups them separately: **Explore** and **Tests**.
+Test Explorer groups them separately when both directories exist. The default
+`glubean init` template creates `tests/` and `contracts/`; add `explore/` plus
+an `explore` profile when your team wants a committed draft lane.
 
-When a test is stable, move it from `explore/` to `tests/`. That is the only change needed — the same file runs in CI with `glubean run tests/`.
+Contracts and workflows are still the main source-of-truth layer. The extension
+helps most with local `test()` discovery, data navigation, and result
+inspection; use the CLI or MCP for the full project run.
+
+When a test is stable, move it from `explore/` to `tests/`. That is the only
+change needed for the default local/CI profile to pick it up.
 
 ### config/ and data/
 
@@ -147,4 +175,4 @@ When a test is stable, move it from `explore/` to `tests/`. That is the only cha
 
 - [Running Tests](/extension/running-tests) — All the ways to execute tests
 - [Result Viewer](/extension/result-viewer) — Inspect traces, assertions, and events
-- [Generate Tests with AI](/extension/generate-with-ai) — Let AI write the first draft
+- [Generate with AI](/extension/generate-with-ai) — Let AI write the first draft

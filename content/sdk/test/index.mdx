@@ -1,20 +1,33 @@
-# Test Shape
+# test() API
 
-Use `test()` for simple tests and the builder API for multi-step flows.
+Use `test()` when you need raw TypeScript without the structure that contracts
+and workflows intentionally add.
+
+Contracts are built on the same runner and evidence model as `test()`, so this
+is not a lesser API. It is the imperative surface for setup-heavy checks,
+diagnostics, custom polling, unusual flows, or behavior that should not become a
+projected contract.
 
 ## Simple test
 
-This is the default shape for one request or one short assertion path:
+For real projects, create shared clients with `configure()` and import those
+clients into checks. That keeps runtime setup out of each individual check.
 
 ```typescript
-import { test } from "@glubean/sdk";
+import { configure, test } from "@glubean/sdk";
+
+const { http } = configure({
+  http: {
+    prefixUrl: "{{BASE_URL}}",
+  },
+});
 
 export const login = test("login", async (ctx) => {
-  const res = await ctx.http.post(`${ctx.vars.require("BASE_URL")}/login`, {
+  const res = await http.post("login", {
     json: { username: "demo", password: "demo" },
   });
 
-  ctx.expect(res.status).toBe(200);
+  ctx.expect(res).toHaveStatus(200);
 });
 ```
 
@@ -24,25 +37,29 @@ Use the builder API when steps depend on shared state or when cleanup matters:
 
 ```typescript
 type CheckoutState = {
-  baseUrl: string;
   cartId: string;
 };
+
+const { http } = configure({
+  http: {
+    prefixUrl: "{{BASE_URL}}",
+  },
+});
 
 export const checkout = test<CheckoutState>("checkout-flow")
   .meta({ tags: ["e2e", "critical"] })
   .setup(async (ctx) => {
-    const baseUrl = ctx.vars.require("BASE_URL");
-    const cart = await ctx.http.post(`${baseUrl}/carts`).json<{ id: string }>();
-    return { baseUrl, cartId: cart.id };
+    const cart = await http.post("carts").json<{ id: string }>();
+    return { cartId: cart.id };
   })
   .step("add item", async (ctx, state) => {
-    await ctx.http.post(`${state.baseUrl}/carts/${state.cartId}/items`, {
+    await http.post(`carts/${state.cartId}/items`, {
       json: { productId: "product-123" },
     });
     return state;
   })
   .teardown(async (ctx, state) => {
-    await ctx.http.delete(`${state.baseUrl}/carts/${state.cartId}`);
+    await http.delete(`carts/${state.cartId}`);
   });
 ```
 
@@ -59,7 +76,7 @@ export const health = test({
   tags: ["smoke"],
   timeout: 10000,
 }, async (ctx) => {
-  ctx.expect((await ctx.http.get("/health")).status).toBe(200);
+  ctx.expect(await http.get("health")).toHaveStatus(200);
 });
 ```
 
@@ -74,7 +91,7 @@ import { test, type TestBuilder } from "@glubean/sdk";
 // unknown = no dependency on prior state; use { token: string } if this transform needs a token
 const withAuth = (b: TestBuilder<unknown>) => b
   .step("login", async (ctx) => {
-    const data = await ctx.http.post("/login", { json: creds }).json<{ token: string }>();
+    const data = await http.post("login", { json: creds }).json<{ token: string }>();
     return { token: data.token };
   });
 
@@ -102,7 +119,7 @@ export const focused = test("focused").only().step("do it", async (ctx) => { /* 
 
 ## Next
 
-- [HTTP Requests](/sdk/http-client)
-- [Assertions](/sdk/assertions)
-- [Data-Driven](/sdk/data-driven)
-- [Control Flow](/sdk/test-control)
+- [HTTP Requests](/sdk/test/http-client)
+- [Assertions](/sdk/test/assertions)
+- [Data-Driven](/sdk/test/data-driven)
+- [Control Flow](/sdk/test/control-flow)

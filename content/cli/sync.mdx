@@ -1,0 +1,108 @@
+# Sync Projections
+
+Use `glubean sync` when you want Cloud **Specifications** to reflect the current
+contracts, workflows, and test-definition projections in your repo.
+
+This is different from `glubean run --upload`:
+
+| Command | Sends | Cloud scope | Use it for |
+| --- | --- | --- | --- |
+| `glubean run --upload` | Execution evidence from a run | Target | Proving what passed, failed, traced, or measured. |
+| `glubean load --upload` | Load artifacts from `loadRunner(...)` | Target | Performance and Benchmark evidence. |
+| `glubean sync` | Source-derived projections | Project | Updating Specifications, OpenAPI projection, and agent/spec context. |
+
+Most teams use both: run/upload proves behavior against a Target, while sync
+keeps the project-level API model readable even before someone opens a run.
+
+## Basic usage
+
+```bash
+glubean sync
+```
+
+`--dir` only helps the CLI locate the project root. Sync always projects the
+**whole Glubean project**, because the server treats the upload as a full
+snapshot replacement. Scanning only one subdirectory would make removed files
+look intentionally deleted.
+
+```bash
+glubean sync --dir packages/api-tests
+```
+
+## What sync publishes
+
+`glubean sync` projects the repo without running tests:
+
+- `test()` metadata and dry-run shape
+- `contract.http`, `contract.browser`, and plugin-backed contract projections
+- `workflow()` projections
+- one OpenAPI-shaped project document when HTTP contracts can be rendered
+- best-effort git provenance for source links
+
+Cloud stores those under the project. Specifications can then show current
+operations, cases, inputs, outputs, rules, and projection status. Uploaded runs
+can later attach evidence back to those promises.
+
+## Auth and destination
+
+Sync is project-scoped, not target-scoped. It needs a token and project ID, but
+not a target ID:
+
+```bash
+glubean sync --project prj_abc123
+glubean sync --token glb_...
+glubean sync --token-env GLUBEAN_TOKEN_CI
+```
+
+The usual env-file path works too:
+
+```dotenv
+# .env
+GLUBEAN_PROJECT_ID=prj_abc123
+
+# .env.secrets
+GLUBEAN_TOKEN=glb_your_token
+```
+
+Use `--env-file` when syncing against a non-default environment file:
+
+```bash
+glubean sync --env-file .env.staging
+```
+
+## Safety behavior
+
+Sync fails closed when publishing would be misleading:
+
+- If a file cannot be projected, sync aborts instead of deleting that file's
+  previous Cloud projection.
+- If the repo has no tests, contracts, or workflows, sync does nothing unless
+  you pass `--allow-empty`.
+- Projection payloads are redacted before upload, including project
+  `defaults.redaction` rules from `glubean.yaml` when present.
+- URL query strings, fragments, and userinfo are stripped from projected
+  endpoint URLs before they leave the machine.
+
+Only use `--allow-empty` when you intentionally want to clear project
+projections:
+
+```bash
+glubean sync --allow-empty
+```
+
+## When to run it
+
+Run sync after changing contracts, workflows, or test definitions that should be
+visible in Cloud before the next uploaded run. Common places:
+
+- local review before sharing a Cloud link
+- CI after contract/workflow changes
+- release pipelines that publish updated Specifications
+- agent-driven contract-first work where the source model changed but the
+  implementation is not ready yet
+
+## Next
+
+- [Specifications](/cloud/specifications)
+- [Upload Your First Run](/getting-started/upload-to-cloud)
+- [Configuration](/cli/config)

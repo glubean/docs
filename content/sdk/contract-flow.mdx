@@ -12,11 +12,11 @@ Use `workflow()` to verify business lifecycles across multiple contract cases �
 - Branching business paths that should be visible in projection
 - Reusable lifecycle fragments or data-driven workflow matrices
 
-For single-endpoint behavior, use [Contract HTTP](/sdk/contract-http). For opaque exploratory runtime checks, use [Test Shape](/sdk/test-api).
+For single-endpoint behavior, use [Contract HTTP](/sdk/contract-http). For opaque exploratory runtime checks, use [test() API](/sdk/test).
 
 ## Basic workflow
 
-A workflow composes **existing contract cases**. It does not redeclare endpoints — you reference cases already defined in your `contract.http.with()` specs and wire them together with pure lens functions.
+A workflow composes **existing contract cases**. It does not redeclare endpoints — you reference cases already defined in your `contract.http.with()` specs and wire them together with pure mapping functions.
 
 ```typescript
 import { workflow } from "@glubean/sdk";
@@ -87,11 +87,15 @@ Calls an existing contract case. Use `in` to map workflow state to case input an
 })
 ```
 
-`in` and `out` must be pure synchronous lenses — field lookup and repacking only. Do not do I/O or return a Promise from them. Put arbitrary async work in `action()`.
+`in` and `out` must be pure synchronous mapping functions — field lookup and
+repacking only. Do not do I/O or return a Promise from them. Put arbitrary async
+work in `action()`.
 
 ### `compute()`
 
-Pure synchronous state transform. Use it for reshaping, derived fields, or values a lens should not build inline (template literals, `.map()`, method calls).
+Pure synchronous state transform. Use it for reshaping, derived fields, or
+values that would make an `in` / `out` mapping hard to read, such as template
+literals, `.map()`, or method calls.
 
 ```typescript
 .compute("auth-header", (s) => ({
@@ -141,7 +145,10 @@ Use the callback form when the assertion is necessarily imperative. Add a projec
 .check(
   "discount-applied",
   async (ctx, s) => {
-    ctx.expect(s.discount).toBe("SUMMER25", "Checkout applies the selected promo code");
+    ctx.assert(s.discount === "SUMMER25", "Checkout applies the selected promo code", {
+      actual: s.discount,
+      expected: "SUMMER25",
+    });
   },
   { project: { asserts: "selected promo code is applied to checkout total" } },
 )
@@ -152,7 +159,7 @@ Use the callback form when the assertion is necessarily imperative. Add a projec
 Two-way branch. A declarative `when` projects as `full`; a runtime `whenRuntime` is opaque and must include a message.
 
 ```typescript
-.branch("route-inventory", {
+.branch("inventory-path", {
   when: (w) => w.when((s: { inStock: boolean }) => s.inStock).eq(true),
   then: (b) => b.call("reserve", reserveItem.case("success")),
   else: (b) => b.call("backorder", createBackorder.case("success")),
@@ -162,6 +169,9 @@ Two-way branch. A declarative `when` projects as `full`; a runtime `whenRuntime`
 ### `switch()` and `route()`
 
 Use `switch()` when the cases converge and the workflow continues. Use `route()` when each path owns the rest of the workflow and no trunk continues.
+
+`route()` here names a terminal branch in the builder API. It is not an HTTP
+route; the durable product artifact is still the workflow.
 
 ```typescript
 .switch("fulfillment-method", {
@@ -174,9 +184,26 @@ Use `switch()` when the cases converge and the workflow continues. Use `route()`
 })
 ```
 
+For a terminal tree, use `route()`. A `default` branch is required, and only
+`.teardown()` or `.build()` may follow it:
+
+```typescript
+.route("fulfillment-terminal", {
+  on: (s: { method: string }) => s.method,
+  cases: [
+    { value: "ship", then: (b) => b.call("ship", shipOrder.case("success")) },
+    { value: "pickup", then: (b) => b.call("pickup", createPickup.case("success")) },
+  ],
+  default: (b) => b.check("unsupported-method", async (ctx) => ctx.fail("Unsupported fulfillment method")),
+})
+```
+
 ### `poll()`
 
-Use `poll()` to repeat a contract case until a declarative or runtime exit predicate holds. Bounds are required: a total timeout and/or max attempts with a per-attempt budget.
+Use `poll()` to repeat a contract case until a declarative or runtime exit
+predicate holds. Bounds are required: every poll must have a total stop
+condition (`timeout` or `maxAttempts`) and a finite per-attempt budget
+(`timeout` can serve as both; otherwise set `perAttemptTimeout`).
 
 ```typescript
 .poll("wait-for-export", getExport.case("ready"), {
@@ -250,6 +277,12 @@ Every row must project the same workflow structure. Row data should enter throug
 Use `workflow().setup()` for journey-level initial state and `workflow().teardown()` for journey-level cleanup. Contract cases stay pure — they do not own setup/teardown.
 
 ```typescript
+import { configure, workflow } from "@glubean/sdk";
+
+const { http: api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
+
 export const orderLifecycle = workflow("order-lifecycle")
   .setup(async (ctx) => ({ tenantId: ctx.vars.require("TENANT_ID") }))
   .call("create-order", createOrder.case("success"), {
@@ -257,7 +290,7 @@ export const orderLifecycle = workflow("order-lifecycle")
     out: (s, res) => ({ ...s, orderId: res.body.id as string }),
   })
   .teardown(async (ctx, s) => {
-    await ctx.http.delete(`/orders/${s.orderId}`);
+    await api.delete(`orders/${s.orderId}`);
   });
 ```
 
@@ -282,5 +315,5 @@ Good `test()` candidates:
 ## Next
 
 - [Contract HTTP](/sdk/contract-http)
-- [Test Shape](/sdk/test-api)
-- [Data-Driven](/sdk/data-driven)
+- [test() API](/sdk/test)
+- [Data-Driven](/sdk/test/data-driven)

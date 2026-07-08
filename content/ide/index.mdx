@@ -1,0 +1,60 @@
+# IDE & Local
+
+The IDE and local CLI are where developers and coding agents do source-aware
+Glubean work.
+
+This is the primary plane. A coding agent can read the repo, use the Glubean
+skill, author contracts/workflows/tests, run checks through MCP or the CLI,
+inspect structured failures, and repair code. A developer can do the same work
+manually with source files and editor controls. The same commands also run in
+CI.
+
+Start skill-first:
+
+```bash
+npx skills add glubean/skill
+```
+
+Then ask the agent to set up a Glubean verification project. The agent should
+inspect your app repo and decide whether to create a separate project or reuse
+an existing one. The local SDK, runner, CLI, MCP, env files, and project
+conventions should follow from that inspection.
+
+## What belongs here
+
+- `@glubean/sdk` authoring
+- `@glubean/runner` execution
+- `glubean run` and `glubean load` through the CLI
+- MCP tools such as test discovery, local runs, failure inspection, and upload
+- the Glubean skill (`glubean/skill`) for agent authoring guidance
+- contract extraction and sync
+- VS Code extension runs and result inspection
+- future write-back from webapp edits to repo changes
+
+## Default loop
+
+```text
+write from source -> run locally -> inspect evidence -> repair -> upload -> review in webapp
+```
+
+## Two local lanes
+
+### Agent lane
+
+Use the skill and MCP when you want the agent to carry the loop: understand the
+repo, write the first behavior asset, run it, read structured failures, and fix
+the source or the check.
+
+### Editor lane
+
+Use the VS Code extension when you want visual controls over local work:
+CodeLens, gutter runs, environment switching, Test Explorer, and the Result
+Viewer. The extension is strongest around discovered `test()` files; contract
+and workflow authoring still lives in source and can be run through the CLI,
+MCP, package scripts, or CI.
+
+## Related
+
+- [SDK & Plugins](/sdk)
+- [CLI & Config](/cli)
+- [VS Code Extension](/extension)

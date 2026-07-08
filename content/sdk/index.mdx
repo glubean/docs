@@ -1,51 +1,73 @@
-# Write Tests
+# SDK & Plugins
 
-The SDK is the authoring surface of Glubean — a developer-owned API verification platform.
+The SDK is the code authoring layer of Glubean.
 
-You write tests in TypeScript, commit them to git, run them locally or in CI, and optionally upload the results to Cloud. The code stays the same across environments.
+Use it when API truth belongs in the repo: tests, contracts, workflows, browser
+checks, load plans, shared configuration, and plugins. The SDK produces the
+structured evidence that Targets and the webapp Agent read later.
 
-## Install
+The intended setup path is skill first:
 
 ```bash
-npm install @glubean/sdk
+npx skills add glubean/skill
 ```
 
-## The mental model
+Then ask your agent to set up Glubean for the project. It should decide whether
+to initialize a project, add dependencies, configure MCP, or reuse existing
+files.
 
-Every test receives a `ctx` object. That context gives you:
+When you are doing the setup manually, initialize through the CLI:
 
-- `ctx.http` for requests (auto-traced)
-- `ctx.vars` and `ctx.secrets` for runtime values
-- `ctx.expect`, `ctx.assert`, and `ctx.validate` for verification
-- `ctx.log`, `ctx.trace`, and `ctx.metric` for observability
-- `ctx.session` for shared state across files
-- **plugins** for browser automation, GraphQL, auth, and anything custom
-
-## A minimal test
-
-```typescript
-import { test } from "@glubean/sdk";
-
-export const health = test("health", async (ctx) => {
-  const baseUrl = ctx.vars.require("BASE_URL");
-  const res = await ctx.http.get(`${baseUrl}/health`);
-
-  ctx.expect(res.status).toBe(200);
-});
+```bash
+npx glubean init
 ```
+
+The generated template adds the SDK, runner, scripts, and project layout it
+needs. You do not need to install the SDK globally.
+
+For agent-driven work, MCP is the runner bridge the agent can use:
+
+```bash
+npx glubean config mcp
+```
+
+## Authoring layers
+
+| Layer | Use it for |
+| --- | --- |
+| `contract.http.with()` | endpoint promises that project into Specifications |
+| `workflow()` | lifecycle promises across multiple endpoint cases |
+| `contract.browser.with()` | browser journeys that should replay and project like contracts |
+| `test()` | raw TypeScript checks when contract shape is not the right fit |
+| `loadScenario()` / `loadRunner()` from `@glubean/sdk/load` | concurrency and performance checks |
+| Plugins | new clients, matchers, protocols, auth, browser, GraphQL, gRPC, or team-specific extensions |
+
+The default trunk is **contract + workflow**. Use `test()` when the clearest
+truth is raw TypeScript, use load APIs when correctness under concurrency is the
+question, and use plugins when the protocol or client model needs to extend the
+core SDK.
 
 ## Start with these pages
 
-1. [Test Shape](/sdk/test-api) — `test()`, builder API, `test.each`, `test.pick`
-2. [Configuration](/sdk/configuration) — `configure()` for shared setup
-3. [HTTP Requests](/sdk/http-client) — `ctx.http` client
-4. [Assertions](/sdk/assertions) — `expect`, `assert`, `validate`, `warn`
-5. [Data-Driven](/sdk/data-driven) — `test.each`, `test.pick`, data loaders
-6. [Variables & Secrets](/sdk/env-and-secrets) — `ctx.vars`, `ctx.secrets`
+1. [Contract HTTP](/sdk/contract-http)
+2. [Workflow](/sdk/contract-flow)
+3. [Contract Browser](/sdk/contract-browser)
+4. [test() API](/sdk/test)
+5. [Load Testing](/sdk/load-testing)
+6. [Shared Config](/sdk/configuration)
+7. [Plugins](/sdk/plugins)
 
-## When the suite grows
+## Source reference
 
-- Use the builder API for multi-step flows
-- Use `configure()` and plugins for shared setup
-- Use `session.ts` for cross-file shared state
-- Emit logs and metrics when a green or red result alone is not enough
+When you need exact signatures, implementation details, or the latest exported
+types, read the SDK source directly:
+
+[github.com/glubean/glubean/tree/main/packages/sdk](https://github.com/glubean/glubean/tree/main/packages/sdk)
+
+## How it fits
+
+```text
+SDK code -> runner/CLI -> structured evidence -> Target analytics
+SDK contracts/workflows -> glubean sync -> Specifications -> APIs, Explore, Agent
+SDK runs/load plans -> glubean run/load --upload -> Targets, Performance, Benchmarks
+```

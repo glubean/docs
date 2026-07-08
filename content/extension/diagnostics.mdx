@@ -18,7 +18,9 @@ Run `Glubean: Diagnose` from the Command Palette. The extension checks four area
 3. **Test discovery** — how many test files and test cases were found.
 4. **Current file** — whether the active file is a test file, its parse result.
 
-If problems are detected, the output includes specific suggestions (e.g. "CLI version is outdated, run `npm install -g glubean@latest`").
+If problems are detected, the output includes specific suggestions, such as
+initializing the project with `npx glubean init`, installing project
+dependencies, or updating the package version used by the project.
 
 ---
 
@@ -26,9 +28,13 @@ If problems are detected, the output includes specific suggestions (e.g. "CLI ve
 
 ### Tests are not discovered
 
-- **Check the file extension.** Only `.test.ts`, `.test.js`, and `.test.mjs` are recognized.
+- **Check the file extension.** The extension's Test Explorer recognizes `.test.ts`, `.test.js`, and `.test.mjs` files.
 - **Check the export.** Tests must be exported: `export const myTest = test(...)`.
 - **Check `glubean.autoDiscover`.** If set to `false`, tests are only parsed when you open the file.
+
+Contract and workflow files are source-of-truth assets, but they are not the
+same editor discovery surface as raw `test()` files. Run them through MCP, the
+CLI, package scripts, or CI when you want the full project check.
 
 ### Play button does not appear
 
@@ -47,7 +53,9 @@ Scratch Mode skips TypeScript compilation. Use `.test.js` (not `.test.ts`) for s
 
 ### Result Viewer does not open
 
-- Results are stored in `.glubean/results/`. If this directory was deleted, there is nothing to show.
+- Extension history is stored in `.glubean/results/`; full CLI/project runs also
+  write `.glubean/last-run.result.json`. If both are missing, there is nothing
+  to show yet.
 - Check that the run actually completed (look at the Test Results panel for errors).
 
 ---
@@ -58,11 +66,12 @@ The status bar shows the Glubean CLI installation status (only visible in Glubea
 
 | Status bar display | Meaning | Click action |
 |---|---|---|
-| `$(alert) Glubean CLI` (yellow) | CLI not installed | Runs `npm install -g glubean` |
-| `$(arrow-up) CLI 0.1.12 -> 0.1.15` | Update available | Runs `npm install -g glubean@latest` |
-| `$(check) CLI 0.1.15` | Up to date | Shows confirmation message |
+| `$(alert) Glubean project` (yellow) | Project setup is incomplete | Shows the setup guidance; use `npx glubean init` for a new project |
+| `$(arrow-up) Glubean package` | Project package is behind | Shows the package/version guidance for the current project |
+| `$(check) Glubean project` | Project setup looks healthy | Shows confirmation message |
 
-Version checks query the npm registry with a 24-hour cache.
+The extension should work from the project and `npx` path. You do not need to
+install the Glubean CLI globally.
 
 ---
 

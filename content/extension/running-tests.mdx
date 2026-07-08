@@ -7,13 +7,18 @@ description: Play buttons, Test Explorer, keyboard shortcuts, Tasks Panel, and r
 
 The extension provides multiple ways to run tests, from single-click gutter buttons to full project runs.
 
+These editor controls target discovered `test()` exports in `*.test.ts/js/mjs`
+files. Contract and workflow suites still live in source and can be run through
+MCP, `npx glubean run`, package scripts, or CI. If you expose a package script
+that calls `glubean run`, it can also appear in the Glubean Tasks panel.
+
 ---
 
 ## Play buttons
 
 ### Gutter button
 
-Every `test()` call gets a **Play** button in the gutter (line number area). Click to run that single test. The Result Viewer opens automatically when the run finishes.
+Every discovered `test()` call gets a **Play** button in the gutter (line number area). Click to run that single test. The Result Viewer opens automatically when the run finishes.
 
 ### Editor title bar
 
@@ -23,7 +28,9 @@ When a `.test.ts` or `.test.js` file is open, a **Play** button appears in the e
 
 The Test Explorer sidebar (Testing icon in the Activity Bar) lists all discovered tests. You can run tests at any level: individual test, file, or folder.
 
-Tests are grouped into **Explore** (from `explore/`) and **Tests** (from `tests/`). Multi-workspace projects show project-level nodes.
+Tests are grouped by project folders such as **Tests** (from `tests/`) and,
+when present, **Explore** (from `explore/`). Multi-workspace projects show
+project-level nodes.
 
 > **Right-click for Debug:** right-click any Play button and select **Debug Test** to run with breakpoints. See [Debugging](/extension/debugging).
 
@@ -134,10 +141,20 @@ After a task completes, the Result Viewer opens automatically based on the `glub
 
 ## explore/ vs tests/
 
-- `explore/` is your **API collection** — the code-first replacement for Postman collections. Each file covers one or more endpoints, `test.pick` saves multiple parameter sets per endpoint, and you pick the one you need. Committed to git, shared with the team.
-- `tests/` is your **regression suite** — runs in CI with `glubean run tests/`. Use `test.each` to run every case, every time.
+- `explore/` is an optional lane for **fast drafts and reproductions**. Use it for API
+  exploration, bug repros, generated first passes, and `test.pick` cases where
+  you want to run one example at a time.
+- `tests/` is your **committed regression suite**. It runs through the default
+  local/CI profile and should contain checks that the team expects to stay
+  green.
 
-When an exploration becomes stable enough for CI, copy it to `tests/` and switch from `test.pick` to `test.each`.
+The default `glubean init` project does not need `explore/` to run. Add it when
+your team wants a committed draft lane, and add an `explore` profile to
+`glubean.yaml` when you want `glubean run --profile explore`.
+
+When an exploration becomes stable enough for CI, move it to `tests/`. If a
+picked example set should become a full regression matrix, switch from
+`test.pick` to `test.each`.
 
 ---
 

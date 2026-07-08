@@ -15,31 +15,51 @@ Every tool makes trade-offs. Here are the ones Glubean makes — and why.
 
 ## Shared State & Execution Order
 
-Tests in the same file share the module scope and run sequentially in export order. This is by design — it enables workflow-style tests where one test creates a resource and the next verifies it.
+Tests in the same file share the module scope and currently run sequentially in
+export order. Treat this as an escape hatch, not the default way to model a
+business lifecycle.
+
+Prefer:
+
+- `workflow()` when the lifecycle should project and stay tied to contract cases
+- `test()` builder `.setup()`, `.step()`, and `.teardown()` when the lifecycle is
+  imperative and should stay raw TypeScript
+
+Module-level shared state can still be useful for tiny local probes:
 
 ```typescript
-let userId: number; // ✅ declare at module level
+import { configure, test } from "@glubean/sdk";
+
+const { http: api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
+
+let userId: number; // declare at module level
 
 export const createUser = test("create-user", async (ctx) => {
-  const res = await ctx.http.post("https://api.example.com/users", {
+  const res = await api.post("users", {
     json: { name: "Test" },
   });
-  userId = (await res.json()).id; // ✅ assign inside test
+  ctx.expect(res).toHaveStatus(201);
+  userId = (await res.json<{ id: number }>()).id; // assign inside test
 });
 
 export const verifyUser = test("verify-user", async (ctx) => {
-  const res = await ctx.http.get(`https://api.example.com/users/${userId}`);
+  const res = await api.get(`users/${userId}`);
   ctx.expect(res).toHaveStatus(200);
 });
 ```
 
 **Rules:**
+
 - **Declare** shared variables at module top level
 - **Assign** them only inside test callbacks, never at the top level
 - Export order = execution order — put dependencies first
 - Running a single test skips earlier tests, so shared variables keep their initial value
 
-> **Why not parallel?** Parallel execution within a file would break shared state. Files are the isolation boundary — different files can run in parallel (planned).
+> **Why not parallel within one file yet?** Parallel execution would break
+> module-level shared state. Files are the isolation boundary; different files
+> can run in parallel.
 
 ## CodeLens Static Analysis
 
@@ -56,7 +76,7 @@ When static analysis fails, tests still run correctly — only the inline CodeLe
 In `configure()` HTTP options, `{{KEY}}` templates resolve from **both** vars and secrets (secrets checked first). There is no strict mode that limits resolution to secrets only.
 
 ```typescript
-export const api = configure({
+export const { vars, secrets, http: api } = configure({
   vars: { baseUrl: "{{BASE_URL}}" },           // reads from .env
   secrets: { apiKey: "{{API_KEY}}" },           // reads from .env.secrets
   http: {
@@ -68,11 +88,17 @@ export const api = configure({
 });
 ```
 
-> If you put a secret in `.env` instead of `.env.secrets`, it will still work — but **you shouldn't**. Secrets in `.env` are committed to git and visible in Cloud uploads. Always use `.env.secrets` for sensitive values.
+> If you put a secret in `.env` instead of `.env.secrets`, it will still work —
+> but **you shouldn't**. Secrets in `.env` are commit-prone public config, not
+> explicitly registered secret inputs. They may appear in local artifacts or
+> uploaded evidence unless another redaction rule catches them. Always use
+> `.env.secrets` for sensitive values.
 
-## Plugins Require Separate Install
+## Optional Packages Are Separate
 
-Browser automation, auth strategies, GraphQL, and gRPC each require their own package:
+The project template installs the SDK, runner, and local CLI dependency it
+needs to run generated package scripts. Extra capabilities live in separate
+packages so the local runtime stays small:
 
 ```bash
 npm install @glubean/auth      # bearer, apiKey, OAuth, basicAuth
@@ -81,15 +107,22 @@ npm install @glubean/graphql   # GraphQL query/mutation helpers
 npm install @glubean/grpc      # gRPC client
 ```
 
-This keeps the core SDK lightweight — you only install what you use.
+`@glubean/auth` is a helper package used directly from `configure()` or
+`test().use(...)`. `@glubean/browser`, `@glubean/graphql`, and `@glubean/grpc`
+also ship plugin manifests; install those manifests in `glubean.setup.ts` when
+you use their global matchers or contract protocols. Plain clients registered
+through `configure({ plugins })` do not need manifest installation.
 
-## CLI Defaults to `tests/` Only
+## CLI Defaults to the `local` Profile
 
-`glubean run` without arguments runs the `local` profile (the `tests/` suite). To run explore files:
+`glubean run` without arguments runs the `local` profile from `glubean.yaml`.
+In most projects, that means stable authored assets such as `tests/` and
+contracts. If your project declares an `explore` suite/profile, run it with:
 
 ```bash
 glubean run --profile explore      # run the explore profile (explore/ suite)
 glubean run explore/smoke.test.ts  # run a specific explore file (ad-hoc)
 ```
 
-This is intentional — `explore/` is your interactive API collection, not something CI should run automatically.
+This is intentional — `explore/` is optional and is for drafts, reproductions,
+and one-case iteration, not something CI should run automatically.

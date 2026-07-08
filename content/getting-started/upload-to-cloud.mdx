@@ -1,11 +1,21 @@
 # Upload Your First Run
 
-Use this page when local tests already work and you want a shared run history in Cloud.
+Use this page when local checks already work and you want shared evidence in
+Glubean Cloud.
+
+Upload does not change what you author. You still author contracts, workflows,
+and raw `test()` checks in git. Cloud stores the **derived run evidence** under a
+Target so the team can inspect history, failures, performance, documentation
+links, and agent explanations from the same source.
+
+If you want Cloud **Specifications** to update from the current source model
+without waiting for a run, use [`glubean sync`](/cli/sync). Sync publishes
+project-level projections; upload publishes target-level execution evidence.
 
 ## Before you start
 
-- The CLI is installed
-- `glubean run` already works locally
+- A Glubean verification project exists
+- `npx glubean run` already works locally
 - You have access to a Glubean Cloud project
 
 ## 1. Create a token
@@ -18,7 +28,7 @@ A `glb_` token is bound to you within your org (not to a single project), so the
 project and target you upload to are supplied separately (next step). For the
 difference between **scoped** and **personal** tokens, see [Tokens](/cloud/tokens).
 
-> Device login (`glubean login`) is the intended interactive flow but the
+> Device login (`npx glubean login`) is the intended interactive flow but the
 > server endpoints aren't live yet, so create the token in the dashboard and
 > provide it directly for now.
 
@@ -42,7 +52,7 @@ GLUBEAN_TARGET_ID=tgt_def456
 
 The project and target IDs aren't sensitive and belong in the repo (`.env`).
 The token is sensitive and goes in `.env.secrets`. Because they're env vars,
-every run mode — `glubean run --upload`, `glubean ci run --upload`, or a
+every run mode — `npx glubean run --upload`, `npx glubean ci run --upload`, or a
 filtered/tagged run — uploads to the same project/target. (If the project has a
 single default target you can omit `GLUBEAN_TARGET_ID`.)
 
@@ -51,8 +61,8 @@ single default target you can omit `GLUBEAN_TARGET_ID`.)
 ### CI
 
 Store the scoped (`runs:write`) token in your provider's secret store and inject
-it as the `GLUBEAN_TOKEN` env var. The CLI auto-picks it up — **no `glubean
-login` step in CI**.
+it as the `GLUBEAN_TOKEN` env var. The CLI auto-picks it up. Do not run
+`npx glubean login` in CI.
 
 GitHub Actions example:
 
@@ -74,9 +84,9 @@ npx glubean ci run --upload
 You can still target a file, folder, filter, or tag:
 
 ```bash
-glubean run ./tests/auth.test.ts --upload
-glubean run --filter "login" --upload
-glubean run --tag smoke --upload
+npx glubean run ./tests/auth.test.ts --upload
+npx glubean run --filter "login" --upload
+npx glubean run --tag smoke --upload
 ```
 
 ## 4. Open the run
@@ -86,19 +96,35 @@ After upload, the CLI prints a Cloud URL. Open it to inspect:
 - Run summary
 - Test results
 - Logs, traces, and metrics
+- Contract and workflow evidence attached to the Target
+- Agent explanations for failures or suspicious performance
 
 ## Credential lookup order
 
-The CLI uses the first matching credential source for `GLUBEAN_TOKEN`,
-`GLUBEAN_PROJECT_ID`, `GLUBEAN_TARGET_ID`, and `GLUBEAN_API_URL`:
+The CLI resolves each upload field independently. The practical order is:
 
-1. `--token` / `--project` / `--target` CLI flags
-2. `GLUBEAN_TOKEN` / `GLUBEAN_PROJECT_ID` / `GLUBEAN_TARGET_ID` / `GLUBEAN_API_URL` env vars
-3. `.env` and `.env.secrets` files in the project root
-4. `glubean.yaml` (`upload.projectId` / `upload.targetId`) for the active profile
-5. `~/.glubean/credentials.json` (written by `glubean login`); the project's default target
+| Field | Resolution order |
+| --- | --- |
+| Token | `--token` → active run profile's `upload.tokenEnv` → `GLUBEAN_TOKEN` env / `.env.secrets` → `~/.glubean/credentials.json` |
+| Project | `--project` → active run profile's `upload.projectId` → `GLUBEAN_PROJECT_ID` env / `.env` → `~/.glubean/credentials.json` |
+| Target | `--upload-target` → active run profile's `upload.targetId` → `GLUBEAN_TARGET_ID` env / `.env` → project default target |
+| API URL | `--api-url` → `GLUBEAN_API_URL` / `GLUBEAN_PLATFORM_API_URL` env or env files → Glubean Cloud default |
 
-The chain is per-field — for example, the token can come from an env var while the project ID comes from `.env`. This is what makes the recommended CI pattern (1 secret) work. Keep token *values* in `.env.secrets` (gitignored) — a literal `GLUBEAN_TOKEN` in the committed `.env` **is** read, so never commit one there.
+The profile step applies to `glubean run --profile <name>` and
+`glubean ci run`. `glubean load ... --upload` does not resolve a profile, so it
+uses CLI flags, env/env-file values, saved credentials, and the project default
+target instead.
+
+If a profile sets `upload.tokenEnv`, that env var is exclusive for that
+profile after `--token`; the CLI does not silently fall back to
+`GLUBEAN_TOKEN`. If `--project` overrides a profile's project, the profile's
+`upload.targetId` is not reused with the new project; set `--upload-target` or
+`GLUBEAN_TARGET_ID` when you need an explicit target.
+
+This is what makes the recommended CI pattern work: one secret
+(`GLUBEAN_TOKEN`) plus committed project/target IDs in `.env`. Keep token
+*values* in `.env.secrets` or the CI secret store — a literal `GLUBEAN_TOKEN` in
+the committed `.env` **is** read, so never commit one there.
 
 `GLUBEAN_API_URL` normally needs no configuration — the CLI talks to Glubean Cloud by default. Set it only when pointing at a different Glubean-hosted environment (e.g. staging), using that environment's `https://api.<env>.glubean.com` host — the CLI automatically derives the matching ingest host from it. See [Tokens](/cloud/tokens#where-to-store-it) for details.
 

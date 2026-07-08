@@ -1,0 +1,69 @@
+# Library & Resources
+
+Library and Resources are the reusable inputs for browser-side Glubean work.
+
+They matter most when people are using Explore, flows, code tests, or the
+webapp Agent. Source-authored contracts and tests still live in git; these
+surfaces make webapp-side execution and authoring less repetitive.
+
+## Library
+
+Library stores shared modules that browser-side code tests and flows can reuse.
+A module can expose helpers, constants, request builders, or domain-specific
+utilities. In the webapp, those modules are imported as shared assets rather
+than copied into every collection.
+
+Modules are imported as `@shared/<slug>` from webapp-side tests and flows. The
+auto-seeded global module is special: its exports are available through the
+ambient `shared` object.
+
+Each module can carry its own tests, so helpers can be checked before other
+collections depend on them.
+
+Use Library when several Explore collections or webapp-side tests need the same
+helper logic.
+
+## Environments
+
+Environments hold the browser-side runtime context:
+
+- variable groups
+- Servers, which provide base URLs for relative requests
+- Auth presets
+
+The quick environment switcher chooses the active context. The Environments page
+owns authoring and review. Sensitive values are intentionally treated
+differently from ordinary variables, and the agent does not get an automatic
+read surface over secret values.
+
+## Data
+
+Data assets are reusable rows or documents for flows and code tests. They can be
+CSV, JSON, YAML, or text, and can be organized with folders/tags.
+
+Use Data when a request or flow should run against known examples without
+hard-coding them into the request itself.
+
+## Files
+
+Files store file metadata in Cloud while the bytes live in this browser's
+device storage. That is why the UI can show a file as **Missing** on another
+device: the metadata is shared, but the bytes must be re-attached locally.
+
+Files are useful for multipart requests, binary body tests, import scenarios,
+and repeatable flows that need attachments.
+
+## Boundary
+
+These surfaces support webapp-side work. They are not replacements for committed
+contracts, workflows, `test()` checks, browser checks, or load plans in a
+verification project.
+
+When an investigation becomes important enough to protect, promote the behavior
+back into source and let local/CI runs upload durable evidence to a Target.
+
+## Related
+
+- [Explore](/cloud/explore)
+- [Agent](/cloud/agent)
+- [Specifications](/cloud/specifications)

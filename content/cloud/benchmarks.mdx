@@ -1,0 +1,121 @@
+---
+title: Benchmarks
+description: Compare several source targets under the same load plan — leaderboard, capacity overlay, warnings, and traceable run evidence.
+---
+
+# Benchmarks
+
+**Benchmarks** compare several implementations of the same API under the same Glubean load plan. Use this when the question is _"which source wins?"_ — for example **Bun vs Express**, **Hono vs Fastify**, or two deployments of the same service.
+
+The model is deliberately simple:
+
+- A **target** is a **source**: one implementation or deployment with its own base URL and run history.
+- A **benchmark** is an **anchor**: a project-level group of source targets that share one `loadRunner` plan id.
+- A **run** is the evidence: each cell in the comparison points back to the exact uploaded load run it used.
+
+This is different from [Performance](/cloud/performance). Performance watches
+one source over time or compares two runs inside that source. Benchmarks fix a
+load plan and compare sources side by side.
+
+| Question | Surface |
+| --- | --- |
+| Did one target regress, hit an SLA gate, or change since a baseline? | **Performance** |
+| Which source is faster, more stable, or higher capacity under the same workload? | **Benchmarks** |
+| Are two specific load runs comparable? | **Performance** for same-target runs; **Benchmarks** for source-to-source cells. |
+
+## Create a benchmark
+
+1. Upload load runs from each source target with the same `loadRunner` id.
+2. Open **Benchmarks** in the webapp.
+3. Create a benchmark with a name, an **anchor plan id**, and the source targets to compare.
+4. The first source becomes the baseline column for `±%` deltas. You can change the baseline source later.
+
+The anchor plan id is the `loadRunner("...")` id from your `*.load.ts` file. It is the benchmark's hard requirement: every source should run the same authored load plan.
+
+```typescript
+export const shopLoad = loadRunner("shop-load", {
+  scenario: shopScenario,
+  concurrency: 500,
+  duration: "60s",
+  thresholds: {
+    transaction: { errorRate: "<1%", p95: "<400ms" },
+  },
+});
+```
+
+Create a benchmark with `shop-load`, then attach targets such as `Express API` and `Bun API` as sources.
+
+## Leaderboard
+
+**Leaderboard** fixes one load level and compares sources in columns.
+
+Rows show endpoint and scenario results. Each source cell shows the run-backed numbers for that source:
+
+- **p95**
+- **error rate**
+- **throughput**
+- **request count or iterations**
+- **run id and start time**
+- `±%` deltas against the baseline source
+
+Use this when you want to answer: _"At 500 concurrent users, which implementation is slower, and on which endpoint or scenario?"_
+
+## Capacity
+
+**Capacity** walks the load-level axis. Each source becomes a curve, so you can see where latency bends upward or throughput stops scaling.
+
+Use this when you want to answer: _"Which implementation holds its p95 longer as concurrency rises?"_
+
+## Sources
+
+The **Sources** tab manages benchmark membership:
+
+- attach or detach target sources
+- rename a source label, such as `Express` or `Bun`
+- choose the baseline source used for `±%` deltas
+- inspect whether a candidate source has qualifying load runs for the anchor plan
+
+Membership is curated. Glubean does not automatically join targets just because strings happen to match.
+
+## Warnings
+
+Benchmarks are allowed to render imperfect comparisons, but they never hide the caveats. If a compared cell set has a confounder, Cloud shows warning chips and a **Compared configs** drawer with the run evidence.
+
+Common warnings:
+
+| Warning | Means |
+|---|---|
+| **execution model differs** | Capacity family differs: the slot/execution/pacing model is not the same. |
+| **execution model unknown** | A legacy or incomplete run has no capacity family. |
+| **load config differs** | Duration, iteration bound, or scenario composition differs. |
+| **load shape unknown** | Cloud cannot fully confirm the load shape. |
+| **environments mixed** | The compared runs came from different environment labels. |
+| **source missing here** | A source has no qualifying run for this load level. |
+| **pin ignored** | A pinned run no longer qualifies, so the cell falls back to latest. |
+
+The important rule: numbers stay traceable. Warnings do not silently drop data, and Glubean does not silently equate runs that may not be comparable.
+
+## Run selection
+
+For each source and load level, Benchmarks picks one run:
+
+- a pinned run for that cell, when valid
+- otherwise the latest qualifying completed load run for the benchmark's anchor plan
+
+Threshold-failed load runs still count as valid benchmark evidence. A failed p95 gate means the run violated your SLO; it does not make the measured data unusable.
+
+## Authoring advice
+
+For clean comparisons:
+
+- use the same `loadRunner` id across source targets
+- keep duration or iteration bounds consistent
+- keep the scenario mix consistent
+- use the same environment label when comparing the same environment
+- run the same load levels for each source, such as 100, 500, and 1000 concurrency
+
+## Next
+
+- [Load Testing](/sdk/load-testing) — author `loadScenario()` and `loadRunner()`
+- [Performance](/cloud/performance) — inspect one target over time
+- [Targets & Runs](/cloud/targets) — upload and inspect source runs

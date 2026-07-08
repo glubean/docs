@@ -1,23 +1,43 @@
 # Result Files
 
-glubean writes structured output to `.result.json` files that you can inspect, upload, or feed into CI.
+`glubean run` writes structured evidence to `.result.json` files that you can
+inspect, upload, or feed into CI. These files are derived from authored
+contracts, workflows, and raw tests; do not edit them to change behavior.
 
 ## Generating result files
 
 ```bash
-glubean run tests/ --result-json results.json
+glubean run --profile local
 ```
 
-Without an explicit path, `--result-json` writes to `glubean-run.result.json` in the current directory.
+Every functional run writes the latest result to
+`.glubean/last-run.result.json`. Use an explicit path when another tool needs a
+stable artifact in addition to the latest-result file:
+
+```bash
+glubean run --profile local --result-json .glubean/results/local.result.json
+```
+
+CI profiles usually put this in `glubean.yaml` instead of repeating the flag:
+
+```yaml
+profiles:
+  ci:
+    reporters:
+      resultJson: .glubean/results/ci.result.json
+      junit: .glubean/results/junit.xml
+```
 
 ## What's inside
 
 A `.result.json` file contains:
 
 - **Run metadata** — timestamp, environment, CLI version, custom metadata (`--meta`)
-- **Test results** — pass/fail status, assertions, timing for each test
+- **Runnable results** — pass/fail/skip status, assertions, timing, and events for each `test()`, contract case, browser check, or workflow
 - **HTTP events** — request/response summaries (add `--emit-full-trace` for full headers and bodies)
 - **Errors and logs** — any `ctx.log()` output or caught errors
+- **Thresholds** — when the run profile declares metric gates
+- **Discovery failures** — files that failed to import before any runnable could execute
 
 ## Trace files
 
@@ -28,17 +48,21 @@ Use `--trace-limit <N>` to control how many trace files are kept per test (defau
 ## Uploading results
 
 ```bash
-glubean run tests/ --upload              # Run and upload in one step
+glubean run --profile local --upload     # Run and upload in one step
 glubean ci run --upload                  # Run the `ci` profile and upload
 ```
 
-Before uploading, results pass through [redaction](/cli/redaction) to mask sensitive values.
+Before uploading, results pass through [redaction](/cli/redaction) to mask sensitive values. Run through a profile when you rely on project-specific redaction rules.
+
+Load testing uses a separate artifact shape. `glubean load` writes one
+`.glubean/{runnerId}.load.result.json` file per completed `loadRunner(...)`;
+Cloud reads those as `kind=load` evidence for Performance and Benchmarks.
 
 ## Viewing results
 
 - **VS Code/Cursor** — The glubean extension opens `.result.json` files with a visual viewer. See [Extension: Result Viewer](/extension/result-viewer).
 - **Terminal** — Use `jq` or any JSON tool to query the file directly.
-- **Cloud** — Uploaded results appear in the glubean Cloud dashboard.
+- **Cloud** — Uploaded results appear in Glubean Cloud under the run's Target.
 
 ## Next
 

@@ -15,14 +15,15 @@ Use `contract.http.with()` to declare endpoint behavior as named cases. Each cas
 import { contract, configure } from "@glubean/sdk";
 import { z } from "zod";
 
-const { api } = configure({
+const { http: api } = configure({
   http: { prefixUrl: "{{BASE_URL}}" },
 });
 
 // Create a scoped instance. Every contract shares the same client, security, tags.
-const userApi = contract.http.with("user", {
+const publicApi = contract.http.with("public", {
   client: api,
-  security: "bearer",
+  security: null,
+  tags: ["users"],
 });
 
 const UserSchema = z.object({
@@ -32,7 +33,7 @@ const UserSchema = z.object({
 });
 
 // @contract
-export const createUser = userApi("create-user", {
+export const createUser = publicApi("create-user", {
   endpoint: "POST /users",
   feature: "User Registration",
   description: "Create a new user account",
@@ -80,6 +81,8 @@ Instance defaults:
 | `tags` | `string[]` | Merged additively with contract + case tags |
 | `feature` | `string` | Default feature grouping key |
 | `extensions` | `Extensions` ([see below](#openapi-extensions)) | OpenAPI `x-*` extensions inherited by all contracts |
+
+`security` describes the contract for projection output such as OpenAPI and Specifications. It does **not** add runtime credentials by itself. Runtime auth still belongs in the `client` you pass to `.with()` or a case-level `client` override.
 
 Instances can be chained: `userApi.with("scoped", { ... })` creates a nested instance where tags and extensions merge.
 
@@ -273,7 +276,9 @@ const duplicateEmail = defineHttpCase<{ email: string }>({
 });
 ```
 
-`runnability.requireAttachment` is a hard bare-run gate. The case must receive input from a bootstrap overlay, explicit runner input, or a workflow `in` lens. Use `--force-standalone` only for author-debug, never CI.
+`runnability.requireAttachment` is a hard bare-run gate. The case must receive
+input from a bootstrap overlay, explicit runner input, or a workflow `in`
+mapping. Use `--force-standalone` only for author-debug, never CI.
 
 `runnability.requireSession` requires project session state, usually produced by `defineSession()`.
 
@@ -467,7 +472,7 @@ Supported content types:
 | Content type | Body input | Notes |
 |-------------|-----------|-------|
 | `"application/json"` | plain object | Default |
-| `"multipart/form-data"` | `FormData` or `Record<string, string \| Blob \| File>` | Browser-native `FormData` or Node 20+ |
+| `"multipart/form-data"` | `FormData` or `Record<string, string \| Blob \| File>` | Browser-native `FormData` or Node 22+ |
 | `"application/x-www-form-urlencoded"` | `URLSearchParams` or plain object | |
 | `"text/plain"` / `"application/octet-stream"` | raw `string` / `Uint8Array` | Passed through |
 
@@ -560,8 +565,11 @@ Non-`x-` keys are rejected at the TypeScript level. Pick a namespace for interna
 Run `glubean contracts` to see all contracts as a human-readable report:
 
 ```bash
-glubean contracts                    # markdown outline (default)
-glubean contracts --format json      # machine-readable JSON
+glubean contracts                              # markdown outline (default)
+glubean contracts --format md-outline          # explicit markdown outline
+glubean contracts --format json                # machine-readable JSON
+glubean contracts --format openapi --title "My API"
+glubean contracts --format list-formats        # built-in and plugin formats
 ```
 
 The output groups contracts by `instanceName → feature` and lists cases with descriptions and lifecycle markers:
@@ -571,9 +579,28 @@ The output groups contracts by `instanceName → feature` and lists cases with d
 - `🔴` — critical severity
 - `ℹ️` — info severity
 
+For repeatable outputs, declare named projections in `glubean.yaml` and generate them by name:
+
+```yaml
+projections:
+  contracts:
+    public-openapi:
+      dir: .
+      format: openapi
+      title: Public API
+      output: artifacts/openapi.json
+```
+
+```bash
+glubean contracts --projection public-openapi
+glubean contracts --projection all
+```
+
+When `--projection` is used, each projection carries its own `dir`, `format`, `title`, and `output`; the direct `--dir`, `--format`, and `--title` flags are ignored.
+
 ## OpenAPI generation
 
-Generate an OpenAPI 3.1 spec from contract definitions via the MCP tool `glubean_openapi` or programmatically. The exporter:
+Generate an OpenAPI 3.1 spec from contract definitions with `glubean contracts --format openapi`, a named projection, the MCP tool `glubean_openapi`, or the SDK programmatically. The exporter:
 
 - Emits `responses[status].content[contentType]` (multiple content types per status are supported)
 - Merges examples and response headers from all cases sharing a status
@@ -606,5 +633,5 @@ Take time on them — they're the primary communication surface between code and
 ## Next
 
 - [Workflow](/sdk/contract-flow) — compose contract cases into lifecycles
-- [Test Shape](/sdk/test-api)
-- [Assertions](/sdk/assertions)
+- [test() API](/sdk/test)
+- [Assertions](/sdk/test/assertions)

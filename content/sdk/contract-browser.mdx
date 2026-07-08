@@ -39,7 +39,7 @@ and the contract **adapter** (via `installPlugin`):
 import { installPlugin } from "@glubean/sdk";
 import browserPlugin from "@glubean/browser";
 
-installPlugin(browserPlugin); // registers the contract.browser Mode A adapter
+await installPlugin(browserPlugin); // registers the contract.browser Mode A adapter
 ```
 
 ```typescript
@@ -230,5 +230,5 @@ is always the fixed `agent-qa-report/v1`, tagged `provenance: agent-judged`.
 
 - [Contract HTTP](/sdk/contract-http) — the `contract.http` cases that
   `expect.calls` references
-- [Browser Plugin](/sdk/browser-plugin) — the lower-level `browser()` client
+- [Browser Plugin](/sdk/plugins/browser) — the lower-level `browser()` client
   that Mode A drives

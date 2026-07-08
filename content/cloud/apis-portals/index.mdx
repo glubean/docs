@@ -1,0 +1,83 @@
+# APIs & Portals
+
+APIs and Portals are the documentation side of the webapp plane.
+
+Use **Specifications** when the source of truth is executable contracts synced
+from the repo. Use **APIs** when the team needs a writer-facing document layer
+in the browser. Publish the result through **Portals** when other humans need to
+read it.
+
+## APIs
+
+An API is an OpenAPI base plus a writer overlay. It can import a Specification
+projection as its base, then add prose, examples, naming, and publishing state.
+This keeps the executable contract in code while giving technical writers a
+safe place to polish the human-facing document.
+
+The base can come from:
+
+- a Glubean Specification projection
+- an imported OpenAPI document
+- early design work authored in the webapp
+
+The API editor also has a project-wide **Shared library** for reusable OpenAPI
+components. Use it for schemas, parameters, responses, security schemes, and
+other components several APIs should reference instead of copying.
+
+The overlay is where writers and product teams improve the reader experience:
+summaries, descriptions, examples, grouping, labels, and portal publishing
+state.
+
+The final document can be exported as OpenAPI or published to a Portal. When
+the base came from contracts, OpenAPI and docs are derived from executable
+behavior instead of being authored as a separate truth.
+
+## Typical flow
+
+```text
+contracts/workflows in git -> Specification -> API overlay -> Portal
+```
+
+The API overlay is deliberately a writer layer. It should improve the reader
+experience without becoming a second behavioral source of truth.
+
+## Authorship boundary
+
+Use APIs to polish and publish. Use contracts to change behavior.
+
+If a description is unclear, fix it in the API overlay. If a status code,
+schema, business rule, or workflow promise is wrong, fix the contract or
+workflow in source, then project again. This keeps writer work safe without
+letting docs drift away from executable evidence.
+
+## Portals
+
+A Portal is the public or team-facing docs site assembled from APIs and shared
+pages. It is where API knowledge becomes readable outside the engineering loop.
+
+In the current app, a Portal is an org-level site with its own slug and nested
+content tree. A tree can include:
+
+| Node | What it renders |
+| --- | --- |
+| **Folder** | Navigation structure. |
+| **Page** | Inline MDX written directly in that portal. |
+| **Shared page reference** | A reusable org-level MDX page included in one or more portals. |
+| **API section** | A selected API rendered inside the portal. |
+
+Public portal sites are served at `/p/:orgSlug/:portalSlug`. A selected API can
+have a portal-specific display title without renaming the API itself.
+
+Portals are for readers: customers, partners, support, QA, product, or internal
+teams that need a stable entry point. They should inherit as much as possible
+from APIs and Specifications, then add only the human-facing navigation and
+context that makes the API understandable.
+
+Selecting an API makes it eligible for the portal. Placing an **API section**
+decides where it appears in the portal tree. If an API is not published yet,
+the public portal will not serve its spec even if a section references it.
+
+## Related
+
+- [Specifications](/cloud/specifications)
+- [Explore](/cloud/explore)

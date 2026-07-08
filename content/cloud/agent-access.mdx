@@ -1,5 +1,9 @@
 # Use Glubean Cloud from your AI agent
 
+This page is for an external or IDE agent that needs read-only Cloud failure
+data. It is separate from the built-in [Glubean webapp Agent](/cloud/agent),
+which explains the current webapp page directly.
+
 Glubean exposes a focused failure-analysis endpoint so any AI agent can pull
 the data it needs to triage a run — without parsing hundreds of trace events
 to find a handful of real failures.
@@ -72,7 +76,7 @@ doesn't have to thread event IDs back to test IDs by hand.
 
 ## Recommended agent token setup
 
-Create a scope-minimal token per agent. Dashboard → Settings → Tokens → new
+Create a scope-minimal token per agent. Cloud webapp → **Tokens** → new
 **scoped** token:
 
 - **Scope**: `runs:read` only (no write, no anything else)
@@ -84,6 +88,11 @@ a "master key". A scoped `runs:read` token can read runs but nothing else, even
 though it's org-bound.
 
 ## Example prompts
+
+When your agent runtime supports secret storage or environment variables, use
+that instead of pasting the token into chat. If you do paste a token, use a
+short-lived scoped token with `runs:read` only and revoke it after the
+investigation.
 
 ```text
 Here's a Glubean run: clr_GEb9bPvhE4nL

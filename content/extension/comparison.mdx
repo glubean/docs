@@ -6,11 +6,17 @@ The most common comparison — and the most misunderstood.
 
 **Postman is a request tool.** You compose requests, organize them in collections, and share them through a proprietary cloud. It's great for exploring APIs. It's not designed for ongoing verification.
 
-**Glubean is a verification system.** Tests are TypeScript, versioned in git, executed in the editor and CI. Every run produces structured results — assertions, traces, events — that AI can read, interpret, and act on.
+**Glubean is a verification system.** Contracts, workflows, and tests are
+TypeScript, versioned in git, executed locally or in CI, and uploaded as
+structured evidence when the team needs a shared surface. The key difference is
+authorship: Glubean makes API behavior a source asset, then derives run
+evidence, Specifications, Explore validation, docs, reports, and agent context
+from that asset.
 
 The mapping between concepts:
 
-- `explore/` files = Postman Collections (but git-safe, code-first, and diffable)
+- contracts/workflows = authored API behavior, not just saved requests
+- optional `explore/` files = saved request collections for drafts and reproductions (but git-safe, code-first, and diffable)
 - `test.pick` = Postman Examples (but inline, type-checked, and AI-readable)
 - `configure()` = Postman Environments (but separated vars/secrets by architecture)
 - `glubean run` in CI = Newman (but same code, zero conversion)
@@ -18,15 +24,17 @@ The mapping between concepts:
 | | Glubean | Postman |
 |---|---|---|
 | Format | TypeScript in git | JSON in proprietary cloud |
-| Assertions | Fluent `expect`, schema validation | JS test scripts |
+| Assertions | Executable contracts, workflows, fluent `expect`, schema validation | JS test scripts |
 | Data-driven | `test.each` + `test.pick` | Collection Runner |
-| Multi-step | `.step()` with typed state passing | Collection chaining |
+| Multi-step | `workflow()` for durable lifecycles; `.step()` for custom raw tests | Collection chaining |
 | Env management | `.env` + `.env.secrets` (architecture-level) | GUI environments (mixed) |
-| AI integration | MCP server + skill + schema inference | Limited |
+| AI integration | MCP server + skill + structured evidence/spec context | Limited |
 | CI | `glubean run` — same file | Newman — different format |
 | Pricing | Free, open source | Free + paid tiers |
 
-**When to choose Postman:** your team is non-technical and needs a standalone GUI with zero coding.
+**When to choose Postman:** your team only needs a standalone GUI for ad-hoc
+requests and does not need source-authored API behavior, CI gates, contract
+projection, or agent-readable evidence.
 
 ---
 
@@ -36,11 +44,14 @@ Playwright is the closest engineering-grade competitor.
 
 **Playwright is browser-first.** It excels at testing web UIs through headless browsers. API testing is supported but secondary — it bolts onto the browser testing infrastructure.
 
-**Glubean is workflow-first.** API verification is the primary use case. Browser automation is available as a plugin, but the core value is in structured HTTP verification with data-driven patterns, environment management, and AI integration.
+**Glubean is API-behavior-first.** Contracts and workflows make API behavior an
+executable source asset. Browser automation is available through plugins, but
+the core value is structured API verification with data-driven patterns,
+environment management, Cloud evidence, and AI integration.
 
 | | Glubean | Playwright |
 |---|---|---|
-| Primary focus | API workflows | Browser UI |
+| Primary focus | API behavior contracts and workflows | Browser UI |
 | Data-driven | `test.each`, `test.pick`, data loaders | Manual parameterization |
 | Result inspection | Built-in Result Viewer (traces, assertions, events) | HTML reporter |
 | AI integration | MCP server, structured results, self-healing loop | Not built-in |
@@ -75,7 +86,10 @@ General-purpose test runners. Powerful, but they don't know anything about APIs.
 
 With Jest or Vitest, you can absolutely test HTTP endpoints — but you build everything yourself: HTTP clients, assertion helpers, environment management, data-driven patterns, result inspection. It works. It's also a lot of undifferentiated effort.
 
-Glubean gives you all of that out of the box: `ctx.http` with automatic tracing, `expect` with structured diffs, `test.each`/`test.pick` for data-driven patterns, `configure()` for shared setup, Result Viewer for instant inspection, and MCP for AI integration.
+Glubean gives you all of that out of the box: a traced HTTP client,
+`expect` with structured diffs, `test.each`/`test.pick` for data-driven
+patterns, `configure()` for shared setup, Result Viewer for instant inspection,
+and MCP for AI integration.
 
 | | Glubean | Jest / Vitest |
 |---|---|---|

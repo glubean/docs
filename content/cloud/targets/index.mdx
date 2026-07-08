@@ -1,0 +1,55 @@
+# Targets & Runs
+
+A Target is the Cloud home for uploaded evidence about one system under test.
+
+When you run Glubean locally or in CI and add `--upload`, the run lands on a
+Target. The Target turns individual executions into history: health, pass rate,
+failures, endpoint behavior, load performance, alerts, and regressions.
+
+Think of a Target as a **source**: one API implementation, deployment, or system
+under test with its own base URL and run history. Performance reads one Target
+over time. Benchmarks compare several source Targets under the same load plan.
+
+## What belongs here
+
+- uploaded functional runs
+- uploaded load runs
+- run detail and failure objects
+- test, endpoint, performance, and metric views
+- SLA gates, baselines, and latency trends
+- alerts and report digests
+
+## Target tabs
+
+A Target has a set of focused views:
+
+| Tab | Use it for |
+| --- | --- |
+| **Overview** | Read the latest health summary and fastest path into recent evidence. |
+| **Runs** | Inspect uploaded runs, including functional, contract, browser, and load runs. |
+| **Tests** | See test and contract-case history across runs. |
+| **Endpoints** | Review endpoint-level behavior and failures derived from traces/contracts. |
+| **Performance** | Read load-run trend, capacity, thresholds, and same-target run comparison. |
+| **Metrics** | Inspect custom functional metrics emitted by tests. |
+| **Alerts** | Configure and review target-local alert signals. |
+| **Settings** | Rename, archive, or manage the target identity. |
+
+## The important join
+
+Targets are most useful when they are joined to Specifications. A failed run is
+not just a log. It is evidence that a documented API promise changed, failed,
+or needs to be updated.
+
+For endpoint-level views, the join key is the Glubean `routeKey`. Contract
+clients and contract-backed traces can emit an exact route key such as
+`GET /items/:id`; raw runtime traffic may be inferred from the URL and marked
+heuristic. The **Endpoints** tab defaults to exact keys because those are safe
+to compare across functional evidence and load evidence.
+
+## Related
+
+- [Upload Your First Run](/getting-started/upload-to-cloud)
+- [Dashboard](/cloud/dashboard)
+- [Analytics](/cloud/analytics)
+- [Performance](/cloud/performance)
+- [Benchmarks](/cloud/benchmarks)

@@ -8,16 +8,21 @@ Use the CLI when you want a repeatable terminal-first debug loop.
 glubean run tests/users.test.ts --verbose
 ```
 
-`--verbose` prints full HTTP request/response bodies and assertion details to the console.
+`--verbose` prints trace lines, assertion details, logs, metrics, and compact
+request/response body previews to the console.
 
 ## Narrow the scope
 
 ```bash
 glubean run tests/users.test.ts --filter "create-user"
 glubean run tests/users.test.ts --pick "edge,invalid"
+glubean run --only-id get-user-42
+glubean run --only-id search-row --row 3
 ```
 
-`--filter` matches test name or ID. `--pick` selects specific `test.pick()` examples.
+`--filter` matches test name or ID. `--pick` selects specific `test.pick()`
+examples. `--only-id` selects exact expanded IDs, and `--row` isolates one
+`test.each` row when paired with a single `--only-id`.
 
 ## Get more detail on disk
 
@@ -38,6 +43,15 @@ This pauses execution until a debugger (Chrome DevTools or VS Code) attaches. In
 ## Check result files
 
 After a run, inspect `.glubean/last-run.result.json` for structured output. See [Result Files](/cli/result-files) for the format.
+
+## Rerun the last failures
+
+```bash
+glubean run --rerun-failed
+```
+
+This reads `.glubean/last-run.result.json` and runs only the failed tests from
+the previous functional run.
 
 ## Next
 

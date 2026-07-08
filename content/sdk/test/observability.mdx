@@ -7,6 +7,8 @@ Use these APIs when a pass or fail result alone does not explain enough.
 Use structured logs for useful context that should travel with the run.
 
 ```typescript
+import { test } from "@glubean/sdk";
+
 export const orderTest = test("order-test", async (ctx) => {
   const orderId = "ord_123xyz";
 
@@ -25,17 +27,26 @@ Logs appear in the Result Viewer timeline and are uploaded to Cloud with the run
 Use metrics for values you want to chart over time.
 
 ```typescript
+import { configure, test } from "@glubean/sdk";
+
+const { http } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
+
 export const reportTest = test("report-test", async (ctx) => {
   const start = Date.now();
-  const res = await ctx.http.get("/reports/daily").json();
+  const response = await http.get("reports/daily");
   const duration = Date.now() - start;
+  ctx.expect(response).toHaveStatus(200);
+
+  const report = await response.json<{ rows: unknown[] }>();
 
   ctx.metric("report_generation_ms", duration, {
     unit: "ms",
     tags: { reportType: "daily", environment: ctx.vars.get("ENV") },
   });
 
-  ctx.metric("report_row_count", res.rows.length, {
+  ctx.metric("report_row_count", report.rows.length, {
     unit: "count",
   });
 });
@@ -43,9 +54,13 @@ export const reportTest = test("report-test", async (ctx) => {
 
 ## `ctx.trace()`
 
-Most HTTP traces are created automatically by `ctx.http`. If you use a custom client, you can emit traces manually.
+Most HTTP traces are created automatically by the Glubean HTTP client returned
+from `configure()`. If you use a custom client or raw SDK that Glubean cannot
+wrap automatically, emit traces manually.
 
 ```typescript
+import { test } from "@glubean/sdk";
+
 export const customClientTest = test("custom-client", async (ctx) => {
   const start = Date.now();
   const result = await proprietarySdk.getUser(123);

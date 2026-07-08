@@ -1,8 +1,8 @@
 # Load Testing
 
-Glubean runs **load tests** — concurrent, sustained traffic against an API to measure latency percentiles, throughput, and error rate under pressure — as a first-class primitive alongside `test`, `contract`, and `workflow`. Load plans live in `*.load.ts` files, run with `glubean load`, and upload as `kind=load` runs that produce a rich load artifact (per-endpoint/step breakdown, latency distribution, timeline, threshold pass/fail, bounded failure samples).
+Glubean runs **load tests** — concurrent, sustained traffic against an API to measure latency percentiles, throughput, and error rate under pressure — as a first-class primitive alongside `test`, `contract`, and `workflow`. Load plans live in `*.load.ts` files, import from `@glubean/sdk/load`, run with `glubean load`, and upload as `kind=load` runs that produce a rich load artifact (per-endpoint/step breakdown, latency distribution, timeline, threshold pass/fail, bounded failure samples).
 
-This is distinct from recording a single-request [metric](/sdk/observability) inside a functional test. Load testing measures **aggregate behavior under concurrency**, not one request in isolation.
+This is distinct from recording a single-request [metric](/sdk/test/observability) inside a functional test. Load testing measures **aggregate behavior under concurrency**, not one request in isolation.
 
 ## When to reach for it
 
@@ -10,21 +10,21 @@ Write a load test when you're asking about performance under load, capacity, thr
 
 ## Define a load plan
 
-A load plan is a **scenario** (the workload, reused across runs) plus a **runner** (concurrency, duration, thresholds). Import both from `@glubean/sdk`:
+A load plan is a **scenario** (the workload, reused across runs) plus a **runner** (concurrency, duration, thresholds). Import load authoring APIs from `@glubean/sdk/load`:
 
 ```typescript
-import { loadScenario, loadRunner, feeder, http } from "@glubean/sdk";
+import { loadScenario, loadRunner, feeder } from "@glubean/sdk/load";
 
 // 1. Scenario — the steps each virtual user repeats. Steps run in order;
 //    each step's requests are attributed to its endpoint + step in the report.
 const shopScenario = loadScenario<{ q: string }>("shop")
   .step("browse", async (ctx) => {
-    const res = await http.get("load/catalog", { searchParams: { q: ctx.input.q } });
-    ctx.expect(res.status).toBe(200);
+    const res = await ctx.http.get("load/catalog", { searchParams: { q: ctx.input.q } });
+    ctx.expect(res).toHaveStatus(200);
   })
   .step("checkout", async (ctx) => {
-    const res = await http.post("load/checkout", { json: { items: [{ sku: "A1", qty: 1 }] } });
-    ctx.expect(res.status).toBe(201);
+    const res = await ctx.http.post("load/checkout", { json: { items: [{ sku: "A1", qty: 1 }] } });
+    ctx.expect(res).toHaveStatus(201);
   });
 
 // 2. Runner — concurrency + duration + thresholds. Export it so the CLI finds it.
@@ -52,7 +52,7 @@ A load step's `ctx` is a **LoadContext**, not the full `TestContext` from a func
 
 **Kept:** `http`, `vars`, `secrets`, `session`, `expect`, `assert`, `skip`, `fail`, `log`, `warn`, `pollUntil`, `setTimeout`.
 
-**Added for load:** `input` (per-iteration input from feeders), `iteration` (`{ id, index }`), `producerSlot` (`{ id, index }`), `now()`, `report` (checkpoint / primaryComplete).
+**Added for load:** `input` (per-iteration input from feeders), `iteration` (`{ id, index }`), `producerSlot` (`{ id, index }`), `now()`, `report` (checkpoint / primaryComplete), and `metrics` (custom metric handles declared on the runner).
 
 **Removed:** `validate`, `trace`, `metric`, `action`, `event`, `getMemoryUsage`, `retryCount` — these don't fit concurrent load. Use a functional test if you need `ctx.metric()` for a custom business metric.
 
@@ -68,6 +68,8 @@ A load step's `ctx` is a **LoadContext**, not the full `TestContext` from a func
 | `input` | `({ feed, iteration, producerSlot }) => sceneInput` per iteration |
 | `pacing.thinkTime` | Delay between steps (`"100ms"` or a distribution) |
 | `thresholds` | Pass/fail gates (see below) |
+| `metrics` | Custom metric declarations (`rate`, `trend`, `counter`) exposed as `ctx.metrics.*` |
+| `continuation` | Backlog controls for async continuation workloads after `ctx.report.primaryComplete()` |
 | `report` | Bounded sample caps: `failureTraces`, `slowTransactionSummaries` |
 | `assertions.onFailure` | `"continue"` \| `"skipRemainingSteps"` \| `"abortIteration"` |
 | `abort` | `"precise"` (default) \| `"coarse"` — how a run abort reaches in-flight requests |
@@ -88,11 +90,75 @@ Expressions are comparison strings: `"<400ms"`, `"<5%"`, `">500"`. Each evaluate
 
 > A threshold-failed load run is still valid data. Failing a p95 gate turns the run red, but the numbers it measured are real and comparable — [Performance](/cloud/performance) reads it like any other completed run.
 
+## Stable endpoint keys
+
+Performance and Benchmarks group load evidence by endpoint key. Static paths are
+easy, but dynamic load URLs can otherwise fragment into many literal endpoints.
+
+When a load step hits a templated endpoint, pass the canonical route through the
+non-wire `context.glubeanRoute` option:
+
+```typescript
+const itemScenario = loadScenario<{ id: string }>("item")
+  .step("get item", async (ctx) => {
+    const res = await ctx.http.get(`items/${ctx.input.id}`, {
+      context: { glubeanRoute: "GET /items/:id" },
+    });
+
+    ctx.expect(res).toHaveStatus(200);
+  });
+```
+
+The route key is used only by Glubean reporting; it is not sent to the system
+under test. Contracts add this metadata automatically. Load scenarios are raw
+runtime workloads, so declare it when you want clean per-endpoint comparisons.
+
+## Custom metrics
+
+Use load custom metrics when the SLA is not only HTTP latency. Declare metrics
+on the runner, record them in scenario steps through `ctx.metrics`, and gate
+them with `thresholds.customMetric`:
+
+```typescript
+import { counter, loadRunner, rate, trend } from "@glubean/sdk/load";
+
+export const asyncJobLoad = loadRunner("async-job", {
+  scenario: asyncJobScenario,
+  concurrency: 50,
+  duration: "60s",
+  metrics: {
+    pollOk: rate(),
+    e2eLatency: trend({ unit: "ms" }),
+    retries: counter(),
+  },
+  thresholds: {
+    customMetric: {
+      pollOk: { rate: ">99%" },
+      e2eLatency: { p95: "<2000ms" },
+      retries: { sum: "<100" },
+    },
+  },
+});
+```
+
+Inside the scenario:
+
+```typescript
+ctx.metrics.pollOk.add(true);
+ctx.metrics.e2eLatency.add(ctx.now() - startedAt);
+ctx.metrics.retries.add();
+```
+
+Custom metric summaries are folded into the load artifact and appear alongside
+ordinary p95, throughput, and error-rate evidence.
+
 ## Traffic mix & table expansion
 
 Run multiple weighted scenarios in one plan:
 
 ```typescript
+import { loadMixEntry } from "@glubean/sdk/load";
+
 export const mixedLoad = loadRunner("mixed", {
   scenarios: [
     loadMixEntry({ id: "checkout", scenario: checkoutScenario, weight: 70 }),
@@ -116,23 +182,27 @@ export const regionLoad = loadRunner.each(REGIONS)("region-{region}", (row) => (
 ## Run & upload
 
 ```bash
-glubean load tests/load/shop.load.ts     # Run one plan locally
-glubean load                             # Run the load suite/profile from glubean.yaml
-glubean load --upload                    # Run + upload (kind=load) to a target
-glubean load --upload --target tgt_abc   # Upload to a specific target
+glubean load                             # Discover and run *.load.ts under the project
+glubean load tests/load/shop.load.ts     # Run one plan ad hoc
+glubean load tests/load/                 # Run every *.load.ts under a directory
+glubean load tests/load/ --upload        # Upload each completed load artifact
+glubean load tests/load/ --upload-target tgt_abc   # Override the upload target
 ```
 
-In `glubean.yaml`, mark a suite as load by listing `load` in its `kinds`:
+`glubean load` selects plans by explicit target (`file`, `dir`, or glob). It
+does **not** resolve `glubean.yaml` profiles for load selection in the current
+CLI. The `loadRunner(...)` owns virtual-user concurrency, duration, traffic mix,
+thresholds, and the emitted `LoadArtifact`; the CLI flags own environment and
+upload destination.
 
-```yaml
-suites:
-  load:
-    target: ./tests/load
-    kinds: [load]
-profiles:
-  perf:
-    suites: [load]
-    upload: { enabled: true, targetId: tgt_abc, tokenEnv: GLUBEAN_TOKEN }
+For repeated local or CI use, create a script with the exact command you want:
+
+```json
+{
+  "scripts": {
+    "load:perf": "glubean load tests/load --env-file .env.staging --upload"
+  }
+}
 ```
 
 See the [CLI Reference](/cli/reference) for command flags and [Upload Your First Run](/getting-started/upload-to-cloud) for auth/upload setup.
@@ -142,24 +212,56 @@ See the [CLI Reference](/cli/reference) for command flags and [Upload Your First
 A load run's artifact (`schemaVersion: "glubean.load.v1"`) is what the Cloud dashboard renders:
 
 - **`summary`** — `pass` (threshold verdict), `totalIterations`, `successfulIterations`, `failedIterations`, `errorRate`, `throughputPerSec`, `latency` (`{ p50, p90, p95, p99, max }` ms), `latencyDistribution[]` (fixed-ladder histogram), `thresholds[]` (each `{ scope, metric, expression, actual, pass }`), `advisories[]`.
-- **`endpoints[]`** — per route (`routeKey`, `method`): `requestCount`, `errorRate`, `latency`, `throughputPerSec`, `latencyDistribution`, `statusCounts`.
+- **`endpoints[]`** — per endpoint (`routeKey`, `method`): `requestCount`, `errorRate`, `latency`, `throughputPerSec`, `latencyDistribution`, `statusCounts`.
 - **`steps[]`** — per scenario step: `invocationCount`, `errorRate`, `latency`.
 - **`scenarios[]`** — per scenario aggregate.
 - **`matrix[]`** — scenario-step × endpoint (which endpoint each step hit).
 - **`timeline`** — fixed-width windows over the run: `{ offsetMs, requests, errors, throughputPerSec, latency, iterations, peakInFlight }`.
+- **`summary.customMetrics[]`** — folded `rate`, `trend`, and `counter` metrics when declared.
 - **`samples`** — bounded `failureTraces[]` (failed iterations) and `slowTransactions[]` (slow-but-passing), capped by `report`.
 
-These surface in the target's **Performance** tab (load-run table, run-vs-run comparison, and cross-source Compare) and the **Runs** tab (per-run detail: config, KPI cards, over-time timeline, latency histogram, per-endpoint table, transaction breakdown, threshold table, samples). See [Performance](/cloud/performance).
+These surface in the target's **Performance** tab (capacity, trend, thresholds, and run-vs-run comparison), the **Runs** tab (per-run detail: config, KPI cards, over-time timeline, latency histogram, per-endpoint table, transaction breakdown, threshold table, samples), and [Benchmarks](/cloud/benchmarks) (cross-source comparison).
+
+## Performance vs Benchmarks
+
+Both Cloud surfaces read the same uploaded `kind=load` evidence. The difference
+is the comparison boundary:
+
+| Surface | Boundary | Good question |
+| --- | --- | --- |
+| [Performance](/cloud/performance) | One Target, one implementation/deployment. | "Did this target regress, saturate, or violate its thresholds over time?" |
+| [Benchmarks](/cloud/benchmarks) | Several source Targets sharing one `loadRunner` id. | "Which implementation wins under the same authored workload?" |
+
+Use Performance for drift, baselines, capacity, and run A vs run B inside one
+target. Use Benchmarks when the source itself changes: Express vs Bun, two
+deployments, or several services that implement the same API.
+
+## Benchmarks in Cloud
+
+The `loadRunner` id is also the **anchor plan id** for Cloud Benchmarks. If you want to compare several implementations of the same API, upload load runs from separate source targets using the same authored runner id:
+
+```typescript
+export const shopLoad = loadRunner("shop-load", {
+  scenario: shopScenario,
+  concurrency: Number(process.env.LOAD_CONCURRENCY ?? 500),
+  duration: "60s",
+});
+```
+
+Then create a benchmark in Cloud with anchor plan `shop-load` and attach the source targets, such as `Express API` and `Bun API`.
+
+For cleaner benchmark deltas, keep the load shape consistent across sources: same runner id, same duration or iteration bound, same scenario mix, and comparable environment labels. Cloud still renders warned comparisons, but it surfaces the warning and the compared run configs instead of silently hiding or equating them.
 
 ## Best practices
 
 - **Start small.** Default to modest `concurrency` and a short `duration` (e.g. 25 virtual users / `"20s"`) and scale up from there — don't open with 1000 VUs.
 - **Always set thresholds** so the run has a pass/fail verdict and can gate CI. Base them on your SLOs, or start conservative and tighten over time.
 - **Reuse functional knowledge.** A load scenario makes the same `http` calls as a functional test, just without per-request assertions beyond status/shape.
-- **Don't call `ctx.metric()` in a load step** — it isn't available there. For a custom business metric, use a [functional test](/sdk/observability) instead.
+- **Don't call `ctx.metric()` in a load step** — it isn't available there. For a custom business metric, use a [functional test](/sdk/test/observability) instead.
 
 ## Next
 
-- [Performance](/cloud/performance) — read load runs: Trend for one source over time, Compare for several sources side by side
+- [Performance](/cloud/performance) — read one target over time: trend, capacity, thresholds, run comparison
+- [Benchmarks](/cloud/benchmarks) — compare several source targets under the same load plan
 - [CLI Reference](/cli/reference) — `glubean load` command and flags
-- [Configuration](/cli/config) — `glubean.yaml` suites, profiles, and upload directives
+- [Upload to Cloud](/getting-started/upload-to-cloud) — token, project, and target setup

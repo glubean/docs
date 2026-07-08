@@ -59,6 +59,50 @@ export const createInvoice = test("create-invoice", async (ctx) => {
 at run time. `call<T>(method, request, options?)` returns
 `{ message, status: { code, details }, responseMetadata, duration }`.
 
+## Contract protocol
+
+Use `contract.grpc.with(...)` when an RPC is a durable API promise that should
+run as a check and project into Specifications.
+
+```typescript
+import { configure, contract } from "@glubean/sdk";
+import { grpc } from "@glubean/grpc";
+
+const { billing } = configure({
+  plugins: {
+    billing: grpc({
+      proto: "./protos/billing.proto",
+      address: "{{BILLING_ADDR}}",
+      package: "acme.billing.v1",
+      service: "BillingService",
+      metadata: { authorization: "Bearer {{API_TOKEN}}" },
+    }),
+  },
+});
+
+const billingGrpc = contract.grpc.with("billingGrpc", {
+  client: billing,
+  tags: ["billing"],
+});
+
+export const invoiceRpc = billingGrpc("create-invoice-rpc", {
+  target: "BillingService/CreateInvoice",
+  cases: {
+    ok: {
+      description: "valid invoice request creates an invoice",
+      request: {
+        customer_id: "cus_123",
+        amount_cents: 1200,
+      },
+      expect: {
+        statusCode: 0,
+        message: { customer_id: "cus_123" },
+      },
+    },
+  },
+});
+```
+
 ## Matchers
 
 `toHaveGrpcStatus(code)`, `toHaveGrpcOk()`, `toHaveGrpcMetadata(key, value?)`.
@@ -81,10 +125,17 @@ at run time. `call<T>(method, request, options?)` returns
   `contract.grpc.with("name", { client })`. Its case shape differs from HTTP
   (e.g. `target: "Service/Method"`, `request`, `expect.statusCode`) — see the
   `@glubean/grpc` types for the exact `GrpcContractSpec`.
-- ⚠️ **gRPC call metadata is not redacted before upload.** The CLI's built-in
-  redaction scopes don't cover gRPC metadata, and there's no `glubean.yaml`
-  switch for the package's `GRPC_REDACTION_SCOPES` yet. Avoid `--upload` on
-  runs whose metadata carries resolved credentials.
+- gRPC traces use the same upload redaction pipeline as other trace events.
+  Request metadata is stored under trace `metadata`, so baseline credential keys
+  such as `authorization`, `token`, `api_key`, and `secret` are masked before
+  upload.
+- The package also exports `GRPC_REDACTION_SCOPES` for hosts that explicitly
+  compile plugin-provided redaction scopes. The current CLI does not require
+  you to wire this manually for normal `glubean run --upload`, but custom hosts
+  that call `compileScopes(...)` themselves should pass those scopes.
+- Still keep credentials in `.env.secrets`, avoid logging derived credential
+  strings, and use `glubean redact --input .glubean/last-run.result.json` when you want
+  to preview exactly what will be masked before sharing or uploading.
 
 ## Next
 

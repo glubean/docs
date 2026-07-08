@@ -12,7 +12,7 @@ npm install @glubean/graphql
 
 ## Project setup — install the plugin manifest
 
-`@glubean/graphql` ships two things: a **plugin manifest** (registers the `graphql` contract protocol and `toHaveGraphql*` matchers) and the **client factory** shown in the quick start below. The manifest must be installed once per project from `glubean.setup.ts` at the project root:
+`@glubean/graphql` ships two things: a **plugin manifest** (registers the `graphql` contract protocol, `toHaveGraphql*` matchers, and `toHaveHttpStatus`) and the **client factory** shown in the quick start below. The manifest must be installed once per project from `glubean.setup.ts` at the project root:
 
 ```typescript
 // glubean.setup.ts
@@ -22,7 +22,7 @@ import graphqlPlugin from "@glubean/graphql";
 await installPlugin(graphqlPlugin);
 ```
 
-Without this file, `contract.graphql(...)` and `ctx.expect(result).toHaveGraphqlData(...)` will throw "unknown protocol" / missing-matcher errors at runtime. A top-level `import "@glubean/graphql"` no longer auto-registers these globals.
+Without this file, `contract.graphql.with(...)` and `ctx.expect(result).toHaveGraphqlData(...)` will throw "unknown protocol" / missing-matcher errors at runtime. A top-level `import "@glubean/graphql"` no longer auto-registers these globals.
 
 ## Quick Start (configure plugin mode)
 
@@ -50,20 +50,78 @@ export const getUser = test("get-user", async (ctx) => {
 });
 ```
 
-## Standalone mode (`createGraphQLClient`)
+## Contract protocol
+
+Use `contract.graphql.with(...)` when the GraphQL operation is a durable API
+promise that should run as a check and project into Specifications.
 
 ```typescript
-import { test } from "@glubean/sdk";
+import { configure, contract } from "@glubean/sdk";
+import { gql, graphql } from "@glubean/graphql";
+
+const { graph } = configure({
+  plugins: {
+    graph: graphql({
+      endpoint: "{{GRAPHQL_URL}}",
+      headers: { Authorization: "Bearer {{API_KEY}}" },
+    }),
+  },
+});
+
+const userGraph = contract.graphql.with("userGraph", {
+  client: graph,
+  endpoint: "{{GRAPHQL_URL}}",
+  tags: ["users"],
+});
+
+export const userLookup = userGraph("user-lookup", {
+  description: "Users can be fetched by id",
+  cases: {
+    ok: {
+      description: "existing user returns profile fields",
+      operation: "query",
+      query: gql`
+        query GetUser($id: ID!) {
+          user(id: $id) { id name }
+        }
+      `,
+      variables: { id: "1" },
+      expect: {
+        errors: "absent",
+        data: { user: { id: "1" } },
+      },
+    },
+  },
+});
+```
+
+The `client` owns the runtime endpoint. The optional `endpoint` value on the
+contract instance is projection/display metadata so Specifications can show
+where the promise points.
+
+## Standalone mode (`createGraphQLClient`)
+
+Use this when you need a one-off GraphQL client instead of a named
+`configure({ plugins })` client. In real projects, still keep environment access
+in `configure()`.
+
+```typescript
+import { configure, test } from "@glubean/sdk";
 import { createGraphQLClient } from "@glubean/graphql";
 
+const { http, vars, secrets } = configure({
+  vars: { gqlUrl: "{{GQL_URL}}" },
+  secrets: { token: "{{TOKEN}}" },
+});
+
 export const quick = test("quick-gql", async (ctx) => {
-  const gql = createGraphQLClient(ctx.http, {
-    endpoint: ctx.vars.require("GQL_URL"),
-    headers: { Authorization: `Bearer ${ctx.secrets.require("TOKEN")}` },
+  const gql = createGraphQLClient(http, {
+    endpoint: vars.gqlUrl,
+    headers: { Authorization: `Bearer ${secrets.token}` },
   });
 
   const { data } = await gql.query<{ health: string }>(`{ health }`);
-  ctx.assert(data?.health === "ok", "Service healthy");
+  ctx.expect(data?.health).toBe("ok");
 });
 ```
 

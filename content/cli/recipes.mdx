@@ -5,21 +5,13 @@ Copy-paste patterns for common workflows.
 ## CI with machine-readable output
 
 ```bash
-glubean run tests/ \
-  --result-json results.json \
-  --reporter junit:test-results.xml
-```
-
-Produces both a glubean result file and a JUnit XML for CI dashboards.
-
-## CI shorthand
-
-```bash
 glubean ci run
 ```
 
-`glubean ci run` runs the `ci` profile from `glubean.yaml` — fail-fast and
-the junit/result-json reporters come from `profiles.ci`. See [Connect CI](/getting-started/ci).
+Use `profiles.ci.reporters` in `glubean.yaml` to write both a Glubean result
+file and JUnit XML for CI dashboards. `glubean ci run` runs the `ci` profile
+from `glubean.yaml`; fail-fast and reporter paths come from `profiles.ci`. See
+[Connect CI](/getting-started/ci) and [Configuration](/cli/config).
 
 ## Switch environments without changing code
 
@@ -35,7 +27,7 @@ The CLI auto-pairs each env file with its `.secrets` counterpart. See [Environme
 
 ```bash
 export GLUBEAN_URL=https://api.example.com
-export GLUBEAN_API_KEY=sk_live_xxx
+export GLUBEAN_API_KEY=your_api_key_from_secret_store
 
 printf "BASE_URL=\${GLUBEAN_URL}\n" > .env
 printf "API_KEY=\${GLUBEAN_API_KEY}\n" > .env.secrets
@@ -53,7 +45,7 @@ glubean run --tag smoke --tag auth --tag-mode and
 ## Run and upload to Cloud
 
 ```bash
-glubean run tests/ --upload --project <id>
+glubean run --profile local --upload --project <id>
 ```
 
 Or run the `ci` profile and upload in one step:
@@ -62,10 +54,29 @@ Or run the `ci` profile and upload in one step:
 glubean ci run --upload --project <id>
 ```
 
+## Sync source projections to Cloud
+
+```bash
+glubean sync --project <id>
+```
+
+`sync` does not execute code. It publishes source-derived Specifications,
+OpenAPI-shaped projections, and agent/spec context. See [Sync Projections](/cli/sync).
+
+## Run load evidence
+
+```bash
+glubean load tests/load/shop.load.ts
+glubean load tests/load/ --upload --upload-target tgt_abc
+```
+
+Load plans do not use `glubean.yaml` profiles; put the exact command in
+`package.json` or CI when you want a repeatable load workflow.
+
 ## Preview redaction before upload
 
 ```bash
-glubean redact .glubean/last-run.result.json
+glubean redact --input .glubean/last-run.result.json
 ```
 
 See [Redaction & Privacy](/cli/redaction) for details.

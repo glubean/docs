@@ -5,7 +5,11 @@ description: Step through tests with breakpoints using the VS Code debugger.
 
 # Debugging
 
-Glubean tests are real Node.js code. You can import any npm package — crypto libraries, database clients, file parsers, third-party SDKs — and debug them with the full power of VS Code's debugger. This is something GUI tools like Postman fundamentally cannot do: when a crypto function returns an unexpected hash, or a third-party SDK throws a cryptic error, you need to set a breakpoint and inspect the actual runtime state.
+Glubean tests are real Node.js code. You can import any npm package — crypto
+libraries, database clients, file parsers, third-party SDKs — and debug them
+with the full power of VS Code's debugger. When a crypto function returns an
+unexpected hash, or a third-party SDK throws a cryptic error, set a breakpoint
+and inspect the actual runtime state.
 
 ## Breakpoints in test code
 
@@ -33,7 +37,11 @@ When your test involves npm packages beyond HTTP, the debugger is essential — 
 
 ```typescript
 import { createHmac } from "node:crypto";
-import { test } from "@glubean/sdk";
+import { configure, test } from "@glubean/sdk";
+
+const { http: api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
 
 export const verifyWebhook = test("verify-webhook", async (ctx) => {
   const secret = ctx.secrets.require("WEBHOOK_SECRET");
@@ -43,7 +51,7 @@ export const verifyWebhook = test("verify-webhook", async (ctx) => {
     .update(payload)
     .digest("hex");  // set a breakpoint here — inspect the actual hash
 
-  const res = await ctx.http.post("/webhooks", {
+  const res = await api.post("webhooks", {
     body: payload,
     headers: {
       "x-signature": signature,
@@ -59,13 +67,13 @@ export const verifyWebhook = test("verify-webhook", async (ctx) => {
 ```typescript
 export const createAndFetch = test("create-and-fetch")
   .step("create", async (ctx) => {
-    const res = await ctx.http.post("/api/users", { json: { name: "Alice" } });
-    const body = await res.json();  // set a breakpoint here
+    const res = await api.post("api/users", { json: { name: "Alice" } });
+    const body = await res.json<{ id: string }>();  // set a breakpoint here
     return { id: body.id };
   })
   .step("fetch", async (ctx, { id }) => {
-    const res = await ctx.http.get(`/api/users/${id}`);
-    ctx.expect(res.status).toBe(200);
+    const res = await api.get(`api/users/${id}`);
+    ctx.expect(res).toHaveStatus(200);
   });
 ```
 

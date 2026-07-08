@@ -1,6 +1,6 @@
-# Auth Plugin (`@glubean/auth`)
+# Auth Helpers (`@glubean/auth`)
 
-`@glubean/auth` provides first-party authentication helpers for common API verification scenarios.
+`@glubean/auth` provides first-party authentication helpers for common API verification scenarios. It is not an `installPlugin(...)` manifest package; use its helpers directly in `configure()` or `test().use(...)`.
 
 > **Status:** Experimental (pre-1.0). API may evolve.
 
@@ -21,7 +21,9 @@ const { http } = configure({
 });
 
 export const getUser = test("get-user", async (ctx) => {
-  const user = await http.get("/users/1").json<{ id: number }>();
+  const res = await http.get("users/1");
+  ctx.expect(res).toHaveStatus(200);
+  const user = await res.json<{ id: number }>();
   ctx.expect(user.id).toBe(1);
 });
 ```

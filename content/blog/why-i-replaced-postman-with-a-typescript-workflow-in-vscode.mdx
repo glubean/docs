@@ -10,6 +10,13 @@ import { Cards, Callout } from "nextra/components"
 
 # Why I Replaced Postman with a TypeScript Workflow in VS Code
 
+<Callout type="info">
+  This essay describes the exploration-to-test path that led to Glubean. The current
+  product goes further: contract and workflow source can become executable evidence,
+  Specifications, docs, reports, and agent context. For the current mental model, start
+  with [How Glubean Works](/how-glubean-works).
+</Callout>
+
 Every time I work with an API, I go through two phases.
 
 First, I am exploring. I send requests, inspect responses, and figure out how things actually behave. For years, that happened in Postman, `curl`, or a scratch file hidden somewhere.
@@ -55,14 +62,18 @@ I built Glubean around a smaller distance between "I am just trying this" and "t
 
 Here is the smallest version of that workflow:
 
-```js
-import { test } from "@glubean/sdk";
+```ts
+import { configure, test } from "@glubean/sdk";
+
+const { http: api } = configure({
+  http: { prefixUrl: "https://dummyjson.com" },
+});
 
 export const getUser = test("get-user", async (ctx) => {
-  const res = await ctx.http.get("https://dummyjson.com/users/1");
+  const res = await api.get("users/1");
 
   ctx.expect(res).toHaveStatus(200);
-  const body = await res.json();
+  const body = await res.json<{ id: number }>();
   ctx.expect(body.id).toBe(1);
 });
 ```
@@ -75,30 +86,29 @@ You see the method, URL, status, assertions, and full request and response body.
 
 Once the workflow gets more real, the benefit becomes clearer. Instead of a saved request in a UI, you have normal TypeScript that can share state, compose helpers, and express a multi-step flow.
 
-```js
-import { test } from "@glubean/sdk";
+```ts
+import { configure, test } from "@glubean/sdk";
 
-const API = "https://dummyjson.com";
-let userId;
-
-export const getUser = test("get-user", async (ctx) => {
-  const res = await ctx.http.get(`${API}/users/1`);
-  ctx.expect(res).toHaveStatus(200);
-  const body = await res.json();
-  userId = body.id;
-  ctx.log(`Loaded user: ${body.firstName} ${body.lastName}`);
+const { http: api } = configure({
+  http: { prefixUrl: "https://dummyjson.com" },
 });
 
 export const verifyAndUpdate = test("verify-and-update")
-  .step("Check user profile", async (ctx) => {
-    const res = await ctx.http.get(`${API}/users/${userId}`);
+  .setup(async (ctx) => {
+    const res = await api.get("users/1");
     ctx.expect(res).toHaveStatus(200);
-    const body = await res.json();
-    ctx.expect(body.firstName).toBeDefined();
-    return { originalName: body.firstName };
+    const body = await res.json<{ id: number; firstName: string }>();
+    return { userId: body.id, originalName: body.firstName };
   })
-  .step("Update user name", async (ctx, { originalName }) => {
-    const res = await ctx.http.put(`${API}/users/${userId}`, {
+  .step("Check user profile", async (ctx, { userId, originalName }) => {
+    const res = await api.get(`users/${userId}`);
+    ctx.expect(res).toHaveStatus(200);
+    const body = await res.json<{ firstName: string }>();
+    ctx.expect(body.firstName).toBe(originalName);
+    return { userId, originalName: body.firstName };
+  })
+  .step("Update user name", async (ctx, { userId, originalName }) => {
+    const res = await api.put(`users/${userId}`, {
       json: { firstName: "Updated" },
     });
     ctx.expect(res).toHaveStatus(200);
@@ -127,10 +137,10 @@ That is the real win.
 Because these checks are just code, they do not stop being useful once you leave the editor.
 
 ```bash
-npx glubean run explore/dummyjson/smoke.test.ts --verbose --emit-full-trace --result-json ./smoke.result.json
+npx glubean run explore/dummyjson/smoke.test.ts --verbose --emit-full-trace
 ```
 
-The same file can run in your terminal or CI with no export step and no collection sync. Open the emitted result file in VS Code and Glubean renders the same trace-oriented view there too.
+The same file can run in your terminal or CI with no export step and no collection sync. `glubean run` writes `.glubean/last-run.result.json`; open it in VS Code and Glubean renders the same trace-oriented view there too.
 
 That continuity matters more to me than any individual feature. Start by exploring in VS Code, keep the useful parts as committed verification, and run the same artifact later in automation.
 
@@ -144,20 +154,23 @@ That continuity matters more to me than any individual feature. Start by explori
 
 If this is the gap you have felt too, start here:
 
-1. [Install the VS Code extension](https://marketplace.visualstudio.com/items?itemName=glubean.glubean)
-2. Follow the [Quick Start](/extension/quick-start)
-3. Read [Migrate from Postman / OpenAPI](/extension/migrate-from-postman) if you already have existing API assets
-4. Use the [cookbook repo](https://github.com/glubean/cookbook) if you want runnable examples
+1. Read [How Glubean Works](/how-glubean-works) for the current product model.
+2. Follow [Start Here](/getting-started) and use the agent-first setup path.
+3. Read [Migrate from Postman / OpenAPI](/extension/migrate-from-postman) if you already have existing API assets.
+4. Use the [cookbook repo](https://github.com/glubean/cookbook) if you want runnable examples.
 
-Glubean is open source, and the local workflow is free. The product direction is simple: keep API exploration in code, keep the useful parts, and make that workflow work better with AI instead of worse.
+Glubean is open source, and the local workflow is free. The product direction
+is simple: keep API exploration in code, promote durable behavior into
+contracts and workflows, and make that loop work better with AI instead of
+worse.
 
 ## Keep reading
 
 <Cards num={2}>
-  <Cards.Card title="VS Code Quick Start" href="/extension/quick-start" arrow>
-    Install the extension, create one `.test.js` file, and run your first request in the editor.
+  <Cards.Card title="How Glubean Works" href="/how-glubean-works" arrow>
+    See how authored contracts become executable evidence, specs, docs, reports, and agent context.
   </Cards.Card>
   <Cards.Card title="Migrate from Postman / OpenAPI" href="/extension/migrate-from-postman" arrow>
-    Use AI to convert existing API assets into Glubean tests instead of rewriting from scratch.
+    Use AI to convert existing API assets into Glubean contracts, workflows, or tests.
   </Cards.Card>
 </Cards>

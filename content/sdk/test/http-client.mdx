@@ -1,35 +1,54 @@
 # HTTP Requests
 
-`ctx.http` is a thin wrapper around [ky](https://github.com/sindresorhus/ky) — a popular, well-tested HTTP client for Node.js. **All ky APIs are available** (retry, timeout, hooks, searchParams, json, etc.). Glubean adds automatic tracing, metrics, and schema validation on top.
+Glubean's HTTP client is a thin wrapper around [ky](https://github.com/sindresorhus/ky) — a popular, well-tested HTTP client for Node.js. **All ky APIs are available** (retry, timeout, hooks, searchParams, json, etc.). Glubean adds automatic tracing, metrics, and schema validation on top.
+
+In real projects, prefer creating shared clients with [`configure()`](/sdk/configuration)
+and importing those clients into tests, contracts, and workflows. `ctx.http`
+still exists as the raw per-test client, and it is useful for scratch probes or
+when a custom client factory needs access to the runtime HTTP layer.
 
 Three differences from vanilla ky:
 
-- **Leading slashes work with `prefixUrl`** — `ctx.http.get("/users")` just works. Ky normally [rejects this](https://github.com/sindresorhus/ky/issues/70); Glubean strips the leading `/` automatically.
+- **Leading slashes work with `prefixUrl`** — `api.get("/users")` just works. Ky normally [rejects this](https://github.com/sindresorhus/ky/issues/70); Glubean strips the leading `/` automatically.
 - **Non-2xx responses don't throw** — ky defaults to `throwHttpErrors: true`, but in a verification context you need to assert on 4xx/5xx responses, not catch exceptions. Glubean sets `throwHttpErrors: false` so you always get a response object back. Use `ctx.expect(res).toHaveStatus(404)` to verify error status codes.
 - **Empty `searchParams` don't pollute URLs** — passing `searchParams: {}` in ky appends a bare `?` to the URL. Glubean removes empty searchParams automatically so your traces stay clean.
 
 Every request automatically produces traces and metrics — no extra setup needed.
 
-> **Tired of repeating URLs and headers?** Use [`configure()`](/sdk/configuration) to create a shared HTTP client with `prefixUrl`, auth headers, and environment-specific settings — then just write `ctx.http.get("/users")` in your tests.
-
 ## Basic usage
 
 ```typescript
-import { test } from "@glubean/sdk";
+import { configure, test } from "@glubean/sdk";
+
+const { http: api } = configure({
+  http: {
+    prefixUrl: "{{BASE_URL}}",
+    headers: {
+      Authorization: "Bearer {{API_TOKEN}}",
+    },
+  },
+});
 
 export const getUser = test("get-user", async (ctx) => {
-  const baseUrl = ctx.vars.require("BASE_URL");
+  const users = await api.get("users");
+  ctx.expect(users).toHaveStatus(200);
 
-  const users = await ctx.http.get(`${baseUrl}/users`).json();
-  const created = await ctx.http.post(`${baseUrl}/users`, {
+  const created = await api.post("users", {
     json: { name: "Alice" },
-  }).json();
+  });
+  ctx.expect(created).toHaveStatus(201);
+
+  ctx.log("User API checks completed", {
+    listStatus: users.status,
+    createStatus: created.status,
+  });
 });
 ```
 
-## Create a scoped client
+## Raw per-test client
 
-When multiple requests share a base URL or headers, use `.extend()`:
+Use `ctx.http` directly only for small probes, scratch-style checks, or when the
+base URL is intentionally computed inside one test:
 
 ```typescript
 export const userFlow = test("user-flow", async (ctx) => {
@@ -40,10 +59,38 @@ export const userFlow = test("user-flow", async (ctx) => {
     },
   });
 
-  await api.get("users/1").json();
-  await api.get("users/1/settings").json();
+  const user = await api.get("users/1");
+  ctx.expect(user).toHaveStatus(200);
+
+  const settings = await api.get("users/1/settings");
+  ctx.expect(settings).toHaveStatus(200);
 });
 ```
+
+If several files need the same client, move the `configure()` call into a shared
+`configure.ts` file instead of repeating `.extend()` in each test.
+
+## Endpoint attribution with `.track()`
+
+Contracts know their endpoint shape, so `contract.http.with()` cases already
+project to stable endpoint keys such as `GET /users/:id`.
+
+Raw HTTP calls do not always know that shape. If you call dynamic URLs from a
+raw `test()`, use `.track()` to pin the request to the canonical endpoint the
+team should review in reports, coverage, and Cloud:
+
+```typescript
+export const getUser = test("get-user", async (ctx) => {
+  const userId = ctx.vars.require("USER_ID");
+  const res = await api.get(`users/${userId}`).track("GET /users/:id");
+
+  ctx.expect(res).toHaveStatus(200);
+});
+```
+
+Without `.track()`, evidence may fragment into literal paths such as
+`GET /users/1` and `GET /users/2`. With `.track()`, the run evidence,
+projection, and agent context all point at one authored endpoint.
 
 ## Request options
 
@@ -68,7 +115,7 @@ import { z } from "zod";
 const BodySchema = z.object({ name: z.string(), email: z.string().email() });
 const ResponseSchema = z.object({ id: z.string(), createdAt: z.string() });
 
-await ctx.http.post(url, {
+await api.post("users", {
   json: { name: "Alice", email: "alice@example.com" },
   headers: { "X-Tenant-Id": "t1" },
   schema: {
@@ -101,12 +148,14 @@ schema: {
 
 Headers are normalized to `Record<string, string>` before validation — `Headers` instances and `string[][]` forms both work.
 
-For structured, file-level API specifications covering every case of an endpoint (instead of inline per-call validation), use [contract.http()](/sdk/contract-http) instead.
+For structured, file-level API specifications covering every case of an
+endpoint (instead of inline per-call validation), use
+[`contract.http.with()`](/sdk/contract-http) instead.
 
 ## Response methods
 
 ```typescript
-const res = await ctx.http.get(url);
+const res = await api.get("users");
 
 await res.json<T>();          // Parse JSON body
 await res.text();             // Plain text
@@ -119,7 +168,7 @@ await res.arrayBuffer();      // Raw buffer
 For flaky environments, you can retry selected status codes:
 
 ```typescript
-await ctx.http.get("https://api.example.com/status", {
+await api.get("status", {
   retry: {
     limit: 3,
     statusCodes: [429, 502, 503, 504],
@@ -129,7 +178,7 @@ await ctx.http.get("https://api.example.com/status", {
 
 ## Auto-instrumentation
 
-Every `ctx.http` request automatically records:
+Every request made through a Glubean HTTP client automatically records:
 
 - An API trace via `ctx.trace()` (method, URL, status, duration)
 - A metric `http_duration_ms` via `ctx.metric()` (with method and path tags)
@@ -138,6 +187,6 @@ No manual instrumentation needed. Results appear in the Result Viewer and Cloud 
 
 ## Next
 
-- [Assertions](/sdk/assertions)
-- [Variables & Secrets](/sdk/env-and-secrets)
-- [Logs, Traces, Metrics](/sdk/observability)
+- [Assertions](/sdk/test/assertions)
+- [Variables & Secrets](/sdk/test/env-and-secrets)
+- [Logs, Traces, Metrics](/sdk/test/observability)

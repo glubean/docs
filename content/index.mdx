@@ -1,113 +1,112 @@
 # Glubean
 
-Docs: https://docs.glubean.com · GitHub: https://github.com/glubean · Landing: https://glubean.com
+Glubean is a **developer-and-agent-first** API verification system that turns
+**code-authored checks** into **structured evidence** your team can read.
 
-Glubean is a workflow verification platform — the layer between intent and implementation. Write tests in TypeScript, commit to git, run locally or in CI. Supports HTTP, GraphQL, gRPC, and browser automation through plugins.
-
-Two ways to use it:
-
-1. **Test existing APIs** — point the agent at your API, it writes tests that run, break, get repaired, and graduate to CI.
-2. **Contract-first** — describe what the API should do before it exists. The agent writes executable contracts (`contracts/`) that the future implementation must satisfy. After you build the API, the same contracts become your regression tests.
-
-## Core components
-
-| Component | What it does | Get started |
-|-----------|-------------|-------------|
-| **SDK** (`@glubean/sdk`) | Author tests — `test()`, `configure()`, assertions, builder flows, data-driven patterns. Tests are plain TypeScript, no proprietary format. | [SDK overview →](/sdk) |
-| **CLI** (`glubean`) | Run tests, emit traces, manage environments, initialize projects. Same runner in local dev and CI. | [CLI reference →](/cli) |
-| **MCP server** (`@glubean/mcp`) | Lets AI agents run tests, read structured results, and self-repair — the bridge between agent and runner. | [MCP setup →](/extension/generate-with-ai#setup) |
-| **Skill** (`glubean/skill`) | Teaches AI agents SDK patterns, project conventions, and migration workflows. Agents write better tests with it. | [Skill setup →](/extension/generate-with-ai#setup) |
-
-These four are the foundation. Everything below builds on them.
-
-## Surfaces
-
-### [VS Code Extension](/extension)
-
-The extension serves two roles:
-
-1. **Postman replacement** — `explore/` is your API collection in code. Click the gutter play button to send a request, see full response (status, headers, body, timing) in the result viewer. Save parameter sets with `test.pick`, share via git. No Postman account, no per-seat pricing, no tool fragmentation.
-2. **Visual layer for test results** — run tests from gutter or Test Explorer, inspect structured traces (HTTP events, metrics, logs, step-by-step state), debug failures with typed `expected` vs `actual`.
-
-The same TypeScript file works as both an API collection entry (`explore/`) and a CI regression test (`tests/`). No export step, no format conversion.
-
-### [Cloud](/cloud)
-
-Upload runs for team dashboards, analytics, alerts, and scheduled verification. Cloud is optional — the local workflow is fully functional without it.
-
-### Plugins
-
-| Plugin | Protocol | Package |
-|--------|----------|---------|
-| GraphQL | GraphQL queries and mutations | `@glubean/graphql` |
-| Browser | Puppeteer-based browser automation | `@glubean/browser` |
-| Auth | Token management and refresh strategies | `@glubean/auth` |
-| gRPC | gRPC client with proto loading | `@glubean/grpc` |
-
-## Start here
-
-### With an AI agent (recommended)
-
-```bash
-npx glubean config mcp        # MCP server — lets AI run and inspect tests
-npx skills add glubean/skill   # Skill — teaches AI the SDK patterns
-```
-
-Then in your AI tool (Claude Code, Cursor, Codex):
+Write **API tests**, **contracts**, **workflows**, **browser checks**, and
+**load plans** in TypeScript. Run them **locally or in CI**. Upload the run when
+it matters, and the webapp turns that execution into **Target health**,
+**failure objects**, **performance trends**, **contract coverage**, **docs**,
+and **agent-readable context**.
 
 ```text
-"create a smoke test for the users API"
+developer or agent writes in code -> run locally or CI -> upload evidence -> inspect with team
 ```
 
-The agent writes the test, runs it via MCP, reads structured failures, fixes, and reruns — all in one conversation. [See the full AI workflow →](/extension/generate-with-ai)
+## Key ideas
 
-### By hand
+- **Skill first**: install `glubean/skill`, then let the agent guide setup.
+- **Verification project**: Glubean is e2e, so tests usually live beside the app, not inside the unit-test setup.
+- **SDK + runner + CLI + MCP**: the SDK authors checks, the runner executes them, the CLI runs/uploads, and MCP gives agents access.
+- **Evidence, not logs**: runs keep requests, responses, assertions, traces, load metrics, and failures in a team-readable shape.
+- **Executable contracts**: a contract case is itself a runnable test, and it can also project to Specifications, OpenAPI, Explore validation, APIs overlays, and Portals.
+- **Two agents**: your IDE agent writes and runs source-aware checks; the Glubean webapp Agent explains current pages, evidence, docs, performance, and failures.
 
-```bash
-npx glubean init
-```
+## Developer and agent workflow
 
-1. [Extension Quick Start](/extension/quick-start) — install and create a project
-2. [Run Your First Test](/getting-started/first-test) — write and run a test manually
-3. [Connect CI](/getting-started/ci)
-4. [Upload to Cloud](/getting-started/upload-to-cloud)
+Start here if you own the **API code**, **test suite**, **CI pipeline**,
+**release gate**, or the **coding agent** working inside that repo.
 
-## How it works
+1. **Install the Glubean skill** so your agent knows the product and SDK patterns:
 
-```text
-prompt → draft → inspect → repair → keep → CI → cloud
-                                      ↑
-                          (or write manually here)
-```
+   ```bash
+   npx skills add glubean/skill
+   ```
 
-- **Prompt**: Describe what to verify. The agent uses your skill and project context.
-- **Draft**: Agent generates a TypeScript workflow with named steps, typed assertions, and shared state.
-- **Inspect**: Run in the extension. Structured traces show exactly which step failed and why.
-- **Repair**: Agent reads typed failures (`expected` vs `actual`), fixes, and reruns.
-- **Keep**: The same file moves from `explore/` to `tests/` — zero migration, same runner.
-- **CI**: `glubean run tests/` in any CI pipeline.
-- **Cloud**: Upload runs for team dashboards, analytics, and alerts.
+2. **Ask the agent to set up a Glubean verification project**. It should inspect
+   your repo and decide whether to create a separate project or reuse an
+   existing one, then guide or apply the needed SDK, runner, CLI, MCP, and config
+   changes.
+3. **Configure shared runtime context**: auth, base URLs, variables, and secrets.
+4. **Write the smallest useful check**:
+   - `test()` for runtime behavior
+   - `contract.http.with()` for an executable endpoint promise
+   - `workflow()` for a multi-step lifecycle
+   - `loadScenario()` for performance under concurrency
+   - `@glubean/browser` when UI evidence belongs beside API evidence
+5. **Run locally** with `glubean run` or through MCP from your coding agent.
+6. **Upload meaningful runs to a Target** so the team can inspect the evidence.
 
-## Choose a path
+Useful next pages:
 
-| I want to... | Start here |
-|-------------|------------|
-| Generate and run tests with AI | [Generate with AI](/extension/generate-with-ai) |
-| Write tests myself | [SDK overview](/sdk) → [Test shape](/sdk/test-api) → [Assertions](/sdk/assertions) |
-| Explore APIs in my editor | [Extension](/extension) → [Running tests](/extension/running-tests) |
-| Get team visibility | [Cloud](/cloud) → [Upload first run](/getting-started/upload-to-cloud) |
-| Migrate from Postman / OpenAPI / legacy tests | [Migration guide](/extension/migrate-from-postman) |
-| Define API contracts before implementation | [Contract HTTP](/sdk/contract-http) |
+- [Why Glubean](/why-glubean)
+- [Start Here](/getting-started)
+- [SDK & Plugins](/sdk)
+- [CLI & Config](/cli)
+- [IDE & Local](/ide)
 
-## Why teams adopt Glubean
+Manual installs are still documented, but they are the fallback. The intended
+path is **skill first**, then let the agent adapt setup to the project in front
+of it.
 
-- **`explore/` replaces Postman** — your API collection lives in git, not a proprietary cloud. No per-seat pricing.
-- **Agent output is not throwaway** — the same file graduates from `explore/` to CI without rewriting
-- **Structured failures** — AI and humans read typed `expected` vs `actual`, not terminal noise
-- **One codebase** across local development, CI, and production verification
-- **Git-safe** — TypeScript files, no binary formats, no merge conflicts
-- **No vendor lock-in** — tests are plain TypeScript. If Glubean disappears, your code still runs.
+Glubean is **end-to-end verification**. In most teams, Glubean tests live in
+their own **verification project** rather than inside the app repo's
+unit-test setup. That keeps real service targets, credentials, upload settings,
+contract projections, and CI gates separate from Vite/Jest/Vitest-style tests.
 
-## From the blog
+## Team workflow
 
-- [Why I Replaced Postman with a TypeScript Workflow in VS Code](/blog/why-i-replaced-postman-with-a-typescript-workflow-in-vscode)
+Start here if you do not want to write TypeScript every day, but you need to
+understand **API behavior**.
+
+1. Open a **Target** to inspect uploaded runs, failures, latency, and regressions.
+2. Open **Specifications** to read the API promises synced from code.
+3. Use **Explore** to send requests, build flows, and validate responses.
+4. Use **APIs & Portals** when the team needs curated docs.
+5. Ask the **Agent** about the current view when the evidence is hard to parse.
+
+Useful next pages:
+
+- [How Glubean Works](/how-glubean-works)
+- [Targets & Runs](/cloud/targets)
+- [Specifications](/cloud/specifications)
+- [Explore](/cloud/explore)
+- [APIs & Portals](/cloud/apis-portals)
+- [Agent](/cloud/agent)
+
+## The five words to learn first
+
+| Word | Plain meaning |
+| --- | --- |
+| **Test** | Code that checks what the API actually did in one run. |
+| **Contract** | A named executable promise for an API, browser journey, or plugin protocol. It runs as a test and can also generate docs. |
+| **Workflow** | A contract-aware multi-step scenario, such as create -> pay -> webhook -> refund. |
+| **Load** | A repeatable pressure plan that measures latency, throughput, errors, and SLA gates under concurrency. |
+| **Browser** | UI or end-to-end evidence captured beside API evidence when the user journey crosses the browser. |
+
+For the product map, read [How Glubean Works](/how-glubean-works). For a deeper
+term glossary, read [Core Concepts](/getting-started/concepts).
+
+## Where to go after the overview
+
+If the mental model is new, read [Why Glubean](/why-glubean) and
+[How Glubean Works](/how-glubean-works) before installing anything.
+
+If you are ready to try it, go to [Start Here](/getting-started). The default
+path is **agent first**: install the Glubean skill, let your IDE agent inspect
+the repo, create or reuse a verification project, and run the first small check.
+
+If you are evaluating the webapp, start with [Targets & Runs](/cloud/targets)
+and [Specifications](/cloud/specifications). Those two surfaces show the core
+loop: executable checks run outside Cloud, then Cloud makes the evidence and API
+promises readable for the team.

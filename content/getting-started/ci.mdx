@@ -1,20 +1,35 @@
 # Connect CI
 
+CI should run the **same authored assets** you run locally: contracts,
+workflows, and raw `test()` checks committed to your verification project.
+
 Use the same profile locally and in CI. Define a `ci` profile in `glubean.yaml`
-once, then run it with one command everywhere — that is the simplest way to
-avoid drift.
+once, then run it with one command everywhere. The point is simple: CI should
+produce fresh evidence from the same source of truth, not a second hand-authored
+workflow.
 
 ## The `ci` profile
 
-`glubean init` scaffolds a `ci` profile. It declares which suites run, plus
-fail-fast, reporters, and (optionally) thresholds:
+`npx glubean init` scaffolds a `ci` profile. It declares which committed suites
+run, plus fail-fast, reporters, and optionally thresholds:
 
 ```yaml
+suites:
+  tests:
+    target: ./tests
+    kinds: [test]
+  contracts:
+    target: ./contracts
+    kinds: [contract, flow]
+
 profiles:
   ci:
-    suites: [tests]
+    suites: [tests, contracts]
+    selection:
+      excludeTags: [manual, destructive]
     execution:
       failFast: true
+      concurrency: 2
     reporters:
       junit: .glubean/results/junit.xml
       resultJson: .glubean/results/ci.result.json
@@ -26,16 +41,17 @@ profiles:
 npx glubean ci run
 ```
 
-`glubean ci run` is shorthand for `glubean run --profile ci`. Suites,
+`npx glubean ci run` is shorthand for `npx glubean run --profile ci`. Suites,
 fail-fast, and reporter paths all come from `profiles.ci` — nothing to
 remember on the command line, and CI matches what you run locally with
-`glubean run --profile ci`.
+`npx glubean run --profile ci`.
 
-- `suites: [tests]` keeps CI focused on committed regression tests.
+- `suites: [tests, contracts]` keeps CI focused on stable authored assets:
+  raw `test()` checks plus executable contracts and workflows.
 - `reporters.resultJson` gives you a stable machine-readable artifact.
 - `reporters.junit` integrates with common CI test dashboards.
 
-Override a path ad-hoc when needed: `glubean ci run --reporter junit:other.xml`.
+Override a path ad-hoc when needed: `npx glubean ci run --reporter junit:other.xml`.
 
 ## GitHub Actions example
 
@@ -57,13 +73,21 @@ jobs:
 
 ## When you are ready for uploads
 
-Add `--upload` to send results to Glubean Cloud after each CI run:
+Add `--upload` to send results to Glubean Cloud after each CI run. Uploaded CI
+runs become **Target evidence** that developers, QA, product, support, and the
+webapp Agent can inspect:
 
-```bash
-npx glubean ci run --upload
+```yaml
+- name: Run and upload Glubean evidence
+  env:
+    GLUBEAN_TOKEN: ${{ secrets.GLUBEAN_TOKEN }}
+  run: npx glubean ci run --upload
 ```
 
-This requires `GLUBEAN_TOKEN`. Setup is covered in [Upload Your First Run](/getting-started/upload-to-cloud).
+This requires a scoped token with `runs:write`. Keep the token in the CI secret
+store as `GLUBEAN_TOKEN`; keep `GLUBEAN_PROJECT_ID` and, when needed,
+`GLUBEAN_TARGET_ID` in the committed `.env`, or set `upload.projectId` /
+`upload.targetId` on the `ci` profile. Setup is covered in [Upload Your First Run](/getting-started/upload-to-cloud).
 
 ## Next
 

@@ -8,16 +8,34 @@ Data-driven testing separates the two:
 - **Code** defines the verification logic (one function)
 - **Data** defines the inputs and expectations (files anyone can edit)
 
-**This model is git-safe by design.** Data files are plain JSON or YAML — they live in your repo, go through PR review, and merge like any other code. Unlike Postman Examples that live in a proprietary cloud, your test data is version-controlled, diffable, and owned by you. Personal overrides use `.local.json` (gitignored) so teammates never conflict.
+**This model is git-safe by design.** Data files are plain JSON or YAML — they
+live in your repo, go through PR review, and merge like any other code. Unlike
+Postman Examples that live in a proprietary cloud, your test data is
+version-controlled, diffable, and owned by you. Personal examples can live in
+`*.local.json` files (gitignored) so teammates never conflict.
 
 ## When to use what
+
+The examples below assume a shared HTTP client created with `configure()`:
+
+```typescript
+import { configure } from "@glubean/sdk";
+
+const { http: api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
+```
 
 ### test.each — run every case, every time
 
 **Scenario:** You have a list of products, users, or edge cases and want to verify all of them on every CI run. Each row is independent.
 
+Use a `$field` placeholder in the test ID so every generated row has a unique
+runtime ID. Without a varying placeholder, all rows collapse to the same ID and
+selection, reports, retries, and Cloud evidence become ambiguous.
+
 ```typescript
-import { test, fromYaml } from "@glubean/sdk";
+import { configure, test, fromYaml } from "@glubean/sdk";
 
 // data/status-codes.yaml
 // - id: 1
@@ -27,12 +45,16 @@ import { test, fromYaml } from "@glubean/sdk";
 // - id: -1
 //   expected: 400
 
+const { http: api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
+
 const cases = await fromYaml("./data/status-codes.yaml");
 
 export const checkStatus = test.each(cases)(
   { id: "status-$id", tags: ["regression"] },
   async (ctx, { id, expected }) => {
-    const res = await ctx.http.get(`/products/${id}`);
+    const res = await api.get(`products/${id}`);
     ctx.expect(res).toHaveStatus(expected);
   },
 );
@@ -40,11 +62,23 @@ export const checkStatus = test.each(cases)(
 
 Every row runs. If you add a row to the YAML, CI picks it up automatically. No code changes needed.
 
-### test.pick — named parameter sets, pick one
+### test.pick — named parameter sets, pick examples
 
 **Scenario:** You're working on a directions API. There are many valid input combinations — different origins, destinations, transport modes. You don't want to run all of them every time, you want to pick the one you're currently working with.
 
-This is exactly like Postman's "Examples" feature — save multiple request variations, click the one you need. In VS Code, each case name appears as a CodeLens button. From CLI: `glubean run --pick sg-cross-island`.
+This is exactly like Postman's "Examples" feature — save multiple request
+variations, click the one you need. By default, `test.pick()` selects one
+example from the map so local runs stay light. From the CLI, `--pick` overrides
+that selection:
+
+```bash
+glubean run explore/directions.test.ts --pick sg-cross-island
+glubean run explore/directions.test.ts --pick sg-cross-island,sg-short-trip
+glubean run explore/directions.test.ts --pick all
+```
+
+Use `$_pick` in the test ID so the selected example key becomes part of the
+runtime ID.
 
 ```yaml
 # data/directions/shared.yaml
@@ -73,7 +107,11 @@ sg-short-trip:
 ```
 
 ```typescript
-import { test, fromYaml } from "@glubean/sdk";
+import { configure, test, fromYaml } from "@glubean/sdk";
+
+const { http: api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
 
 const cases = await fromYaml.map("./data/directions/shared.yaml");
 
@@ -81,7 +119,7 @@ export const directions = test.pick(cases)(
   { id: "dir-$_pick", name: "Directions: $_pick", tags: ["geo"] },
   async (ctx, { description, request, expect: exp }) => {
     ctx.log(description);
-    const res = await ctx.http.post("directions/json", { json: request });
+    const res = await api.post("directions/json", { json: request });
     ctx.expect(res).toHaveStatus(200);
     const data = await res.json<{ routes: { duration: number }[] }>();
     ctx.expect(data.routes.length).toBeGreaterThanOrEqual(exp.minRoutes);
@@ -94,12 +132,12 @@ export const directions = test.pick(cases)(
 
 | | test.each | test.pick |
 |---|---|---|
-| **Runs** | All cases, every time | Pick one, run it |
+| **Runs** | All cases, every time | Defaults to one selected example; `--pick` can choose one, many, a glob, or `all` |
 | **Use for** | CI regression — full coverage | Daily development — the case you're working on |
 | **Like Postman** | Collection Runner (run all) | Examples (pick one, send) |
 | **Data structure** | Array | Key-value (named) |
 | **Best in** | `tests/` (CI) | `explore/` (iteration) |
-| **Parallel** | `{ parallel: true }` option | Not supported |
+| **Parallel** | `{ parallel: true }` metadata | Inherited from `test.each`; use only for independent examples |
 | **CodeLens** | Play runs all | Play per case name — click the one you need |
 
 ## Template variables in test IDs
@@ -151,25 +189,49 @@ export const route = test.pick(cases)(
 | `$_pick` | `test.pick` only | The key name from the key-value data |
 | `$_key` | `test.each` only | Auto-generated index (0, 1, 2, ...) |
 
+## CLI selection for test.pick
+
+`test.pick(examples)` is a thin wrapper over `test.each`. It injects the
+example key as `_pick`, then lets the runner select examples.
+
+```bash
+glubean run explore/directions.test.ts                 # default: one selected example
+glubean run explore/directions.test.ts --pick sg-short-trip
+glubean run explore/directions.test.ts --pick sg-*
+glubean run explore/directions.test.ts --pick all
+```
+
+Use the default for quick local iteration. Use `--pick <key>` when debugging a
+specific example. Use `--pick all` in CI only when the map is intentionally part
+of the regression suite.
+
 ---
 
 ## Parallel execution
 
-By default, `test.each` runs cases sequentially. For independent API calls that don't share state, run them in parallel:
+By default, `test.each` rows run sequentially. For independent API calls that
+do not share state, mark the rows as eligible for parallel execution:
 
 ```typescript
 const cases = await fromYaml("./data/status-codes.yaml");
 
-export const checkStatus = test.each(cases, { parallel: true })(
-  { id: "status-$id", tags: ["regression"] },
+export const checkStatus = test.each(cases)(
+  { id: "status-$id", tags: ["regression"], parallel: true },
   async (ctx, { id, expected }) => {
-    const res = await ctx.http.get(`/products/${id}`);
+    const res = await api.get(`products/${id}`);
     ctx.expect(res).toHaveStatus(expected);
   },
 );
 ```
 
-Each case runs in its own subprocess with isolated state — one slow or failing case doesn't block others. The CLI controls the concurrency level with `--concurrency` (default: CPU cores).
+Parallel rows still run inside the file's harness process, preserving the
+single-file module model. Glubean buffers each row's events separately so the
+result output stays readable, but this is **not** a process-isolation boundary:
+do not rely on module variables or session writes between parallel rows.
+
+The actual max parallelism comes from the resolved run config, such as
+`execution.concurrency` in a `glubean.yaml` profile. If concurrency resolves to
+`1`, rows still run one at a time even when `parallel: true` is set.
 
 **When to use:** Cases are independent (no shared state, no ordering dependency). Typical speedup is 3-5x on multi-core machines.
 
@@ -200,7 +262,13 @@ Don't hardcode data in your test files. Use data loaders:
 | `fromJson.map("./file.json")` | JSON file | `Record<string, T>` | Named scenarios in a single file |
 | `fromDir.merge("./dir/")` | Directory | `Record<string, T>` | Named cases split across files, supports `.local.json` |
 
-All paths resolve **relative to the calling file**, not the project root. The default file extensions for `fromDir` are `.json`, `.yaml`, and `.yml`.
+Path rules:
+
+- `./` and `../` paths resolve relative to the calling file.
+- Bare paths such as `data/cases.yaml` resolve relative to the project root.
+- Absolute paths are preserved as-is.
+
+The default file extensions for `fromDir` are `.json`, `.yaml`, and `.yml`.
 
 ## Structured data — not just flat key-value
 
@@ -222,7 +290,7 @@ Destructure in your test: `async (ctx, { description, request, expect: exp }) =>
 
 ## Personal test data with .local.json
 
-Shared data lives in git. Personal overrides don't:
+Shared data lives in git. Personal files don't:
 
 ```
 data/directions/
@@ -231,7 +299,10 @@ data/directions/
 └── mine.local.json   # gitignored — your personal cases
 ```
 
-`fromDir.merge()` loads all files and merges them. `.local.json` keys override shared keys with the same name. See [Local Data](/sdk/local-data) for details.
+`fromDir.merge()` loads matching files and shallow-merges them in sorted
+filename order; later filenames win on duplicate keys. `*.local.json` files are
+gitignored by convention, not treated specially by the loader. See
+[Local Data](/sdk/test/local-data) for details.
 
 ## Rule of thumb
 

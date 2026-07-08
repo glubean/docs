@@ -6,14 +6,24 @@ traces, metrics, console forwarding, and auto-screenshots — to browser testing
 
 ## Quick Setup
 
+This page shows the **client factory** path: `browser(...)` inside
+`configure({ plugins })`, useful for raw `test()` browser checks. If you are
+authoring declarative browser journeys with `contract.browser.with(...)`, also
+install the package's **plugin manifest** in `glubean.setup.ts`; see
+[Contract Browser](/sdk/contract-browser).
+
 ```ts filename="tests/configure.ts"
 import { configure, test, type ExtensionFn } from "@glubean/sdk";
 import { browser, type GlubeanPage } from "@glubean/browser";
 
 const config = configure({
   vars: { appUrl: "{{APP_URL}}" },
+  http: {
+    prefixUrl: "{{API_URL}}",
+    headers: { Authorization: "Bearer {{TOKEN}}" },
+  },
   plugins: {
-    chrome: browser({ launch: true }),
+    chrome: browser({ launch: true, baseUrl: "appUrl" }),
   },
 });
 
@@ -32,6 +42,9 @@ const pageFixture: ExtensionFn<GlubeanPage> = async (ctx, use) => {
 
 export const browserTest = test.extend({ page: pageFixture });
 ```
+
+`baseUrl` points to a configured vars key (`appUrl` above), so relative
+`page.goto("/login")` calls resolve against the runtime `APP_URL` value.
 
 ```ts filename="tests/login.test.ts"
 import type {} from "@glubean/sdk";
@@ -89,11 +102,10 @@ export const profileConsistency = browserTest(
   { id: "profile-api-ui", name: "API and UI show same user data" },
   async (ctx) => {
     // API call — traced automatically
-    const res = await ctx.http.get(`${ctx.vars.require("API_URL")}/me`, {
-      headers: { Authorization: `Bearer ${ctx.secrets.require("TOKEN")}` },
-    });
-    ctx.expect(res.status).toBe(200);
-    const apiName = res.body.name;
+    const res = await config.http.get("me");
+    ctx.expect(res).toHaveStatus(200);
+    const body = await res.json<{ name: string }>();
+    const apiName = body.name;
 
     // Browser test — traced in the same timeline
     await ctx.page.goto("/profile");
@@ -158,7 +170,7 @@ is in what surrounds the browser:
 | Environment management | Manual | Built-in (`ctx.vars`, `ctx.secrets`) |
 | Data-driven testing | DIY | `fromCsv`, `fromYaml`, `test.pick` |
 | Observability | Local trace viewer | Result Viewer + Cloud dashboard |
-| Production monitoring | Not designed for it | Built for it |
+| Shared evidence history | HTML/trace artifacts | Result Viewer + Cloud Targets |
 | MCP / AI agent testing | No | Yes |
 
 ### When to use Playwright instead

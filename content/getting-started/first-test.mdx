@@ -1,60 +1,140 @@
-# Run Your First Test
+# Run Your First Check
 
-This is the shortest path from empty folder to one passing test.
-
-## 1. Create a project
-
-```bash
-mkdir my-project && cd my-project
-npx glubean init
-```
-
-Expected layout:
+Use this page for the **Human/manual** lane. If you are working agent-first,
+the shorter path is to ask your IDE agent:
 
 ```text
-my-project/
-├── explore/
-├── tests/
-└── package.json
+Use the Glubean skill and add the first runnable API behavior check.
 ```
 
-Use `explore/` for fast local iteration. Move stable files to `tests/` when you want them in CI.
+The goal is not to hand-install the SDK or runner. The Glubean CLI creates a
+runnable verification project, and the template brings the local dependencies it
+needs.
 
-## 2. Add a base URL
-
-Create `.env` in project root:
+## 1. Create a runnable project
 
 ```bash
-BASE_URL=http://localhost:3000
+mkdir my-api-tests
+cd my-api-tests
+npx glubean init --no-interactive
 ```
 
-## 3. Write a test
+The generated project is intentionally separate from your app. Glubean is
+end-to-end verification: it targets running services, browser journeys, and API
+behavior from the outside.
 
-```typescript
-import { test } from "@glubean/sdk";
+Expected shape:
 
-export const health = test("health", async (ctx) => {
-  const baseUrl = ctx.vars.require("BASE_URL");
-  const res = await ctx.http.get(`${baseUrl}/health`);
-  ctx.expect(res.status).toBe(200);
-});
+```text
+my-api-tests/
+├── contracts/
+│   └── users.contract.ts
+├── tests/
+│   └── api.test.ts
+├── .env
+├── .env.secrets
+├── GLUBEAN.md
+├── package.json
+└── glubean.yaml
 ```
 
-## 4. Run it
+The generated `local` profile runs both `tests/` and `contracts/`. Use `tests/`
+for raw `test()` checks and `contracts/` for executable API promises.
+The template installs the SDK, runner, local CLI, and schema dependency before
+the command exits, so `npm test` should work immediately.
+
+## 2. Run the generated examples
 
 ```bash
 npm test
 ```
 
-If you installed the extension, you can also run the same file from the editor gutter or Test Explorer.
+You can also call the CLI directly:
+
+```bash
+npx glubean run --profile local
+npx glubean ci run
+```
+
+At this point you have the basic loop:
+
+```text
+author behavior -> run it -> inspect evidence
+```
+
+## 3. Point it at your API
+
+Put shared, non-secret config in `.env`:
+
+```dotenv
+BASE_URL=http://localhost:3000
+```
+
+Put secrets in `.env.secrets`:
+
+```dotenv
+API_TOKEN=your-local-token
+```
+
+Then update the generated files to target your service.
+
+## 4. Author the first real asset
+
+For behavior you want to reuse as source-of-truth, prefer a contract. A contract
+is a **runnable example of API behavior**: it runs as a check, produces evidence,
+and can later project into Specifications, docs, OpenAPI-shaped output, reports,
+and agent context.
+
+```typescript
+import { contract, configure } from "@glubean/sdk";
+import { z } from "zod";
+
+const { http: api } = configure({
+  http: {
+    prefixUrl: "{{BASE_URL}}",
+    headers: {
+      Authorization: "Bearer {{API_TOKEN}}",
+    },
+  },
+});
+
+const health = contract.http.with("health", {
+  client: api,
+  tags: ["smoke"],
+});
+
+export const getHealth = health("get-health", {
+  endpoint: "GET /health",
+  feature: "System",
+  description: "The service exposes a healthy runtime status",
+  cases: {
+    ok: {
+      description: "A running service returns ok",
+      expect: {
+        status: 200,
+        schema: z.object({
+          status: z.literal("ok"),
+        }),
+      },
+    },
+  },
+});
+```
+
+Raw `test()` is still first-class when you need full TypeScript control. Use it
+for setup-heavy checks, diagnostics, unusual flows, or behavior that does not
+need to become a projected contract.
 
 ## 5. Know what to inspect
 
-- Trace files live in `.glubean/traces/`
-- Result JSON usually lives at `.glubean/last-run.json`
-- Failure triage starts in [VS Code Extension](/extension) or [CLI Debugging](/cli/debugging)
+- **Local run evidence**: structured requests, responses, assertions, traces,
+  and metrics
+- **Stable source**: contracts, workflows, and raw tests committed to git
+- **Cloud evidence**: uploaded runs grouped under a Target
+- **Derived surfaces**: Specifications, docs, reports, and agent context
 
 ## Next
 
+- [Core Concepts](/getting-started/concepts)
 - [Connect CI](/getting-started/ci)
 - [Artifacts](/reference/artifacts)

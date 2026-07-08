@@ -33,32 +33,27 @@ For structured examples, keep shared and personal files in the same directory:
 ```text
 data/create-user/
   shared.json
-  alice.local.json
+  zz-alice.local.json
 ```
 
-With `fromDir.merge()`, local keys override shared keys. With `fromDir()` or `fromDir.concat()`, local rows are appended.
+`fromDir()` and `fromDir.concat()` load every matching file and append rows in
+sorted filename order. `fromDir.merge()` shallow-merges object files in sorted
+filename order, so later filenames win on duplicate keys.
 
-## Data mode
+There is no special runtime switch for local files. The convention is simpler:
 
-`GLUBEAN_DATA_MODE` controls which data files are loaded:
+- Keep `*.local.json`, `*.local.yaml`, and `*.local.yml` gitignored.
+- Local runs can see personal files that exist on your machine.
+- CI sees only committed shared files because gitignored local files are absent.
+- If you intentionally want personal values to win for duplicate keys with
+  `fromDir.merge()`, name the local file so it sorts later, such as
+  `zz-alice.local.json`.
 
-| Mode | Behavior |
-|------|----------|
-| _(default)_ | Load all files (shared + local) |
-| `local_only` | Only `*.local.*` files (skip shared) |
-| `shared_only` | Only shared files (skip `*.local.*` — use for CI) |
-
-```bash
-# Only my data
-GLUBEAN_DATA_MODE=local_only glubean run
-
-# Only shared (CI)
-GLUBEAN_DATA_MODE=shared_only glubean run
-```
-
-No test code changes needed. The same `fromDir.*` call reads both shared and local files automatically. `GLUBEAN_DATA_MODE` controls the mix.
+When you need an explicit shared-only run on your own machine, keep shared and
+personal data in separate directories or pass an `ext`/directory choice that
+matches only the shared files.
 
 ## Next
 
-- [Data-Driven](/sdk/data-driven)
+- [Data-Driven](/sdk/test/data-driven)
 - [CLI Environments & Secrets](/cli/environments)

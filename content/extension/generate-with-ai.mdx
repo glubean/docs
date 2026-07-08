@@ -1,38 +1,61 @@
 import { Callout } from 'nextra/components'
 
-# Generate Tests with AI
+# Generate with AI
 
 ## Why Glubean is AI-native
 
-Most API tools were built for humans clicking buttons. AI agents can't click a GUI — but they can read, write, and execute code. Glubean is code-first by design, which makes it the natural fit for AI-assisted workflows.
+Your IDE agent is one of the main ways to author Glubean work. It can read your
+repo, write TypeScript contracts, compose workflows, add raw `test()` checks,
+run them through MCP or the CLI, inspect structured failures, and repair the
+source or the check.
+
+Most API tools were built for humans clicking buttons. AI agents cannot rely on
+that workflow. They need source files, stable project context, executable
+evidence, and machine-readable failures. Glubean is built around those surfaces.
 
 **The AI closed-loop is already real today:**
 
-1. **Skill** — tells the AI how to write Glubean tests (SDK patterns, project conventions, rules)
+1. **Skill** — tells the AI how to author Glubean behavior assets (SDK patterns, project conventions, rules)
 2. **MCP server** — gives the AI tools to discover, run, and inspect tests without leaving the chat
 3. **Schema inference** — large API responses are summarized as JSON Schema, so AI understands the shape without reading megabytes of data
 4. **Structured failures** — when a test fails, AI sees exactly which assertion failed with `expected` vs `actual`, not a wall of text
 
-With the right project context — ideally API source code in the same workspace, or an up-to-date OpenAPI spec, plus the skill (which bundles SDK reference docs) — we've achieved an AI self-healing loop: describe what to verify → AI writes the test → MCP runs it → AI reads structured failures → fixes and reruns → loop until green. In practice, the quality depends heavily on how much context is available — we're continuously improving this to make it more seamless. But even without perfect setup, AI-generated tests are a strong starting point that you refine, not write from scratch.
+With the right project context — ideally API source code in the same workspace,
+or an up-to-date OpenAPI spec, plus the skill (which bundles SDK reference docs)
+— the loop becomes practical: describe the behavior → AI writes a contract,
+workflow, or raw `test()` → MCP runs it → AI reads structured failures → fixes
+and reruns → loop until green. In practice, quality depends heavily on how much
+context is available. Even without perfect setup, agent-authored checks are a
+strong starting point that you refine, not write from scratch.
 
 ### Setup
 
 ```bash
-npx glubean config mcp        # install MCP server for your AI editor
-npx skills add glubean/skill   # install the Glubean skill (SDK docs bundled)
+npx skills add glubean/skill   # teach your agent Glubean patterns
+npx glubean config mcp         # connect MCP tools for run/discover/inspect
 ```
 
 After this, your AI tool (Claude Code, Cursor, Codex) can discover tests, run them, and read results — all through structured APIs.
 
 ---
 
-## One sentence to a working test
+## One sentence to a working behavior asset
 
 No Postman collection. No complex config. Just your AI and one sentence.
 
+Ask for the right asset:
+
+- **Contract** — when the behavior should become executable API truth and
+  project into specs, docs, reports, and agent context.
+- **Workflow** — when multiple contract cases form one durable lifecycle
+  promise.
+- **Raw `test()`** — when you need full TypeScript freedom for diagnostics,
+  custom setup, migration slices, or behavior that does not fit the contract
+  model.
+
 ---
 
-## Real example: GitHub repos
+## Real example: GitHub repos as a raw test()
 
 Inside a Glubean project, open your AI assistant and type:
 
@@ -43,33 +66,37 @@ please create github repo list tests in the explore folder
 That's it. The AI reads `package.json`, the SDK types, and your project layout, then generates a working test file:
 
 ```ts
-import { test } from "@glubean/sdk";
+import { configure, test } from "@glubean/sdk";
+
+const { http: github } = configure({
+  http: {
+    prefixUrl: "https://api.github.com",
+    headers: {
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      Authorization: "Bearer {{GITHUB_TOKEN}}",
+    },
+  },
+});
 
 export const listUserRepos = test(
   { id: "github-list-repos", name: "GET GitHub List Repos", tags: ["explore"] },
   async (ctx) => {
     const username = ctx.vars.require("GITHUB_USERNAME");
-    const token = ctx.vars.get("GITHUB_TOKEN");
+    const res = await github.get(`users/${username}/repos`, {
+      searchParams: { per_page: "5", sort: "updated" },
+    });
+    const data = await res.json<unknown>();
 
-    const headers: Record<string, string> = {
-      "Accept": "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-    };
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
+    ctx.expect(res).toHaveStatus(200);
+    ctx.assert(Array.isArray(data), "GitHub response should be an array", {
+      actual: Array.isArray(data) ? "array" : typeof data,
+      expected: "array",
+    });
+    const repos = data as Array<Record<string, unknown>>;
+    ctx.expect(repos.length).toBeGreaterThan(0);
 
-    const res = await ctx.http.get(
-      `https://api.github.com/users/${username}/repos?per_page=5&sort=updated`,
-      { headers },
-    );
-    const data = await res.json();
-
-    ctx.expect(res.status).toBe(200);
-    ctx.expect(Array.isArray(data)).toBe(true);
-    ctx.expect(data.length).toBeGreaterThan(0);
-
-    const summary = data.map((repo: Record<string, unknown>) => ({
+    const summary = repos.map((repo) => ({
       name: repo.name,
       stars: repo.stargazers_count,
       language: repo.language,
@@ -85,18 +112,21 @@ Click **▶** in the gutter. Done.
 
 Notice what the AI figured out on its own — no hand-holding needed:
 
+- `configure()` for a shared GitHub HTTP client
 - `ctx.vars.require("GITHUB_USERNAME")` for runtime config
-- `ctx.vars.get("GITHUB_TOKEN")` as optional (higher rate limits, not required)
+- `{{GITHUB_TOKEN}}` for a secret stored outside source
 - Proper GitHub API headers and versioning
 - Status + type + length assertions
 - Structured logging with `ctx.log`
 
 <Callout type="warning">
-**Not perfect — and that's fine.** The AI used `ctx.vars.get` for the token, but `GITHUB_TOKEN` is a secret — it should be `ctx.secrets.require("GITHUB_TOKEN")` (or `ctx.secrets.get` if optional). You'll also need to add `GITHUB_USERNAME` to your `.env` file and `GITHUB_TOKEN` to `.env.secrets`. You can ask the AI to fix these directly — and from there, it uses the corrected version as a template when generating more tests.
+**Keep secrets out of source.** Add `GITHUB_USERNAME` to `.env` and
+`GITHUB_TOKEN` to `.env.secrets`. The `{{GITHUB_TOKEN}}` placeholder is resolved
+at runtime by Glubean; the token value should never be committed.
 </Callout>
 
 <Callout type="info">
-**One prerequisite: a Glubean project.** Run `npx glubean init` first so the AI can see `package.json`, the `@glubean/sdk` dependency, and your `tests/` / `explore/` layout. Without this context, it generates generic Node/Jest-style code instead of Glubean tests.
+**One prerequisite: a Glubean project.** Run `npx glubean init` first so the AI can see `package.json`, the `@glubean/sdk` dependency, `glubean.yaml`, and your `tests/` / `contracts/` layout. Without this context, it generates generic Node/Jest-style code instead of Glubean checks.
 </Callout>
 
 ---
@@ -110,16 +140,20 @@ The prompt doesn't need to be fancy. Just say what you want:
 - _"hit the Stripe prices list API, use secrets for the key"_
 - _"test HackerNews — fetch top 5 story IDs, then fetch each title"_
 
-And if you have _any_ document that describes your API — a markdown file, a plain text spec, a JSON example, internal wiki notes, even a Slack message with endpoints listed — just drop it into the project and point the AI at it. There's no required format. If it describes request structure, AI can generate tests from it.
+And if you have _any_ document that describes your API — a markdown file, a plain text spec, a JSON example, internal wiki notes, even a Slack message with endpoints listed — just drop it into the project and point the AI at it. There's no required format. If it describes request structure, AI can turn it into the right Glubean asset: a contract, workflow, or raw `test()`.
 
 ---
 
 ## Multi-step workflows
 
-For API flows that span multiple calls — create, verify, update, cleanup — ask for a builder pattern test:
+For API flows that span multiple calls — create, verify, update, cleanup — ask
+for a `workflow()` when the flow is durable business behavior composed from
+contract cases.
+
+When you need custom runtime logic instead, ask for a builder-style raw `test()`:
 
 ```text
-create a checkout flow test: create a cart, add an item, complete checkout, then clean up
+create a checkout builder-style test: create a cart, add an item, complete checkout, then clean up
 ```
 
 The AI generates a step chain:
@@ -155,18 +189,23 @@ export const checkout = test("checkout-flow")
   });
 ```
 
-Each step receives state from the previous step, and `.teardown()` runs even if a step fails — so test data never leaks.
+Each step receives state from the previous step, and `.teardown()` runs even if
+a step fails, so temporary test data has an explicit cleanup path.
+
+The raw `test()` API is still the full TypeScript escape hatch. Contracts and
+workflows sit on top of the same execution model, but add structure when the
+behavior should become a reusable product asset.
 
 ---
 
 ## Level up: add context for better results
 
-The examples above work with zero setup — great for exploring public APIs. For your own APIs, adding context dramatically improves accuracy:
+The examples above use a short prompt once a Glubean project exists. For your own APIs, adding context dramatically improves accuracy:
 
 - **API source code in the same workspace** — the best context is the actual implementation. Put your test project alongside your API repo in the same VS Code workspace and AI can read routes, handlers, validation rules, and response shapes directly from source. This beats any spec because source code is always up to date
 - **OpenAPI spec** in `context/` — when you can't share source code, an OpenAPI spec is the next best option. AI knows your routes and response shapes, though specs can drift from reality
 - **Skill + MCP** (set up above) — AI follows your conventions, runs tests, and fixes failures in the same chat turn
-- **Skill references** (bundled with `glubean/skill`) — AI reads SDK patterns and uses advanced features like `test.pick`, `configure()`, auth plugins
+- **Skill references** (bundled with `glubean/skill`) — AI reads SDK patterns and uses advanced features like `test.pick`, `configure()`, and auth helpers
 
 With all three, generated tests typically run on first try instead of needing 2-3 rounds of manual fixes.
 
@@ -174,11 +213,12 @@ With all three, generated tests typically run on first try instead of needing 2-
 
 ## From exploration to CI
 
-When you're happy with a test:
+When you're using an optional `explore/` draft lane and you're happy with a test:
 
 1. Move the file from `explore/` to `tests/`.
 2. Add deeper assertions or schema validation if needed.
-3. Run in CI with `glubean run tests/` — same file, zero migration.
+3. Run in CI with `npm test`, `npx glubean ci run`, or your project's package
+   script — same file, zero migration.
 
 The file you explored with today catches regressions in CI tomorrow.
 
@@ -188,11 +228,13 @@ The file you explored with today catches regressions in CI tomorrow.
 
 Here's what the full loop looks like in practice — one chat session, no manual editing:
 
-1. **You:** _"/glubean write a smoke test for the users API"_
-2. **AI** reads lens docs and your project layout, writes a test file with `ctx.http.get`, assertions, and proper environment variables.
+1. **You:** _"/glubean write a smoke contract for the users API"_
+2. **AI** reads the Glubean skill and your project layout, writes a contract,
+   workflow, or raw test with `configure()`, assertions, and proper environment
+   variables.
 3. **AI** calls MCP `glubean_run_local_file` — executes the test and gets a structured result back.
 4. **Result:** 1 failed — `expected 200, got 401`.
-5. **AI** reads the failure, recognizes the auth issue, adds an `Authorization` header using `ctx.secrets.require("API_TOKEN")`.
+5. **AI** reads the failure, recognizes the auth issue, and adds an `Authorization` header through `configure()` using a `{{API_TOKEN}}` placeholder.
 6. **AI** reruns via MCP — result: 1 passed.
 7. **AI:** _"Done. Test passes against staging. Want me to add boundary tests for 404 and 422?"_
 

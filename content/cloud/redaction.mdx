@@ -2,7 +2,7 @@
 
 Glubean redacts sensitive data before results leave your machine. The CLI applies redaction rules from your project config during upload. See [CLI Redaction](/cli/redaction) for the local rules.
 
-Cloud adds a team-facing control surface on top of that local behavior.
+Cloud adds a team-facing safety net on top of that local behavior.
 
 ## Two layers of redaction
 
@@ -10,7 +10,7 @@ Redaction runs in two places, configured independently:
 
 | Layer | Configured in | Controls |
 |---|---|---|
-| **Local** (before upload) | `defaults.redaction` in `glubean.yaml` | Extra `sensitiveKeys`, `customPatterns`, and `replacementFormat`. Applied **on profile runs** (see caveat below). |
+| **Local** (before upload) | `defaults.redaction` in `glubean.yaml` | Extra `sensitiveKeys`, `customPatterns`, and `replacementFormat`. Applied before upload when the CLI path loads project config (see caveat below). |
 | **Server baseline** (at ingestion) | Built-in (not configurable for CLI uploads) | A fixed baseline re-applied when results are ingested, as a safety net. |
 
 Author your local rules by hand in `glubean.yaml` under `defaults.redaction`.
@@ -19,22 +19,33 @@ load your team dashboard policy for CLI runs), so don't rely on dashboard
 toggles to catch a value you didn't also cover locally. `defaults.redaction` is
 additive — it can only *add* keys/patterns, never disable a built-in scope.
 
-> **Apply custom redaction via a profile.** `defaults.redaction` is applied
-> when you run a **profile** — `glubean run --profile <name>` or `glubean ci
-> run`. An ad-hoc run with an explicit target (e.g. `glubean run tests/ --upload`)
-> does **not** resolve a profile and uploads with the built-in baseline only,
-> so your project-specific `sensitiveKeys`/`customPatterns` are skipped. To
-> apply them before upload, run through a profile.
+> **Functional runs and load runs differ.** For functional uploads,
+> `defaults.redaction` is applied when you run a profile:
+> `glubean run --profile <name>` or `glubean ci run`. An ad-hoc functional run
+> such as `glubean run tests/ --upload` does not resolve a profile and uses the
+> built-in baseline only. For load uploads, `glubean load ... --upload` reads
+> `defaults.redaction` from project config during upload preflight, even when
+> the load target is explicit.
 
 See [CLI Redaction](/cli/redaction) for the local rules.
 
 ## Configuring rules in Cloud
 
-Go to **Team → Redaction** in the Cloud dashboard.
+Go to **Team → Redaction** in the Cloud dashboard when Cloud-managed surfaces
+need team-level redaction policy.
+
+For CLI uploads, the important rule remains: configure project-specific
+redaction in `glubean.yaml`, then use a profile for functional uploads or
+`glubean load ... --upload` for load uploads. The server baseline still
+re-applies common safety rules at ingestion, but dashboard policy should not be
+treated as a replacement for local upload redaction.
 
 ### Scopes
 
 Scopes control which data areas are scanned for sensitive values. Each scope targets a specific field in a specific event type.
+
+These dashboard controls apply to Cloud-managed surfaces. CLI uploads still use
+local redaction plus the fixed server baseline described above.
 
 **HTTP scopes:**
 
@@ -61,7 +72,10 @@ Scopes control which data areas are scanned for sensitive values. Each scope tar
 
 Each scope can be individually enabled or disabled. Disabled scopes skip redaction entirely for that field.
 
-Plugins like `@glubean/grpc` add their own scopes (gRPC metadata, request, response) automatically.
+Protocol plugins can publish additional scope declarations for custom hosts.
+The CLI also includes generic trace scopes for metadata, request bodies, and
+response bodies, so common protocol traces such as gRPC metadata are covered by
+the baseline upload path.
 
 ### Global Sensitive Keys
 
@@ -115,7 +129,7 @@ The built-in baseline (scope-specific sensitive keys + 5 default patterns) is al
 Use `glubean redact` to see exactly what will be masked without uploading:
 
 ```bash
-glubean redact .glubean/last-run.result.json
+glubean redact --input .glubean/last-run.result.json
 ```
 
 This uses partial masking in the console so you can verify which values are caught. See [CLI Redaction](/cli/redaction) for details.

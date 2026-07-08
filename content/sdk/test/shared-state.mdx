@@ -1,6 +1,12 @@
 # Shared State
 
-Glubean provides two scopes for sharing state between tests: **module scope** (within a file) and **session scope** (across files).
+Glubean provides two scopes for sharing runtime state between raw tests:
+**module scope** (within a file) and **session scope** (across files).
+
+Use these deliberately. For durable business lifecycles, prefer
+[`workflow()`](/sdk/contract-flow). For imperative multi-step checks, prefer the
+`test()` builder with `.setup()`, `.step()`, and `.teardown()`. Shared state is
+the escape hatch when separate exported tests need to cooperate.
 
 Session scope is **per run**. It exists only for a single `glubean run` execution and is not persisted across runs.
 
@@ -9,22 +15,26 @@ Session scope is **per run**. It exists only for a single `glubean run` executio
 Tests in the same file run sequentially in a single process. Module-level variables persist between tests:
 
 ```ts
-import { test } from "@glubean/sdk";
+import { configure, test } from "@glubean/sdk";
+
+const { http: api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
 
 let authToken: string;
 
 export const login = test("login", async (ctx) => {
-  const res = await ctx.http.post("/auth/login", {
+  const res = await api.post("auth/login", {
     json: { user: ctx.vars.require("USER"), pass: ctx.secrets.require("PASS") },
   });
-  const body = await res.json();
+  const body = await res.json<{ access_token: string }>();
   authToken = body.access_token;
-  ctx.assert(!!authToken, "should receive token");
+  ctx.assert(!!authToken, "Login returns an access token");
 });
 
 export const getProfile = test("get-profile", async (ctx) => {
   // authToken is available — same process, same module
-  const res = await ctx.http.get("/me", {
+  const res = await api.get("me", {
     headers: { Authorization: `Bearer ${authToken}` },
   });
   ctx.expect(res).toHaveStatus(200);
@@ -37,6 +47,10 @@ Use module scope when:
 - You want ordered execution with shared context
 - The shared value doesn't need to cross file boundaries
 
+Avoid module scope when a single test builder or `workflow()` can express the
+same lifecycle. Running one exported test directly skips earlier exports, so
+module variables may not be initialized.
+
 ## Session scope — across files
 
 When you need to share state across multiple test files (e.g., authenticate once, use the token everywhere), use session scope.
@@ -47,17 +61,24 @@ Place a `session.ts` file at your test root. The runner auto-discovers it:
 
 ```ts
 // session.ts
-import { defineSession } from "@glubean/sdk";
+import { configure, defineSession } from "@glubean/sdk";
+
+const { http: api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
 
 export default defineSession({
   async setup(ctx) {
-    const res = await ctx.http.post("/auth/login", {
+    const res = await api.post("auth/login", {
       json: {
         user: ctx.vars.require("TEST_USER"),
         pass: ctx.secrets.require("TEST_PASS"),
       },
     });
-    const { access_token, user_id } = await res.json();
+    const { access_token, user_id } = await res.json<{
+      access_token: string;
+      user_id: string;
+    }>();
 
     ctx.session.set("token", access_token);
     ctx.session.set("userId", user_id);
@@ -67,7 +88,7 @@ export default defineSession({
   async teardown(ctx) {
     const token = ctx.session.get("token");
     if (token) {
-      await ctx.http.post("/auth/logout", {
+      await api.post("auth/logout", {
         headers: { Authorization: `Bearer ${token}` },
       });
     }
@@ -81,11 +102,15 @@ Any test file can read session values via `ctx.session`:
 
 ```ts
 // tests/users.test.ts
-import { test } from "@glubean/sdk";
+import { configure, test } from "@glubean/sdk";
+
+const { http: api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
 
 export const listUsers = test("list-users", async (ctx) => {
   const token = ctx.session.require("token"); // throws if missing
-  const res = await ctx.http.get("/users", {
+  const res = await api.get("users", {
     headers: { Authorization: `Bearer ${token}` },
   });
   ctx.expect(res).toHaveStatus(200);
@@ -140,6 +165,8 @@ glubean run tests/users.test.ts --no-session
 | Share state across files | `session.ts` + `ctx.session` |
 | Share config (baseUrl, headers) | `configure()` in a shared config file |
 | Share secrets | `.env.secrets` + `ctx.secrets` |
+| Project a lifecycle | `workflow()` |
+| Keep one imperative lifecycle together | `test()` builder |
 
 ## Current limitations
 

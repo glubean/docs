@@ -14,7 +14,7 @@ ctx.expect(body.features).toContain("beta-access");
 If a particular expectation should stop execution immediately, chain `.orFail()`:
 
 ```typescript
-ctx.expect(res.status).toBe(200).orFail();
+ctx.expect(res).toHaveStatus(200).orFail();
 ```
 
 ### Available matchers
@@ -122,5 +122,5 @@ Warnings are visible in the Result Viewer and Cloud dashboard without failing th
 
 ## Next
 
-- [HTTP Requests](/sdk/http-client)
-- [Control Flow](/sdk/test-control)
+- [HTTP Requests](/sdk/test/http-client)
+- [Control Flow](/sdk/test/control-flow)

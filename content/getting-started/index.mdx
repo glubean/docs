@@ -1,23 +1,110 @@
+import { Tabs } from 'nextra/components'
+
 # Start Here
 
-If you are new to Glubean, follow this path in order:
+Start with the setup lane that matches how you want to work.
 
-1. [Extension Quick Start](/extension/quick-start)
-2. [Run Your First Test](/getting-started/first-test)
-3. [Connect CI](/getting-started/ci)
-4. [Upload Your First Run](/getting-started/upload-to-cloud)
+<Tabs items={['Agent first', 'Human/manual']}>
 
-## What this path gives you
+<Tabs.Tab>
 
-- One working local test
-- A predictable Node project layout
-- A CI command you can keep
-- A clean handoff into Cloud when the team is ready
+This is the default workflow. Your IDE coding agent has source context, so it
+can set up the verification project, write contracts, run checks, inspect
+structured failures, and repair the source.
 
-## Choose the shortest useful route
+1. Install the Glubean skill:
 
-- If you want the fastest local loop, start with [Extension Quick Start](/extension/quick-start).
-- If you want to see the full editor workflow first, read [Editor Experience](/extension/editor-experience).
-- If you are a QA engineer, start with [Glubean for QA Teams](/extension/for-qa-teams).
-- If you are wiring automation first, go to [CLI Overview](/cli) and use `npx glubean`.
-- If you already have tests running and only need uploads, go straight to [Upload Your First Run](/getting-started/upload-to-cloud).
+   ```bash
+   npx skills add glubean/skill
+   ```
+
+2. Tell your agent:
+
+   ```text
+   Use the Glubean skill and set up a verification project.
+   ```
+
+3. Let the agent inspect your app repo and decide whether to create a separate
+   Glubean project or reuse an existing one.
+4. Let the agent guide or apply SDK, runner, CLI, MCP, and config setup.
+5. Let the agent write the first small contract, workflow, or raw `test()`.
+6. Run locally through MCP or `npx glubean run`.
+7. Upload the run to a Target when the evidence is useful to the team.
+
+Read [IDE & Local](/ide), then [Run Your First Check](/getting-started/first-test).
+
+Glubean is end-to-end verification, so a dedicated verification project is often
+the right shape. Treat it like an API test workspace that targets your real app,
+not like unit tests embedded in a Vite/Jest/Vitest app.
+
+</Tabs.Tab>
+
+<Tabs.Tab>
+
+Use this lane when you want to set up Glubean yourself without an agent driving
+the first pass. The default non-interactive template targets a public demo API,
+so you can run it before wiring your own service.
+
+1. Create and initialize a runnable project with the CLI:
+
+   ```bash
+   mkdir my-api-tests
+   cd my-api-tests
+   npx glubean init --no-interactive
+   ```
+
+   The template adds the project dependencies it needs, including the Glubean
+   SDK, runner, and local CLI.
+
+2. Run the generated test suite:
+
+   ```bash
+   npm test
+   ```
+
+   `init` installs the template dependencies before it exits. If installation
+   was interrupted, run `npm install` and then retry `npm test`.
+
+You can also call the CLI directly through `npx`:
+
+```bash
+npx glubean run --profile local
+npx glubean ci run
+```
+
+Use the cookbook when you want runnable examples to copy from:
+
+[github.com/glubean/cookbook](https://github.com/glubean/cookbook)
+
+Read [Install & Verify](/getting-started/installation), then [CLI & Config](/cli).
+
+</Tabs.Tab>
+
+</Tabs>
+
+## If you are reviewing API behavior in the webapp
+
+1. Open a Target to inspect uploaded run evidence.
+2. Open Specifications to read synced contract promises.
+3. Use Explore to send requests or run flows.
+4. Ask the agent about the current view when the evidence is hard to parse.
+
+Read [How Glubean Works](/how-glubean-works), then [Targets & Runs](/cloud/targets).
+
+## If you are designing docs
+
+1. Check whether a Specification already exists.
+2. Import its projection into APIs when you need writer-controlled docs.
+3. Add prose and examples.
+4. Publish through Portals.
+
+Read [APIs & Portals](/cloud/apis-portals).
+
+## Manual quick starts
+
+These pages hold the detailed commands when you are setting things up by hand:
+
+- [Install & Verify](/getting-started/installation)
+- [Run Your First Check](/getting-started/first-test)
+- [Connect CI](/getting-started/ci)
+- [Upload Your First Run](/getting-started/upload-to-cloud)

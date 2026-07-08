@@ -2,21 +2,35 @@
 
 These APIs help when real systems are asynchronous, environment-specific, or occasionally flaky.
 
+Use this page for raw `test()` control flow. If the lifecycle is a durable API
+promise that should project into Specifications and agent context, model it
+with [`workflow()`](/sdk/contract-flow) instead.
+
+The examples assume a shared HTTP client:
+
+```typescript
+import { configure, test } from "@glubean/sdk";
+
+const { http: api } = configure({
+  http: { prefixUrl: "{{BASE_URL}}" },
+});
+```
+
 ## `ctx.pollUntil()`
 
 Use `pollUntil()` when an action is eventually consistent and a fixed sleep would be wasteful or brittle.
 
 ```typescript
 export const asyncJob = test("async-job", async (ctx) => {
-  const job = await ctx.http.post("/jobs/export").json();
+  const job = await api.post("jobs/export").json<{ id: string }>();
 
   await ctx.pollUntil({ timeoutMs: 30000, intervalMs: 2000 }, async () => {
-    const status = await ctx.http.get(`/jobs/${job.id}/status`).json();
+    const status = await api.get(`jobs/${job.id}/status`).json<{ state: string }>();
     return status.state === "completed";
   });
 
-  const file = await ctx.http.get(`/jobs/${job.id}/download`);
-  ctx.expect(file.status).toBe(200);
+  const file = await api.get(`jobs/${job.id}/download`);
+  ctx.expect(file).toHaveStatus(200);
 });
 ```
 
@@ -38,13 +52,13 @@ Use `fail()` when further execution would be misleading or dangerous.
 
 ```typescript
 export const checkAuth = test("auth-check", async (ctx) => {
-  const res = await ctx.http.delete("/admin/database", {
+  const res = await api.delete("admin/database", {
     throwHttpErrors: false,
   });
   if (res.status !== 403) {
     ctx.fail("CRITICAL: Unauthenticated request to delete database was not rejected!");
   }
-  ctx.expect(res.status).toBe(403);
+  ctx.expect(res).toHaveStatus(403);
 });
 ```
 
@@ -55,7 +69,7 @@ Use `setTimeout()` when one test legitimately needs more time than the default 3
 ```typescript
 export const slowQuery = test("slow-query", async (ctx) => {
   ctx.setTimeout(60000);
-  await ctx.http.get("/analytics/heavy-report");
+  await api.get("analytics/heavy-report");
 });
 ```
 
@@ -66,11 +80,11 @@ export const slow = test({
   id: "slow-query",
   timeout: 60000,
 }, async (ctx) => {
-  await ctx.http.get("/analytics/heavy-report");
+  await api.get("analytics/heavy-report");
 });
 ```
 
 ## Next
 
-- [Assertions](/sdk/assertions)
-- [Logs, Traces, Metrics](/sdk/observability)
+- [Assertions](/sdk/test/assertions)
+- [Logs, Traces, Metrics](/sdk/test/observability)

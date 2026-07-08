@@ -1,61 +1,59 @@
 # Plans & Quotas
 
-Plans determine how many uploaded runs, events, and retained artifacts your team gets in Cloud.
+Plans determine how many uploaded runs, events, retained artifacts, projects,
+and team members your Cloud workspace gets.
 
-## Plans
+The exact limits can change. Treat the Cloud dashboard's billing and usage
+pages as the source of truth for current plan numbers. This page explains how
+Glubean counts usage so you can predict what an uploaded run will consume.
 
-| | Free | Pro | Team |
-|---|---|---|---|
-| **Uploaded runs / month** | 1,000 | 6,000 | 50,000 |
-| **Events per run** | 2,000 | 10,000 | 50,000 |
-| **Run history** | 7 days | 30 days | 90 days |
-| **Artifact storage** | 500 MB | 5 GB | 50 GB |
-| **Projects** | 1 private + 1 public | 5 | Unlimited |
-| **Team members** | 5 | 15 | 50 |
-| **Email alerts** | — | ✓ | ✓ |
-| **Slack / webhook alerts** | — | — | ✓ |
-| **Flaky test detection** | — | — | ✓ |
-| **Prometheus export** | — | — | ✓ |
-| **SLA guarantee** | — | — | ✓ |
+## What plans usually limit
+
+- uploaded runs per billing period
+- events per uploaded run
+- retained run history
+- artifact storage
+- private projects and team members
+- notification channels and advanced team features
 
 ## How runs are counted
 
-One run = one `glubean run --upload` execution, regardless of how many tests or events it contains.
+One run = one uploaded execution, regardless of how many tests or events it
+contains.
 
-**Examples:**
+Examples:
 
 - A run with 3 tests and 50 events = **1 run**
 - A run with 200 tests and 5,000 events = **1 run**
-- Running `glubean run --upload` 10 times in CI = **10 runs**
+- Running `glubean ci run --upload` 10 times in CI = **10 runs**
 
-Runs without `--upload` (local-only) are never counted.
+Runs without `--upload` are local-only and do not count against Cloud run quota.
 
 ## What counts as an event
 
 Events are the individual data points inside a run:
 
 | Event type | Source |
-|---|---|
-| `assertion` | Each `ctx.expect()` call |
-| `log` | Each `ctx.log()` call |
-| `trace` | Each HTTP request/response captured |
-| `result` | Each test's pass/fail outcome |
+| --- | --- |
+| `assertion` | Each assertion result |
+| `log` | Each `ctx.log()` output |
+| `trace` | Each captured request/response or protocol trace |
+| `metric` | Each emitted metric sample |
+| `result` | Each test, contract case, workflow, or load result outcome |
 
-If a run exceeds the event limit, additional events are dropped. The run itself still uploads and counts.
+If a run exceeds the event limit, additional events may be truncated or dropped.
+The run itself still uploads and counts.
 
 ## Run history retention
 
-Runs older than your plan's retention window are automatically deleted. Artifacts associated with expired runs are also removed.
-
-| Plan | Retention |
-|---|---|
-| Free | 7 days |
-| Pro | 30 days |
-| Team | 90 days |
+Runs older than your plan's retention window are automatically deleted.
+Artifacts associated with expired runs are also removed. Check the dashboard for
+the current retention window on your plan.
 
 ## Checking your usage
 
-Current usage is visible in **Project Settings → Usage**. The CLI also warns when you approach your monthly limit.
+Current usage is visible in the Cloud dashboard under project/team usage. The
+CLI may also warn when an upload approaches or exceeds a relevant limit.
 
 ## Next
 

@@ -5,7 +5,10 @@ description: Switch environments, preview variables on hover, and manage secrets
 
 # Environments & Secrets
 
-Glubean separates public configuration from sensitive credentials **at the SDK level** — not by convention, by design. `vars` and `secrets` are two different APIs with two different storage files. This makes it impossible to accidentally commit a secret or mix up which values are sensitive.
+Glubean separates public configuration from sensitive credentials **at the SDK
+level** — not just by convention. `vars` and `secrets` are two different APIs
+with two different storage files. The safe path is explicit: committed config
+lives in `.env`, credentials live in gitignored `.env.secrets`.
 
 This is different from most tools where all environment variables live in one place and security depends on discipline.
 
@@ -21,7 +24,7 @@ For the canonical rules (file model, resolution order), see [CLI Environments & 
 | **Git** | Committed | Gitignored |
 | **Content** | URLs, flags, public IDs | API keys, tokens, passwords |
 | **Hover preview** | Full value shown | Masked (`sk-l****en`) |
-| **Cloud upload** | Visible in dashboard | Redacted by builtin rules (key-name matching) |
+| **Cloud upload** | Visible in dashboard | Registered for redaction by builtin rules |
 
 ## Environment files
 
@@ -67,17 +70,22 @@ The selection persists across VS Code restarts (stored in workspace state).
 ## Accessing variables in tests
 
 ```typescript
-export const getUser = test("get-user", async (ctx) => {
-  const baseUrl = ctx.vars.require("BASE_URL");
-  const token = ctx.secrets.require("API_TOKEN");
+import { configure, test } from "@glubean/sdk";
 
-  const res = await ctx.http.get(`${baseUrl}/users/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const { http: api } = configure({
+  http: {
+    prefixUrl: "{{BASE_URL}}",
+    headers: { Authorization: "Bearer {{API_TOKEN}}" },
+  },
+});
+
+export const getUser = test("get-user", async (ctx) => {
+  const res = await api.get("users/me");
+  ctx.expect(res).toHaveStatus(200);
 });
 ```
 
-For full API details (`get` vs `require`, validation), see [SDK Environment & Secrets](/sdk/env-and-secrets).
+For full API details (`get` vs `require`, validation), see [SDK Environment & Secrets](/sdk/test/env-and-secrets).
 
 ---
 
@@ -86,7 +94,7 @@ For full API details (`get` vs `require`, validation), see [SDK Environment & Se
 When you use `{{KEY}}` templates in `configure()` HTTP options (headers, prefixUrl), the resolution searches **secrets first, then vars**:
 
 ```typescript
-export const api = configure({
+export const { vars, secrets, http: api } = configure({
   vars: { baseUrl: "{{BASE_URL}}" },
   secrets: { token: "{{API_TOKEN}}" },
   http: {
@@ -98,7 +106,12 @@ export const api = configure({
 });
 ```
 
-This means you _can_ put a secret in `.env` and `{{KEY}}` will still find it — **but you shouldn't.** Keep secrets in `.env.secrets` so they stay gitignored, masked in hover preview, and redacted on Cloud upload.
+This means you _can_ put a secret in `.env` and `{{KEY}}` will still find it —
+**but you shouldn't.** Keep secrets in `.env.secrets` so they stay gitignored,
+masked in hover preview, and registered for redaction on Cloud upload.
+
+Redaction is a safety layer, not a reason to print credentials. Do not log
+tokens, cookies, signed URLs, or derived credential strings from test code.
 
 > **Where to put what:** If the value would be dangerous to leak in a git commit or a dashboard screenshot, it belongs in `.env.secrets`. Everything else goes in `.env`.
 

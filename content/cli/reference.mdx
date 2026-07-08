@@ -1,12 +1,15 @@
 # Usage Scenarios
 
-Commands organized by what you are trying to do. For the full option list, run `glubean -h` or `glubean <command> -h`.
+Commands organized by what you are trying to do. Examples use the local
+`glubean` bin that the project template installs; use `npx glubean ...` when
+you are running outside an npm script. For the full option list, run
+`npx glubean -h` or `npx glubean <command> -h`.
 
 ## Daily development
 
 ```bash
-glubean run                              # Run the `local` profile (tests/)
-glubean run --profile explore            # Run the `explore` profile
+glubean run                              # Run the `local` profile
+glubean run --profile explore            # Run the optional `explore` profile, if your project declares one
 glubean run tests/users.test.ts          # Run a single file (ad-hoc)
 glubean run --filter "create-user"       # Filter by test ID or name
 glubean run --tag smoke                  # Filter by tag
@@ -18,23 +21,29 @@ glubean run --verbose                    # Show HTTP traces in console
 ## Load testing
 
 ```bash
-glubean load                             # Run the load suite/profile from glubean.yaml
-glubean load tests/load/shop.load.ts     # Run a single *.load.ts plan (ad-hoc)
-glubean load --upload                     # Run + upload (kind=load) to a target
-glubean load --upload --target tgt_abc    # Upload to a specific target
+glubean load                             # Discover and run *.load.ts under the project
+glubean load tests/load/shop.load.ts     # Run a single *.load.ts plan ad hoc
+glubean load tests/load/ --upload        # Run a load directory and upload results
+glubean load tests/load/ --upload-target tgt_abc      # Override the upload target
 ```
 
 Load plans (`*.load.ts`) drive concurrent, sustained traffic to measure latency
 percentiles, throughput, and error rate under pressure — opt-in, since they
 generate real traffic. Uploaded load runs surface under
-[Performance](/cloud/performance) in Cloud. Thresholds (the pass/fail SLA gate)
-are declared in the runner and documented in
-[Configuration](/cli/config#thresholds).
+[Performance](/cloud/performance) and can be grouped into
+[Benchmarks](/cloud/benchmarks). Thresholds (the pass/fail SLA gate) are
+declared in the `loadRunner(...)`; see [Load Testing](/sdk/load-testing).
+
+`glubean load` uses the dedicated load runner and selects files by explicit
+target (`file`, `dir`, or glob). It does **not** resolve `glubean.yaml` profiles
+for selection; if you need a repeatable profile-like command, put the exact
+`glubean load ...` invocation in `package.json` or CI.
 
 ## Project setup
 
 ```bash
 glubean init                             # Interactive wizard
+glubean init --no-interactive            # Runnable default template
 glubean init --contract-first            # Contract-first scaffold (contracts/ + tests/)
 glubean init --hooks --github-actions    # With git hooks and CI workflow
 ```
@@ -42,8 +51,8 @@ glubean init --hooks --github-actions    # With git hooks and CI workflow
 ## AI tool integration
 
 ```bash
-glubean config mcp --target claude-code   # Configure MCP server
-npx skills add glubean/skill              # Install test-writing skill (docs bundled)
+npx skills add glubean/skill              # Teach your agent Glubean patterns
+glubean config mcp --target claude-code   # Connect MCP tools for run/discover/inspect
 ```
 
 ## CI / CD
@@ -51,7 +60,7 @@ npx skills add glubean/skill              # Install test-writing skill (docs bun
 ```bash
 glubean ci run                           # Run the `ci` profile (fail-fast + junit reporter, from glubean.yaml)
 glubean ci run --reporter junit:results.xml --result-json results.json
-glubean ci run --upload                  # Run the `ci` profile and upload to glubean Cloud
+glubean ci run --upload                  # Run the `ci` profile and upload to Glubean Cloud
 ```
 
 `glubean ci run` is equivalent to `glubean run --profile ci`. The fail-fast +
@@ -65,7 +74,35 @@ glubean scan                             # Generate metadata.json
 glubean validate-metadata                # Check metadata is in sync (CI gate)
 ```
 
-To upload results to Cloud, add `--upload` to a run (see [Upload your first run](/getting-started/upload-to-cloud)).
+## Contract projections
+
+```bash
+glubean contracts                        # Markdown outline of contracts/workflows
+glubean contracts --format openapi       # OpenAPI-shaped projection for HTTP contracts
+glubean contracts --format list-formats  # Show registered projection formats
+glubean contracts --projection all       # Write projections declared in glubean.yaml
+```
+
+Use this when you need local generated specs or docs artifacts. Use
+`glubean sync` when the same source-derived model should appear in Cloud
+Specifications.
+
+## Sync projections
+
+```bash
+glubean sync                             # Sync source projections to Cloud Specifications
+glubean sync --env-file .env.staging     # Load a specific env file for project/token vars
+glubean sync --project prj_abc123        # Override destination project
+glubean sync --allow-empty               # Intentionally clear project projections
+```
+
+`glubean sync` does not run tests. It projects the whole repo's test,
+contract, and workflow definitions and publishes a project-level snapshot for
+Specifications, OpenAPI-shaped output, and agent/spec context. This is
+different from `glubean run --upload`, which uploads execution evidence to a
+Target. See [Sync Projections](/cli/sync).
+
+To upload run results to Cloud, add `--upload` to a run (see [Upload your first run](/getting-started/upload-to-cloud)).
 
 ## OpenAPI tools
 
@@ -73,6 +110,37 @@ To upload results to Cloud, add `--upload` to a run (see [Upload your first run]
 glubean patch openapi.yaml               # Apply .patch.yaml overlay
 glubean spec split openapi.yaml          # Split spec into per-endpoint files
 ```
+
+## Environment and secret selection
+
+```bash
+glubean env                              # Show active environment
+glubean env list                         # List .env.<name> files
+glubean env use staging                  # Make .env.staging active for future runs
+glubean env reset                        # Return to default .env
+```
+
+You can still override one command explicitly with `--env-file .env.staging`.
+
+## Migration and upgrades
+
+```bash
+glubean migrate                          # Preview legacy project migrations
+glubean migrate --apply                  # Apply safe rewrites
+glubean upgrade                          # Upgrade the CLI package
+```
+
+`migrate` handles known legacy patterns such as side-effect plugin imports and
+old contract call shapes. Review its output before applying changes.
+
+## Redaction preview
+
+```bash
+glubean redact --input .glubean/last-run.result.json
+glubean redact --input .glubean/last-run.result.json --output redacted.json
+```
+
+Use this before sharing a result file outside your team.
 
 ## Cloud authentication
 
@@ -103,6 +171,7 @@ select with `--profile`). `glubean init` scaffolds one.
 - `glubean run` (no `--profile`) uses `local`; `glubean ci run` uses `ci`.
 - Run a specific profile with `glubean run --profile <name>`, or narrow a
   multi-suite profile to one suite with `--suite <name>`.
+- Load plans are selected by `glubean load [target]`, not by `profiles`.
 - Load an alternate config with `--config ./path/to/glubean.yaml`.
 
 See **[Configuration (`glubean.yaml`)](/cli/config)** for the complete schema —

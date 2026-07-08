@@ -1,10 +1,20 @@
 # Analytics
 
-Analytics answers the question that raw CI logs cannot: is this suite getting better, worse, or noisier over time?
+Analytics answers the question that raw CI logs cannot: is this API behavior
+getting better, worse, or noisier over time?
 
-All views support rolling windows such as 7, 14, 30, or 90 days.
+In the current webapp, analytics is not one single top-level module. The signal
+is split across the Home dashboard, Target tabs, Reports, and Performance:
 
-## The charts most teams use
+| Surface | What it reads |
+| --- | --- |
+| **Home Dashboard** | Recent functional run pass rate, active alerts, and recent org activity. |
+| **Target Overview / Runs / Tests / Endpoints** | Target-local health, failures, test history, and endpoint behavior. |
+| **Target Metrics** | Custom functional metrics emitted by `ctx.metric()`. |
+| **Reports** | Generated health digests for an org or project scope. |
+| **Performance** | Load-run latency, throughput, error rate, thresholds, and capacity for one Target. |
+
+## The Signals Most Teams Use
 
 - **Pass rate trend** to spot regressions
 - **Flaky tests** to find unstable tests
@@ -13,11 +23,15 @@ All views support rolling windows such as 7, 14, 30, or 90 days.
 - **Endpoint latency** to find performance regressions from trace data
 - **Test duration trend** to catch tests that are getting slower
 
-These are **functional-suite** trends, built from your test runs' trace data. They are distinct from the load-test **Performance** surface: a "duration trend" here tracks how long a _test_ takes; load-test latency, throughput, and capacity live under [Performance](/cloud/performance).
+These are **functional-suite** trends, built from uploaded test and contract
+runs. They are distinct from the load-test **Performance** surface: a test
+duration trend tracks how long a _test_ takes; load-test latency, throughput,
+and capacity live under [Performance](/cloud/performance).
 
 ## Custom metrics
 
-If your tests emit custom metrics through `ctx.metric()`, Cloud can chart them over time on dedicated metric views.
+If your tests emit custom metrics through `ctx.metric()`, Cloud shows them on
+the Target's **Metrics** tab.
 
 ## Good uses of analytics
 
@@ -28,5 +42,6 @@ If your tests emit custom metrics through `ctx.metric()`, Cloud can chart them o
 ## Next
 
 - [Dashboard](/cloud/dashboard)
-- [Performance](/cloud/performance) — load-run latency, throughput, and cross-source comparison
+- [Performance](/cloud/performance) — load-run latency, throughput, and capacity
+- [Benchmarks](/cloud/benchmarks) — cross-source load comparison
 - [Notifications](/cloud/notifications)

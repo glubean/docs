@@ -1,0 +1,125 @@
+# Agent
+
+"Agent" means two different things in Glubean. They share evidence and product
+context, but they live in different places and serve different users.
+
+## Two agents
+
+| Agent | Where it lives | Primary users | Best at |
+| --- | --- | --- | --- |
+| **Your IDE coding agent** | Cursor, Claude Code, Codex, or another agent you choose | Developers and power users | Reading source, editing repo files, writing contracts/workflows/tests, running CLI/MCP, repairing code |
+| **Glubean webapp Agent** | Inside the Glubean webapp | QA, product, support, writers, developers reviewing evidence | Explaining the current page, summarizing runs, finding performance risks, helping write docs/tests from webapp context, interpreting failures |
+
+The IDE agent is yours. You choose the tool, install the Glubean skill, connect
+MCP, and let it work inside your local repo.
+
+The Glubean webapp Agent is built into Glubean. It is ambient over the current
+webapp surface: the Target you are viewing, the run detail, the Specification,
+the Explore request, the API editor, the Portal draft, or the performance page.
+
+## IDE coding agent
+
+Use the IDE agent when the task needs source context.
+
+It can:
+
+- inspect handlers, types, schemas, fixtures, and repo conventions
+- create or update a Glubean verification project
+- write `contract.http.with()`, `contract.browser.with()`, `workflow()`, `test()`, and load plans
+- run locally through `glubean run`, `glubean load`, or MCP
+- inspect structured failures and repair source or test code
+- prepare changes that belong in git
+
+The important setup is skill-first:
+
+```bash
+npx skills add glubean/skill
+```
+
+Then ask the agent to set up or work inside the verification project. The skill
+teaches it Glubean's SDK patterns, project boundaries, MCP flow, and contract
+semantics.
+
+## Glubean webapp Agent
+
+Use the webapp Agent when the task starts from Cloud evidence or a webapp
+surface.
+
+It should help answer questions like:
+
+- "Why did this run fail?"
+- "Which contract promise broke?"
+- "What changed compared with the previous run?"
+- "Does this performance chart show a latency or error-rate risk?"
+- "Which endpoint looks flaky?"
+- "Can you summarize this Target for a release review?"
+- "Can you help polish this API description or Portal page?"
+- "Can you draft a contract, workflow, or test idea from this Specification or Explore request?"
+
+The webapp Agent is strongest when the relevant data is already in Glubean:
+uploaded runs, structured failures, traces, contract projections,
+Specifications, Explore requests, Library modules, Environments, Data assets,
+Files, API overlays, Portal content, reports, and performance history.
+
+It can also draft source-side next steps, such as "add a contract for this
+missing edge case" or "turn this Explore request into a workflow." Treat that
+as a handoff, not an automatic source edit: the IDE plane should review, run,
+and commit the durable change.
+
+## Same evidence, different authority
+
+The two agents should not pretend to be the same tool.
+
+The IDE agent has source authority: it can read and edit the repo, run local
+commands, and make code changes. It is the right place to create durable source
+truth.
+
+The webapp Agent has product-surface authority: it can explain the current view,
+connect evidence across Glubean surfaces, help non-developers reason about API
+behavior, and assist authoring inside the webapp. It should not pretend to know
+private source code that was never uploaded or synced.
+
+When webapp work needs source changes, the long-term flow is write-back: turn an
+approved webapp suggestion into a repo change for the IDE plane to review, run,
+and commit.
+
+## Examples
+
+On a **Target** page, ask the webapp Agent:
+
+```text
+What changed in the last five runs, and which failures are connected to contracts?
+```
+
+On a **Performance** view, ask:
+
+```text
+Which endpoint has the highest p95 risk, and is it getting worse?
+```
+
+On a **Specification**, ask:
+
+```text
+Explain this contract in product language and suggest missing edge cases.
+```
+
+In your **IDE**, ask your coding agent:
+
+```text
+Use the Glubean skill and add executable contracts for the checkout workflow.
+Run them locally and upload the result.
+```
+
+## Boundary
+
+If the task requires source truth, use the IDE plane with MCP, CLI, and the
+Glubean skill. If the task requires interpreting current product evidence,
+writing webapp-facing copy, comparing runs, reviewing performance, or helping a
+non-developer understand API behavior, use the Glubean webapp Agent.
+
+## Related
+
+- [IDE & Local](/ide)
+- [Targets & Runs](/cloud/targets)
+- [Explore](/cloud/explore)
+- [Agent Access](/cloud/agent-access)

@@ -1,0 +1,195 @@
+# Why Glubean
+
+AI changes who writes software, but it does not remove the need for proof.
+
+In the AI era, developers and agents can create API changes faster than teams can
+review them by reading code, logs, tickets, and chat transcripts. Glubean exists
+for a simple reason: **agent work should be verifiable**, and the evidence should
+be strong enough for humans, CI, future agents, and non-developers to trust.
+
+## What we want to make true
+
+1. **Agent work must produce evidence.**  
+   When an agent writes, fixes, or refactors API behavior, the result should not
+   be "the agent said it works." It should produce runnable checks, structured
+   requests and responses, assertions, traces, artifacts, load metrics, and
+   uploaded run history.
+
+2. **Verification should be one shared, open stack.**  
+   Every project should not invent a new test shape, runner convention,
+   environment model, upload format, and agent workflow. A developer or agent
+   should be able to move across projects and teams with almost no ramp: learn
+   the Glubean skill, read the project context, run the same primitives. When a
+   team needs another protocol or domain-specific behavior, it should extend the
+   stack instead of leaving it.
+
+3. **The same asset should serve many readers.**  
+   A contract should run as a test, sync into Specifications, project into
+   OpenAPI, feed Explore validation, become the base for API docs, and stay tied
+   to Cloud evidence. A run should be useful to the developer in the terminal and
+   to a product, QA, support, or writer teammate in the webapp.
+
+4. **API knowledge should accumulate.**  
+   Verification should not disappear into local output or CI logs. Over time,
+   the team should gain target history, endpoint health, failure patterns,
+   latency trends, contract coverage, design docs, and agent-readable context.
+
+5. **Non-developers should debug from the same truth.**  
+   The webapp should not pretend to have source-code context, but it should make
+   the API model readable: inspect Targets, read Specifications, send requests
+   in Explore, polish API docs, publish Portals, and ask an Agent grounded in the
+   current evidence.
+
+## How Glubean gets there
+
+Glubean has two connected planes.
+
+The **IDE and local plane** is where source context exists. Developers and
+coding agents use the Glubean skill, SDK, runner, CLI, and MCP to author checks,
+run them locally or in CI, sync contracts, and upload results.
+
+The **webapp plane** is where the team reads and uses the API model. Uploaded
+runs become Target health and failure evidence. Synced contracts become
+Specifications. Specifications can feed APIs, writer overlays, Portals, Explore
+validation, reports, and the webapp Agent.
+
+```text
+skill + plugin-capable SDK + runner + CLI + MCP -> executable evidence -> Cloud surfaces
+```
+
+That connection is the product. It keeps API truth close to code, then makes the
+same truth available to the whole team.
+
+## Skill first, then project setup
+
+The intended entry point is not "install a package and guess the architecture."
+It is:
+
+```bash
+npx skills add glubean/skill
+```
+
+Then ask your coding agent to set up Glubean for the repo in front of it. The
+agent should inspect the project, decide whether to create or reuse a dedicated
+verification project, and guide or apply SDK, runner, CLI, MCP, config, and CI
+changes.
+
+This matters because Glubean is end-to-end verification. It usually talks to
+real services from the outside: staging APIs, production-like targets, browser
+journeys, webhooks, and load plans. That work often deserves its own
+verification project, separate from app-local unit tests and app runtime
+dependencies.
+
+## Executable contracts
+
+In Glubean, a contract is not a legal document and not just an OpenAPI file.
+
+A contract is a named API promise that is also an executable test:
+
+```text
+GET /users/:id
+  given: a user exists
+  needs: an id
+  expect: 200 with a User-shaped response
+  rules: inactive users are not returned from this endpoint
+```
+
+When a developer or agent writes that promise with `contract.http.with()`, the
+contract case itself is runnable. There is no separate `test()` wrapper required
+for the contract to check reality. Glubean can then use the same source in
+several ways:
+
+- run it as an executable check
+- show it in Specifications
+- project it into OpenAPI-shaped docs
+- validate Explore responses against it
+- join uploaded run failures back to the promise that broke
+- give agents structured context instead of raw logs
+
+So "contract" means: **the API behavior you promise, expressed as a test that
+can execute and explain itself.**
+
+Because contracts and workflows are richer than a static OpenAPI file, they also
+make strong implementation context for agents. An IDE agent can generate or
+repair production code against executable promises, then run those same promises
+until the implementation aligns. In that sense, contract-first Glubean feels
+close to TDD: the spec is executable, and coverage is measured against the
+contract/workflow source.
+
+## One SDK, several jobs
+
+Glubean keeps separate verification jobs separate, while giving them one shared
+configuration and evidence model.
+
+| Primitive | Use when | What it produces |
+| --- | --- | --- |
+| `test()` | You need raw TypeScript without contract constraints. | A run with assertions, traces, logs, and artifacts. |
+| `contract.http.with()` | You want a durable HTTP endpoint promise. | Executable contract cases plus Specification and docs projection. |
+| `contract.browser.with()` | You want a durable browser journey promise. | Replayable browser cases plus UI/API evidence. |
+| `workflow()` | The business behavior crosses endpoints or time. | A projected multi-step lifecycle tied to contract cases. |
+| `loadScenario()` / `loadRunner()` | Correctness is not enough; concurrency matters. | Load evidence: latency, throughput, errors, thresholds. |
+| Contract plugins | You need another protocol. | GraphQL, gRPC, or team-defined contract protocols in the same evidence model. |
+
+Contracts are built on the same runner and evidence model as `test()`. This is
+why a project can start with a small smoke test, grow into executable contracts,
+add lifecycle workflows, measure load, attach browser evidence, or extend the
+contract system with plugins without losing the agent's mental model.
+
+## Open by design
+
+Glubean should not become a closed list of protocols. The core is the evidence
+model: executable checks, structured events, contracts, traces, uploads, and
+Cloud surfaces. Protocol support can grow around that core.
+
+Today, first-party packages already extend the system:
+
+- `@glubean/graphql` adds typed GraphQL queries, mutations, and contract support.
+- `@glubean/grpc` adds gRPC status matchers and contract support.
+- `@glubean/browser` adds browser journeys beside API evidence.
+- `@glubean/auth` adds reusable auth helpers for configured HTTP clients and
+  login flows.
+
+Teams can also build their own extensions. A plugin manifest can add custom
+matchers, a new contract protocol such as `contract.myproto`, or a one-time
+setup hook, and it installs once in `glubean.setup.ts` so the runner, CLI, MCP,
+VS Code scan, and agent workflow all see the same extension. A client factory
+can add domain-specific helpers through `configure({ plugins })` when the
+extension should be scoped to a file or shared config.
+
+That is the openness we care about: new protocols and team conventions should
+join the same verification loop instead of creating another disconnected tool.
+
+## Cloud is where evidence becomes memory
+
+Local runs are useful. Uploaded runs are durable.
+
+When runs and contracts land in Cloud, they become shared API memory:
+
+- **Targets** show run health, failures, endpoint trends, performance, and regressions.
+- **Specifications** show executable API promises synced from source.
+- **Explore** lets teammates send requests and validate responses against those promises.
+- **APIs and Portals** let writers curate projected contracts into human-facing docs.
+- **Reports and Agent** turn accumulated evidence into summaries, explanations, and next actions.
+
+The side benefit is documentation without a second source of truth. Contracts can
+project into OpenAPI. Writers can use the APIs overlay editor to add prose,
+examples, naming polish, and publishing metadata, then export or publish through
+a Portal. The overlay improves the human document without replacing the
+executable promise in code.
+
+## The point
+
+Glubean is trying to make API verification an asset, not a chore.
+
+The developer and agent get a repeatable way to prove work. CI gets a real gate.
+Cloud gets structured evidence. Non-developers get readable API surfaces.
+Future agents get context they can trust.
+
+That is the loop: **write executable truth in code, run it, upload the evidence,
+and let the whole team build on the same asset.**
+
+## Where to go next
+
+- [How Glubean Works](/how-glubean-works)
+- [Start Here](/getting-started)
+- [SDK & Plugins](/sdk)

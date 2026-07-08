@@ -1,0 +1,66 @@
+# Specifications
+
+Specifications are the Cloud surface for executable API truth.
+
+They are produced from source-authored contracts, usually written with
+`contract.http.with()`, `contract.browser.with()`, and `workflow()`. A
+Specification is not just a static OpenAPI file. It is backed by executable
+contracts: each runnable case is both a promise and a test that can pass, fail,
+defer, produce evidence, project docs, and link back to uploaded runs.
+
+## How it is produced
+
+The authored source lives in git. A developer or IDE agent writes contracts and
+workflows in a Glubean project.
+
+There are two related Cloud paths:
+
+| Path | Command | What Cloud receives |
+| --- | --- | --- |
+| **Projection sync** | `glubean sync` | The repo's current test, contract, workflow, and OpenAPI-shaped projections. |
+| **Run upload** | `glubean run --upload` | Target-specific execution evidence: pass/fail, traces, assertions, screenshots, and metrics. |
+
+Specifications are primarily produced by **projection sync**. Uploaded runs
+then attach evidence back to those promises, so the team can inspect both the
+current API model and the runs that proved or broke it without opening the
+repo.
+
+## What you can inspect
+
+| Surface | What it answers |
+| --- | --- |
+| **Operations** | What endpoint, browser action, or workflow promise exists? |
+| **Cases** | Which examples are runnable, deferred, deprecated, or intentionally skipped? |
+| **Inputs and outputs** | What parameters, bodies, headers, states, and response shapes are expected? |
+| **Rules** | What status codes, schemas, invariants, and business assertions must hold? |
+| **Evidence** | Which Target/run last proved or broke the promise? |
+| **Projection** | What can be derived into OpenAPI, docs, reports, and agent context? |
+
+Specifications are the join point between source truth and team-visible API
+truth. Developers can keep contracts in git. QA, product, support, and agents
+can read the same promises in the webapp without opening the repo.
+
+## What this is not
+
+Specifications are not a separate manual docs editor. If the behavior is wrong,
+fix the contract or workflow in source. If the reader-facing wording needs
+polish, project the Specification into an API and edit the writer overlay there.
+
+That boundary is the point: **contracts are authored once; Specifications,
+OpenAPI, docs, reports, and agent context are derived from the same executable
+asset.**
+
+## Next steps
+
+- Use [APIs & Portals](/cloud/apis-portals) when a writer needs to polish or
+  publish the human-facing document.
+- Use [Explore](/cloud/explore) when someone needs to try requests and validate
+  responses from the browser.
+- Use [Targets & Runs](/cloud/targets) when you need to connect a promise to
+  uploaded execution evidence.
+
+## Related
+
+- [Contract HTTP](/sdk/contract-http)
+- [Workflow](/sdk/contract-flow)
+- [Targets & Runs](/cloud/targets)

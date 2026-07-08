@@ -1,17 +1,53 @@
-:root {
+@font-face {
+  font-family: "Ioskeley Mono";
+  src: url("/fonts/ioskeley-mono/IoskeleyMono-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ioskeley Mono";
+  src: url("/fonts/ioskeley-mono/IoskeleyMono-Italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ioskeley Mono";
+  src: url("/fonts/ioskeley-mono/IoskeleyMono-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ioskeley Mono";
+  src: url("/fonts/ioskeley-mono/IoskeleyMono-BoldItalic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+}
+
+html:root {
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: "Ioskeley Mono", var(--font-geist-mono), ui-monospace, monospace;
+  --x-font-mono: var(--font-mono);
+  --x-default-mono-font-family: var(--font-mono);
 }
 
 body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-code,
-pre,
-kbd,
-samp {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+html code,
+html pre,
+html kbd,
+html samp,
+html .nextra-code,
+html .x\:font-mono {
+  font-family: var(--font-mono);
 }
 
 .blog-hero {

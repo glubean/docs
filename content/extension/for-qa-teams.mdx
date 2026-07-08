@@ -1,20 +1,29 @@
 # Glubean for QA Teams
 
-You don't need to write code. AI writes the tests. You use the Glubean Panel to run them every day.
+You do not need to write TypeScript every day to use Glubean well.
 
-Glubean works like a code-based tool, but QA engineers interact with it through the VS Code UI and AI chat — not by writing TypeScript from scratch.
+Developers and IDE agents keep the durable source in git: contracts,
+workflows, raw tests, and load plans. QA can work from the evidence surfaces:
+the VS Code Result Viewer, Cloud Targets, Specifications, Explore, and the
+webapp Agent.
 
 ---
 
 ## Your daily workflow
 
-1. **Open VS Code** — your project is already set up (a developer or AI did that once).
-2. **Open the Glubean Panel** — pinned tests are waiting for you. Click **▶** on any test or run the full suite.
-3. **Read the Result Viewer** — the Assertions tab tells you what passed and what failed. Expected vs actual, side by side.
-4. **Something failed?** Ask AI: _"/glubean why did this test fail?"_ — it reads the structured failure, explains the cause in plain language, and offers a fix.
-5. **AI fixes the test** — or tells you the API itself is broken. Either way, you have your answer in seconds.
+1. **Review uploaded evidence in Cloud** — open the Target for the service,
+   read recent failures, and compare runs.
+2. **Read Specifications** — check the executable API promises synced from
+   source.
+3. **Use Explore** — send requests, reproduce issues, and validate responses
+   against the API model.
+4. **Ask the webapp Agent** — explain the current page, summarize failures, or
+   suggest missing cases.
+5. **Use VS Code when you need local runs** — pinned tests and the Result Viewer
+   are useful when QA works inside the verification project.
 
-That's it. Open, run, read, ask. Repeat.
+The loop is: inspect evidence, reproduce behavior, clarify the expected rule,
+and hand durable source changes back to the developer/IDE plane.
 
 ---
 
@@ -48,12 +57,15 @@ AI is your pair — not a replacement for your judgment. You know the business l
 
 Useful prompts:
 
-- _"/glubean write a smoke test for the users API"_ — AI creates the test file.
-- _"/glubean why did this fail?"_ — AI reads the structured result and explains.
-- _"/glubean add a test for the 404 case"_ — AI adds a boundary test to an existing file.
-- _"/glubean this API should return `active` users only, but it's returning all of them"_ — AI writes an assertion for exactly that.
+- _"Why did this Target fail in the last run?"_ — the webapp Agent reads the current evidence.
+- _"Which contract promise broke?"_ — starts from Specifications and run links.
+- _"Can you turn this Explore request into a contract idea?"_ — creates a handoff
+  for the source plane.
+- _"/glubean add a 404 contract case for this endpoint"_ — ask your IDE agent
+  when the change should land in git.
 
-You describe what should happen. AI writes the verification.
+You describe what should happen. The right agent helps turn that into readable
+evidence or source changes.
 
 ---
 
@@ -71,8 +83,10 @@ Your domain knowledge is the most important input. The code is just how it gets 
 
 ## How this compares to traditional QA tools
 
-Glubean is not Selenium. There's no record-and-playback. No fragile element selectors. No flaky browser sessions.
-
-Instead: tests are code, stored in git, reviewed in PRs, run in CI. AI writes them, you verify they check the right things. When the API changes, AI updates the tests — or flags the change as a potential bug.
+Glubean is not record-and-playback QA. The durable assets are code, stored in
+git, reviewed in PRs, run locally and in CI, then uploaded as structured
+evidence. QA does not need to own every line of TypeScript, but the team still
+gets a source-controlled verification system instead of a set of disconnected
+manual checks.
 
 The result is verification that stays current with the product, not a test suite that rots after the first sprint.

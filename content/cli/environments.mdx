@@ -19,9 +19,11 @@ Add `*.secrets` to `.gitignore`.
 |---|---|---|
 | **API** | `ctx.vars.require("KEY")` | `ctx.secrets.require("KEY")` |
 | **Git** | Committed — shared baseline | Gitignored — never in repo |
-| **Cloud upload** | Visible in dashboard | Auto-redacted |
+| **Cloud upload** | Visible in dashboard | Registered for redaction by built-in rules |
 
-The SDK APIs are separate. `vars` never reads `.env.secrets`. `secrets` never reads `.env`.
+The SDK APIs are separate. `vars` resolves public variables and `secrets`
+resolves credentials. Keep credentials in `.env.secrets` so they stay
+gitignored and are treated as sensitive inputs during redaction.
 
 ## Reading values in tests
 
@@ -35,7 +37,7 @@ const token = ctx.secrets.require("API_TOKEN");    // from .env.secrets
 `{{KEY}}` in `configure()` searches secrets first, then vars:
 
 ```typescript
-export const api = configure({
+export const { http: api } = configure({
   http: {
     prefixUrl: "{{BASE_URL}}",
     headers: {
@@ -44,6 +46,9 @@ export const api = configure({
   },
 });
 ```
+
+That template fallback is convenient for shared HTTP options, but it is not a
+reason to put credentials in `.env`. `.env` is public project config.
 
 ## Lookup order
 
@@ -74,5 +79,5 @@ The CLI automatically pairs each env file with its matching `.secrets` file.
 
 ## Next
 
-- [SDK: Variables & Secrets](/sdk/env-and-secrets)
+- [SDK: Variables & Secrets](/sdk/test/env-and-secrets)
 - [Extension: Environments](/extension/environments)

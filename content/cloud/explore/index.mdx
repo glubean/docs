@@ -1,0 +1,71 @@
+# Explore
+
+Explore is the browser-side surface for trying, debugging, and running APIs.
+It feels closer to a shared API workbench than to a repo test suite.
+
+It is the non-developer path into the same API model developers use in code. An
+Explore collection is the home for saved requests, low-code flows, and code
+tests. The webapp Agent can help build and edit those pieces, while
+Environments, Data, Files, and Library modules provide the inputs they consume.
+
+Use Explore when the question starts with "what happens if I call this?" rather
+than "what source truth should the repo commit?"
+
+## A typical Explore loop
+
+1. Pick the active **Environment**, **Server**, and **Auth** preset.
+2. Send a saved request, run a flow, or run a collection code test from the
+   browser.
+3. Validate the response against a synced **Specification** or designed **API**
+   schema when one exists.
+4. Save useful requests and flows into a collection.
+5. Ask the webapp Agent to explain failures, suggest missing cases, or turn a
+   useful experiment into a source-side contract or test idea.
+
+## What belongs here
+
+- saved requests
+- multi-step flows
+- response validation against Specifications or APIs
+- authenticated browser-side sends through the Chrome extension when needed
+- code tests that belong to an Explore collection
+- reusable shared modules from [Library & Resources](/cloud/library-resources)
+
+## Request, Flow, Code Test
+
+An Explore collection contains three kinds of work:
+
+| Kind | Use it for |
+| --- | --- |
+| **Request** | A saved HTTP request with method, URL, params, headers, body, server/auth/env context, and response inspection. |
+| **Flow** | A low-code multi-step path built from requests, validation, branching/debugging, and reusable inputs. |
+| **Code test** | Browser-side TypeScript for cases where raw code is clearer than the flow editor. |
+
+These are webapp-side assets. They help people investigate and collaborate
+quickly, but they do not replace the repo's durable contracts, workflows,
+`test()` checks, browser checks, or load plans.
+
+## How it relates to contracts
+
+Contracts are the durable source of truth. Explore is the fastest browser-side
+place to inspect, reproduce, and discuss behavior.
+
+When an Explore request becomes important enough to protect, promote it back to
+the IDE/source plane as a `contract.http.with()`, `contract.browser.with()`,
+`workflow()`, or `test()`. After that, local and CI runs can upload evidence to
+Targets, and the same behavior appears in Specifications.
+
+## Current boundary
+
+Explore can already send requests, run flows, and work with collection code
+tests. The long-term goal is for Explore results to feed Targets as first-class
+evidence, the same way local and CI uploads do. Until then, treat Explore as an
+interactive investigation and authoring surface, not the canonical replacement
+for committed contracts.
+
+## Related
+
+- [Validate Against Contracts](/cloud/validate-against-contracts)
+- [Library & Resources](/cloud/library-resources)
+- [APIs & Portals](/cloud/apis-portals)
+- [Agent](/cloud/agent)

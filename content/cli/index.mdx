@@ -1,43 +1,52 @@
 # CLI
 
-The glubean CLI runs API verifications from the terminal. Use it for local development, CI pipelines, and team workflows.
+The `glubean` CLI is the command surface for the local runner. Use it for local
+development, CI pipelines, uploads, and team workflows.
 
-## Install
+In a project, keep the authoring API and runner explicit:
+
+- `@glubean/sdk` — what tests, contracts, workflows, and load plans import.
+- `@glubean/runner` — what executes them and emits structured evidence.
+- `glubean` — the CLI wrapper you call from your terminal or CI.
+
+## Start
 
 ```bash
-# Global install
-npm install -g glubean
+# Initialize a project. The template adds the SDK/runner dependencies it needs.
+npx glubean init
 
-# Or run without installing
+# Run CLI commands without installing the CLI globally.
 npx glubean <command>
-
-# Or add to your project
-npm install -D glubean
 ```
 
 ## Quick start
 
 ```bash
-# Scaffold a new project
-glubean init
+# Scaffold a runnable project. The template adds SDK/runner/local CLI deps.
+npx glubean init --no-interactive
 
-# Run all tests
-glubean run
+# Run the generated local profile through package scripts
+npm test
+
+# Or call the project CLI directly
+npx glubean run --profile local
 
 # Run a single file
-glubean run tests/users.test.ts
+npx glubean run tests/users.test.ts
 ```
 
 ## Get help
 
 ```bash
-glubean -h              # All commands
-glubean run -h          # Options for a specific command
+npx glubean -h              # All commands
+npx glubean run -h          # Options for a specific command
 ```
 
 ## Pages in this section
 
 - [Usage Scenarios](/cli/reference) — common commands organized by workflow
+- [Sync Projections](/cli/sync) — publish source-derived Specifications to Cloud
+- [Configuration](/cli/config) — `glubean.yaml` suites, profiles, reporters, upload, and gates
 - [Environments & Secrets](/cli/environments) — env files, secrets, switching environments
 - [Debugging](/cli/debugging) — narrowing failures and inspecting output
 - [Common Recipes](/cli/recipes) — copy-paste patterns for CI, tags, and more

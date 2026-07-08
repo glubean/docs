@@ -1,12 +1,16 @@
 # Configuration
 
-Use `configure()` when several tests in one file need the same runtime setup.
+Use `configure()` when several Glubean assets in one file need the same runtime
+setup.
 
-This keeps repeated environment access, headers, and plugin wiring out of each individual test.
+This keeps repeated environment access, headers, and client wiring out of each
+individual contract, workflow, or raw `test()` check.
 
 ## File-level setup
 
-Use `configure()` to set up shared HTTP defaults, variables, and secrets once per file. All values use `{{KEY}}` template syntax and resolve lazily at runtime.
+Use `configure()` to set up shared HTTP defaults, variables, and secrets once
+per file. All values use `{{KEY}}` template syntax and resolve lazily at
+runtime.
 
 ```typescript
 import { configure, test } from "@glubean/sdk";
@@ -25,7 +29,9 @@ export const { http, vars, secrets } = configure({
 });
 
 export const listUsers = test("list-users", async (ctx) => {
-  const data = await http.get("users?limit=5").json<{ users: any[] }>();
+  const res = await http.get("users", { searchParams: { limit: "5" } });
+  ctx.expect(res).toHaveStatus(200);
+  const data = await res.json<{ users: unknown[] }>();
   ctx.expect(data.users.length).toBe(5);
   ctx.log(`Tested against ${vars.baseUrl}`);
 });
@@ -35,7 +41,7 @@ The `{{KEY}}` placeholders resolve from both `ctx.vars` and `ctx.secrets` at run
 
 ## Shared across files
 
-Extract `configure()` into a shared file to reuse across your test suite:
+Extract `configure()` into a shared file to reuse across your Glubean project:
 
 ```typescript
 // tests/configure.ts
@@ -55,13 +61,22 @@ import { test } from "@glubean/sdk";
 import { http } from "./configure.js";
 
 export const listUsers = test("list-users", async (ctx) => {
-  const res = await http.get("users").json();
+  const res = await http.get("users");
+  ctx.expect(res).toHaveStatus(200);
 });
 ```
 
-## Plugin registration
+## Client factories in `configure()`
 
-`configure()` is also where you register plugins. Reserved keys (`vars`, `secrets`, `http`) cannot be used as plugin names.
+`configure({ plugins })` registers **client factories** for the current file:
+GraphQL clients, domain API wrappers, or any lazy runtime helper you want to
+share across contracts, workflows, and raw tests.
+
+This is separate from **plugin manifests**. A package that adds global matchers
+or a new contract protocol still needs `installPlugin(...)` from a project
+`glubean.setup.ts`; a plain client factory does not.
+
+Reserved keys (`vars`, `secrets`, `http`) cannot be used as plugin names.
 
 ```typescript
 import { configure, test } from "@glubean/sdk";
@@ -78,7 +93,8 @@ const { gql } = configure({
 });
 
 export const checkGraphql = test("graphql", async (ctx) => {
-  const { data } = await gql.query(`{ me { id } }`);
+  const { data } = await gql.query<{ me: { id: string } }>(`{ me { id } }`);
+  ctx.expect(data?.me?.id).toBeDefined();
 });
 ```
 
@@ -98,5 +114,5 @@ The `http` field supports these options:
 ## Next
 
 - [Plugins](/sdk/plugins)
-- [Auth Plugin](/sdk/auth-plugin)
-- [GraphQL Plugin](/sdk/graphql-plugin)
+- [Auth Helpers](/sdk/plugins/auth)
+- [GraphQL Plugin](/sdk/plugins/graphql)

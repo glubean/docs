@@ -1,48 +1,56 @@
 # Notifications
 
-Notifications let teams react to important run events without living in the dashboard.
+Notifications and alerts let teams react to run evidence without living in the
+dashboard.
 
-Each notification rule combines:
+There are three related surfaces:
 
-- events
-- a delivery channel
-- optional filters
+| Surface | What it does |
+| --- | --- |
+| **In-app notifications** | The bell and unread dots for run status, flaky/stable changes, and fired alerts. |
+| **Target Alerts** | Target-local policies that watch functional or load metrics across recent runs. |
+| **Reports** | Scheduled or manually generated health digests for an org or project scope. |
 
-## Events
+## In-App Notifications
 
-| Event | Description |
-|---|---|
-| `run.failed` | A run finishes with at least one test failure |
-| `run.passed` | A run finishes with all tests passing |
-| `run.flaky` | A run contains tests flagged as flaky |
-| `build.failed` | A bundle build fails |
-| `quota.exceeded` | Monthly run quota is exhausted |
-| `daily.digest` | Summary of the day's runs |
-| `worker.offline` | A connected worker stops responding |
-| `worker.back_online` | A previously offline worker recovers |
+The app creates in-app notifications for events such as:
 
-## Levels
+- run passed, failed, errored, or cancelled
+- a test became flaky or stable
+- an alert policy fired
 
-- **Team-wide** for all projects in a team
-- **Project-level** for one project only
+The notification bell is org/project scoped. Opening a Target's Alerts tab also
+clears the unread signal for that Target's fired alerts.
 
-## Channels
+## Target Alerts
+
+Alert policies live under a Target. They can watch:
+
+- functional run health
+- custom functional metrics
+- load metrics such as p95, error rate, throughput, endpoint/scenario values,
+  and plan-scoped signals
+
+Alert policies can deliver to:
 
 - **Email**
-- **Slack**
-- **Discord**
 - **Webhook**
 
-## Useful filters
+## Reports
 
-- branches
-- tags
-- severity
-- minimum failure count
+Reports are generated health digests. They can be org-wide or project-scoped,
+and schedules can push to email or webhook channels.
 
-## A practical setup
+## A Practical Setup
 
-1. Send `run.failed` to Slack for the default branch
-2. Keep a quieter daily digest by email
-3. Exclude exploratory branches from paging rules
-4. Use **Send test notification** before trusting the rule
+1. Use Target Alerts for "wake me up when this Target regresses."
+2. Use Reports for slower daily or weekly review.
+3. Keep in-app notifications as the quick triage surface for recent run state.
+4. Keep webhook channels signed and rotate secrets when a destination changes.
+
+## Related
+
+- [Dashboard](/cloud/dashboard)
+- [Targets & Runs](/cloud/targets)
+- [Analytics](/cloud/analytics)
+- [Performance](/cloud/performance)

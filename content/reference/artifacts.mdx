@@ -1,23 +1,88 @@
 # Artifacts
 
-These are the files Glubean writes and other docs refer to repeatedly.
+Artifacts are derived files: they are produced by runs, scans, or projections.
+They are useful for CI, Cloud upload, debugging, and agents, but they are not
+the source of truth. The authored source stays in TypeScript contracts,
+workflows, raw tests, load plans, and config.
+
+If an artifact looks wrong, fix the authored source or run configuration, then
+regenerate the artifact. Do not treat generated JSON, metadata, or projection
+files as the place to patch API behavior.
+
+## Authored vs derived
+
+| Layer | Examples | Should you edit it? |
+| --- | --- | --- |
+| **Authored source** | `contracts/*.contract.ts`, `workflow()` exports, `tests/*.test.ts`, `*.load.ts`, `glubean.yaml` | Yes. This is the source of truth. |
+| **Run evidence** | `.glubean/last-run.result.json`, JUnit XML, load artifacts, traces, screenshots | No. Recreate it by running the source. |
+| **Projection artifacts** | `metadata.json`, OpenAPI-shaped output, Markdown/spec projections | Usually no. Regenerate from contracts/workflows. |
+| **Cloud records** | uploaded Runs, Specifications, Performance, Benchmarks | No. They are derived from source + uploaded evidence. |
 
 ## Standard artifacts
 
-- **Result JSON**: `.glubean/last-run.result.json`
-- **Result history**: `.glubean/results/{fileName}/{testId}/{timestamp}.result.json`
-- **Metadata scan output**: `metadata.json`
+| Artifact | Typical path | Produced by | Use it for |
+| --- | --- | --- | --- |
+| **Latest result JSON** | `.glubean/last-run.result.json` | every `glubean run` / `glubean ci run` | Local debugging, rerun-failed, upload inspection, agent context |
+| **Explicit result JSON** | a chosen `--result-json` or `reporters.resultJson` path | `glubean run --result-json ...` or a profile reporter | Stable CI artifacts and tool handoff |
+| **Result history** | `.glubean/results/{fileName}/{testId}/{timestamp}.result.json` | VS Code / local runs | Result Viewer history and quick comparison |
+| **JUnit XML** | `.glubean/results/junit.xml` | `reporters.junit` or `--reporter junit:...` | CI dashboards |
+| **Metadata scan output** | `metadata.json` | `glubean scan` | Discovery, editor tooling, and metadata validation |
+| **Load artifact** | `.glubean/{runnerId}.load.result.json` | `glubean load` | Performance debugging and Cloud load evidence |
+| **Trace files** | `.glubean/traces/...` | `--emit-full-trace` | Full request/response debugging |
 
-## Recommended run command
+## Recommended commands
 
 ```bash
-glubean run ./tests --result-json .glubean/last-run.json
+glubean run --profile local
 ```
 
-An explicit `--result-json` path keeps local runs, CI, and editor workflows aligned.
+This always writes `.glubean/last-run.result.json`. Add an explicit result path
+when another tool needs a stable artifact in a known location:
+
+```bash
+glubean run --profile local --result-json .glubean/results/local.result.json
+```
+
+For CI, prefer putting the artifact paths in `glubean.yaml`:
+
+```yaml
+profiles:
+  ci:
+    reporters:
+      resultJson: .glubean/results/ci.result.json
+      junit: .glubean/results/junit.xml
+```
+
+## How to read result JSON
+
+Functional result JSON is structured evidence for `test()`, contract, browser,
+and workflow runs. Depending on what ran, it can contain:
+
+- run summary and status
+- test, contract, browser, or workflow results
+- requests, responses, assertions, warnings, logs, traces, metrics, and timing
+- artifacts such as screenshots, browser evidence, or schema inference
+- upload metadata when the run is sent to Cloud
+
+Load artifacts use the `glubean.load.v1` schema. They contain aggregate
+concurrency evidence: endpoint and step summaries, latency distributions,
+timelines, thresholds, custom metrics, and bounded failure/slow samples.
+
+Before sharing a result file outside the project, run it through redaction:
+
+```bash
+glubean redact --input .glubean/last-run.result.json --output redacted.result.json
+```
 
 ## Related commands
 
 - `glubean run`
+- `glubean load`
 - `glubean scan`
 - `glubean validate-metadata`
+
+## Related
+
+- [Result Files](/cli/result-files)
+- [Redaction & Privacy](/cli/redaction)
+- [Upload Your First Run](/getting-started/upload-to-cloud)

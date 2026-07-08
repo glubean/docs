@@ -22,23 +22,26 @@ Each scope targets a specific field in a specific event type. Built-in scopes co
 | `http.request.body` | POST/PUT/PATCH body |
 | `http.response.headers` | Set-cookie, etc. |
 | `http.response.body` | Response body |
+| `http.metadata` | Protocol-specific trace metadata, such as gRPC request/response metadata |
 | `log.message` / `log.data` | `ctx.log()` output |
 | `error.message` | Error messages |
 | `assertion.message` | Assertion messages |
 | `step.returnState` | Step return values |
 
-Plugins (like `@glubean/grpc`) can declare additional scopes for their own protocol.
+Plugins can declare additional scopes for their own protocol when a custom host
+compiles redaction manually. The CLI baseline already covers common generic
+trace fields, including metadata, request bodies, and response bodies.
 
 ## Preview before uploading
 
 ```bash
-glubean redact .glubean/last-run.result.json
+glubean redact --input .glubean/last-run.result.json
 ```
 
 To write fully redacted output to a file:
 
 ```bash
-glubean redact .glubean/last-run.result.json --out redacted.json
+glubean redact --input .glubean/last-run.result.json --output redacted.json
 ```
 
 ## Default value patterns
@@ -70,11 +73,14 @@ defaults:
     replacementFormat: simple
 ```
 
-> These rules apply when you run a **profile** (`glubean run --profile <name>`
-> or `glubean ci run`). An ad-hoc run with an explicit target
-> (`glubean run tests/`) doesn't resolve a profile and uses the built-in
-> baseline only — run through a profile to apply your custom rules before an
-> upload.
+> For functional runs, these rules apply when you run a **profile**
+> (`glubean run --profile <name>` or `glubean ci run`). An ad-hoc functional run
+> with an explicit target (`glubean run tests/`) doesn't resolve a profile and
+> uses the built-in baseline only.
+>
+> For load runs, `glubean load ... --upload` reads `defaults.redaction` from the
+> project `glubean.yaml` during upload preflight, even when you pass an explicit
+> load target such as `glubean load tests/load/ --upload`.
 
 ### Replacement formats
 
@@ -86,7 +92,9 @@ defaults:
 
 ## Server-side safety net
 
-When results are uploaded to glubean Cloud, the server applies baseline redaction again before persisting. Even if a local rule is misconfigured, common secrets are not stored in plaintext.
+When results are uploaded to Glubean Cloud, the server applies baseline
+redaction again before persisting. Treat this as a safety net for common secret
+patterns, not permission to log credentials from test code.
 
 ## Next
 

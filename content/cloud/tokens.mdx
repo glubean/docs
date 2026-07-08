@@ -48,7 +48,7 @@ its scopes allow it.
 
 A `glb_` token with `type: personal`.
 
-**Where to create**: Dashboard → Settings → Tokens → "Personal".
+**Where to create**: Cloud webapp → **Tokens** → "Personal".
 
 **What it does**:
 
@@ -66,7 +66,7 @@ blast radius if the credential leaks.
 
 A `glb_` token with `type: scoped`, limited to an explicit list of scopes.
 
-**Where to create**: Dashboard → Settings → Tokens → "Scoped", then pick the
+**Where to create**: Cloud webapp → **Tokens** → "Scoped", then pick the
 scopes.
 
 **What it does**:
@@ -76,25 +76,28 @@ scopes.
 - Revoke it without touching your account or any other token.
 - Leak blast radius = exactly the scopes you granted, across the org.
 
-**Available scopes** (pick the minimum you need):
+Common automation scopes:
 
 | Scope | What it allows |
 |---|---|
 | `runs:write` | Upload runs / events (CI, `--upload`) |
 | `runs:read` | List + read runs |
-| `projects:read` / `projects:write` | Read / manage projects |
 | `targets:read` / `targets:write` | Read / manage targets |
-| `contracts:read` / `contracts:write` | Read / manage contracts |
+| `contracts:write` | Sync source projections with `glubean sync` |
 | `apis:read` / `apis:write` | Read / manage APIs |
-| `env:read` / `env:write` | Read / manage environments |
-| `data:read` / `data:write` | Read / manage data |
-| `taxonomy:read` / `taxonomy:write` | Read / manage taxonomy |
 | `collections:read` / `collections:write` | Read / manage collections |
 | `portal:read` / `portal:write` | Read / manage the portal |
-| `playgrounds:read` / `playgrounds:write` | Read / manage playgrounds |
 | `agent:use` | Let an agent act through Cloud |
 
-For `glubean run --upload` from CI, **`runs:write` is enough**. Don't grant more.
+The Tokens page is the source of truth for the full scope list. It is generated
+from the server catalog and includes module scopes such as projects, targets,
+contracts, APIs, environments, data, files, taxonomy, collections, portals,
+Explore code tests, Library shared modules, reviews, runs, and agent use.
+
+For `glubean run --upload` from CI, **`runs:write` is enough** if the project
+and target IDs are explicit. Add `targets:read` only when the CLI needs to
+resolve a default target for a non-default project. For `glubean sync`, use
+`contracts:write`.
 
 ---
 
@@ -114,7 +117,7 @@ then uses as a fallback whenever no project-local credential is set.
 
 The current path:
 
-1. Dashboard → Settings → Tokens → create a token (personal or scoped).
+1. Cloud webapp → **Tokens** → create a token (personal or scoped).
 2. Provide it via `--token glb_…`, the `GLUBEAN_TOKEN` env var, or
    `.env.secrets`.
 
@@ -127,7 +130,7 @@ The CLI looks for a **token** in this order. The first one it finds wins:
 | # | Source | Best for |
 |---|---|---|
 | 1 | `--token` CLI flag | One-off / debugging |
-| 2 | A profile's `tokenEnv` (names the env var holding its token) | Per-profile tokens in `glubean.yaml` |
+| 2 | A profile's `upload.tokenEnv` (names the env var holding its token) | Per-profile tokens in `glubean.yaml` |
 | 3 | `GLUBEAN_TOKEN` env var | CI (from secret store), shell exports |
 | 4 | `.env.secrets` file (`GLUBEAN_TOKEN=...`) | Local project work |
 | 5 | `~/.glubean/credentials.json` (via `glubean login`, once device login ships) | Personal fallback across projects |
@@ -138,16 +141,27 @@ A token is a secret — it **never** lives in a committed file, and there is no
 **Project ID** resolves in this order:
 
 1. `--project` flag
-2. `GLUBEAN_PROJECT_ID` (env var or `.env`)
-3. A profile's `upload.projectId` in `glubean.yaml` (when you run that profile)
+2. A profile's `upload.projectId` in `glubean.yaml` (when you run that profile)
+3. `GLUBEAN_PROJECT_ID` (env var or `.env`)
 4. Your `glubean login` credential
 
 **Target ID** resolves in this order:
 
-1. `--target` flag
-2. `GLUBEAN_TARGET_ID` (env var or `.env`)
-3. A profile's `upload.targetId` in `glubean.yaml` (when you run that profile)
+1. `--upload-target` flag
+2. A profile's `upload.targetId` in `glubean.yaml` (when you run that profile)
+3. `GLUBEAN_TARGET_ID` (env var or `.env`)
 4. The project's default target
+
+Profile upload fields apply to `glubean run --profile <name>` and
+`glubean ci run`. `glubean load ... --upload` does not resolve a profile, so it
+uses flags, env/env-file values, saved credentials, and the project default
+target instead.
+
+When a profile declares `upload.tokenEnv`, that env var is exclusive after an
+explicit `--token`; the CLI does not silently fall back to `GLUBEAN_TOKEN`.
+When `--project` overrides a profile's project, the profile target is not paired
+with the new project; set `--upload-target` or `GLUBEAN_TARGET_ID` if you need a
+specific target.
 
 Both `GLUBEAN_PROJECT_ID` and `upload.projectId` must be the project's
 **short ID** (find it in Project Settings — e.g. `prj_abc123`), not a friendly
@@ -180,7 +194,7 @@ tokens:
 ```yaml
 profiles:
   ci:
-    suites: [tests]
+    suites: [tests, contracts]
     upload:
       enabled: true
       projectId: prj_abc123       # destination project (a project short ID)
@@ -203,7 +217,7 @@ automatically derives the matching Platform ingest host from it.
 
 If you work across **multiple Glubean organizations** (e.g. `acme-saas` for your
 day job, `oss-side-project` personal), create one `glb_` token per org and keep
-them isolated using `.env` `${VAR}` interpolation against shell env:
+them isolated using `.env.secrets` `${VAR}` interpolation against shell env:
 
 **Shell** (`~/.zprofile`):
 
@@ -217,19 +231,28 @@ export GLUBEAN_TOKEN_OSS=glb_oss_xxx
 
 ```dotenv
 # acme-saas/.env
-GLUBEAN_TOKEN=${GLUBEAN_TOKEN_ACME}
 GLUBEAN_PROJECT_ID=prj_acme_1
 GLUBEAN_TARGET_ID=tgt_acme_1
 
 # oss-side-project/.env
-GLUBEAN_TOKEN=${GLUBEAN_TOKEN_OSS}
 GLUBEAN_PROJECT_ID=prj_oss_1
 GLUBEAN_TARGET_ID=tgt_oss_1
 ```
 
+**Per-project `.env.secrets`** (gitignored):
+
+```dotenv
+# acme-saas/.env.secrets
+GLUBEAN_TOKEN=${GLUBEAN_TOKEN_ACME}
+
+# oss-side-project/.env.secrets
+GLUBEAN_TOKEN=${GLUBEAN_TOKEN_OSS}
+```
+
 The `${VAR}` syntax reads from your shell environment at run time, so the `.env`
-file itself is safe to commit. See [Environments & Secrets](/cli/environments)
-for the full env-file mechanics.
+file stays public while `.env.secrets` carries only a local reference to the
+actual token. See [Environments & Secrets](/cli/environments) for the full
+env-file mechanics.
 
 Rotation is one place: update the shell export, restart the terminal, all
 projects pick it up.
@@ -240,7 +263,7 @@ projects pick it up.
 
 **Creating**
 
-- Dashboard → Settings → Tokens → choose **personal** or **scoped** (and the
+- Cloud webapp → **Tokens** → choose **personal** or **scoped** (and the
   scopes) → name → create. Copy the token now — Glubean never shows it again.
 
 **Using**
@@ -258,7 +281,7 @@ projects pick it up.
 
 **Revoking / leaks**
 
-- Dashboard → Settings → Tokens → delete the row. Effective immediately; any
+- Cloud webapp → **Tokens** → delete the row. Effective immediately; any
   session relying on it stops working at the next request.
 - If a token may have leaked into source control, paste, or CI logs, **revoke it
   now** and rotate.

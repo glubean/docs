@@ -1,107 +1,124 @@
 ---
 title: Core Concepts
-description: The mental model behind Glubean — tests, verification, and the explore/tests split.
+description: "The mental model behind Glubean: contracts, runs, targets, evidence, and the two-plane workflow."
 ---
 
 # Core Concepts
 
-## Test
+Glubean connects source-authored API promises to team-readable evidence.
 
-A test is a single exported function that verifies one behavior:
+## Verification project
 
-```typescript
-export const getUser = test("get-user", async (ctx) => {
-  const res = await ctx.http.get(`${API}/users/1`);
-  ctx.expect(res).toHaveStatus(200);
-});
-```
+A Glubean project is usually a dedicated verification project: a Node workspace
+whose job is to test real services from the outside.
 
-Every `export const x = test(...)` is one test. This is the unit you write, run, and debug. Glubean uses the word "test" everywhere in daily usage — in the CLI, the extension, the SDK API.
+This is different from app-local unit testing. Vite, Jest, and Vitest usually
+live inside the application repo and test functions, components, or modules.
+Glubean tests usually call running HTTP services, browser flows, contracts, and
+load plans. They need their own environments, secrets, upload settings, target
+IDs, contract projections, and CI gates.
 
-## Verification
+That separation is heavier than dropping a unit test into an app repo, but it is
+worth it when the goal is end-to-end API evidence that developers, agents, QA,
+product, and support can all read.
 
-Testing a single endpoint is easy — `GET /users/1`, expect 200, done. But real APIs don't work in isolation. A real business flow looks like:
+## Contract
 
-1. Create a user → get back an ID
-2. Generate an auth token for that user
-3. Use the token to access a protected resource
-4. Update the resource
-5. Delete the user and confirm cleanup
+A contract describes what an API promises, and the runnable contract case is
+itself a test. In code, contracts are protocol adapters under the shared
+`contract.*` model, not only HTTP.
 
-If any step loses context, passes the wrong ID, or breaks the auth chain, the whole workflow fails. **This is what's actually hard to verify** — not individual endpoints, but the connections between them.
+Today, the built-in contract surfaces include:
 
-Verification is what your tests achieve together: <b>continuous verification</b> — proof that your API workflows work correctly across environments, not just once but on every commit, every deploy, every schedule. A test that only runs once during development is useful. The same workflow running in CI on every commit, and against production on a schedule, is _verification_.
+- `contract.http.with()` for HTTP endpoint promises
+- `contract.browser.with()` for browser journeys that should be replayable,
+  reviewable, and tied to API evidence
 
-This is what separates Glubean from tools like Postman (manual requests, no shared state), REST Client (fire-and-forget), or plain unit tests (mocked, no real HTTP). Glubean tests are workflow-aware — shared state flows between tests in the same file, steps pass data to the next step, and the whole chain runs as one atomic operation.
+The plugin system can add more contract protocols. First-party plugins already
+cover GraphQL and gRPC, and teams can add their own protocol adapters when their
+domain needs a different contract shape.
 
-## explore/ vs tests/
+Use contracts when the promise should be both **checked at runtime** and
+**projected for humans**. Contracts can also be deferred, deprecated, projected
+into OpenAPI or other protocol-shaped docs, and linked to the runs that prove or
+break them. In the webapp, synced contracts appear as **Specifications**.
 
-Glubean projects have two directories for test files. Both use the same `*.test.ts` format and the same SDK — the difference is intent.
+## Run
 
-| | `explore/` | `tests/` |
-|---|---|---|
-| **Purpose** | Your API collection — try endpoints, save parameter sets, pick one and run | Regression suite — CI runs everything on every commit |
-| **How you run** | Pick one case: `glubean run --profile explore --pick by-name` | Run all: `glubean run` |
-| **Data pattern** | `test.pick` — multiple named examples, run one at a time | `test.each` — multiple rows, run all for coverage |
-| **Analogous to** | Postman Collections + Examples | Jest/Vitest test suites |
-| **Git** | Committed and shared (this is your team's API knowledge base) | Committed and shared |
-| **CLI default** | Needs `--profile explore` or explicit path | Runs by default (the `local` profile) |
+A run is one execution of Glubean work: functional tests, contracts, browser
+checks, or load plans. Runs happen locally or in CI. When uploaded, they become
+Cloud evidence.
 
-Both directories share `data/` and `config/`. A test file can live in either directory — or move between them as it matures.
+## Target
 
-> **Common misconception:** `explore/` is not a scratchpad or temporary folder. It's your code-first replacement for Postman collections — committed, versioned, shared with the team.
+A Target is where uploaded runs accumulate. It represents a system under test,
+such as staging, production, or a service implementation. Targets show health,
+history, failures, endpoint trends, and performance.
 
-## Shared state
+## Evidence
 
-Tests in the same file share the module scope and run sequentially in export order. This enables workflow-style tests:
+Evidence is the structured output of a run: requests, responses, assertions,
+steps, traces, metrics, artifacts, and load data. Glubean keeps this structured
+so humans and agents can inspect it without guessing from raw logs.
 
-```typescript
-let userId: number;
+## The authoring model
 
-export const create = test("create", async (ctx) => {
-  // ... creates user, assigns userId
-});
+Glubean has several primitives because API verification has several jobs.
 
-export const verify = test("verify", async (ctx) => {
-  // ... uses userId from the test above
-});
-```
+| Primitive | What it means | Best for |
+| --- | --- | --- |
+| `test()` | A raw TypeScript runtime check. | One-off behavior, setup/teardown, diagnostics, browser-adjacent flows, or checks that do not need projection. |
+| `contract.http.with()` | An executable HTTP endpoint promise. | Method/path/status/schema/business-rule promises that run as tests and become Specifications/docs. |
+| `contract.browser.with()` | An executable browser journey promise. | Login, checkout, dashboard, or other UI journeys that need replayable browser evidence. |
+| `workflow()` | A lifecycle across contract cases. | Multi-step promises such as signup, checkout, webhook delivery, retry, or cancellation. |
+| `loadScenario()` | A concurrency workload. | p95, throughput, error rate, and SLA gates under pressure. |
+| Contract plugins | More protocol adapters. | GraphQL, gRPC, or team-defined protocols that should join the same contract/evidence model. |
 
-Declare shared variables at the top level. Assign them only inside test callbacks. Export order is execution order.
+Contracts are built on the same runner and evidence model as `test()`. Use
+`contract.*` when the behavior should be easy to review, project, and join to
+future runs. Use `test()` directly when raw TypeScript is the clearest way to
+produce honest runtime evidence.
 
-Files are the isolation boundary — different files don't share state by default. For cross-file state (e.g. a login token reused across multiple test files), use the [Session Scope API](/sdk/shared-state).
+## Specification
 
-For multi-step flows within a single test, the builder API passes state between steps automatically:
+A Specification is the webapp view of synced contracts. It is the primary path
+when API truth is authored in the repo.
 
-```typescript
-export const checkout = test("checkout-flow")
-  .step("Add to cart", async (ctx) => {
-    const res = await ctx.http.post(`${API}/cart`, { json: { productId: 1 } });
-    return { cartId: (await res.json()).id };
-  })
-  .step("Place order", async (ctx, { cartId }) => {
-    const res = await ctx.http.post(`${API}/orders`, { json: { cartId } });
-    ctx.expect(res).toHaveStatus(201);
-  });
-```
+## API and Portal
 
-Two levels of workflow: **shared state across tests** (module variables) and **shared state within a test** (builder steps). Together they cover everything from simple CRUD to complex multi-service orchestration.
+An API is the webapp's writer-facing document layer: an OpenAPI base plus an
+overlay for prose, examples, naming, grouping, and publishing state. The base
+can come from a Specification projection, an imported OpenAPI document, or early
+design work in the browser.
 
-## Load & Performance
+A Portal publishes APIs and shared pages for readers. Use Portals when the same
+API knowledge needs to become a stable human-facing site for customers,
+partners, QA, support, or internal teams.
 
-Functional tests ask _"does it behave correctly?"_. A **load test** asks _"how does it behave under concurrency?"_ — latency percentiles, throughput, and error rate while sustained traffic is in flight. Load plans live in `*.load.ts` files and run with `glubean load` (opt-in, since they generate real traffic).
+## Explore
 
-Uploaded load runs feed the **Performance** surface in Cloud. Two lenses:
+Explore is where non-developers and agents can send requests, build flows, and
+validate responses against contracts from the browser.
 
-- **Trend** — one implementation over time (is it getting faster or slower?).
-- **Compare** — several implementations of the same API side by side. Here each implementation is a **source** (e.g. a Bun server vs an Express server of the same endpoints), and a **benchmark** is the group you declare comparable.
+## Agent
 
-The vocabulary is worth pinning early: what the dashboard calls a **target** (an upload destination) _is_ a source when you compare implementations. See [Load Testing](/sdk/load-testing) for writing a load plan and [Performance](/cloud/performance) for reading results.
+Glubean uses "agent" in two ways.
 
-## What's next?
+Your **IDE coding agent** is the agent you choose in Cursor, Claude Code, Codex,
+or another local tool. It works with source code, the Glubean skill, MCP, the
+CLI, and your verification project.
 
-- [First Test](/getting-started/first-test) — Write and run your first test
-- [SDK Reference](/sdk) — The full API surface
-- [Load Testing](/sdk/load-testing) — Write a load plan with `loadScenario` and `loadRunner`
-- [Performance](/cloud/performance) — Load-test results, trends, and cross-source comparison
-- [Limitations](/reference/limitations) — Trade-offs and known constraints
+The **Glubean webapp Agent** is built into the webapp. It reads the current page
+and the structured data behind it: Targets, runs, failures, Specifications,
+Explore requests, APIs, Portals, reports, and performance history. It is for
+explaining the current surface, helping non-developers debug, assisting writing,
+drafting test ideas from webapp context, and interpreting failures.
+
+When the task requires source context, use the IDE plane. When the task starts
+from Cloud evidence or a webapp view, use the webapp Agent.
+
+## Next
+
+- [How Glubean Works](/how-glubean-works)
+- [Specifications](/cloud/specifications)
+- [Targets & Runs](/cloud/targets)

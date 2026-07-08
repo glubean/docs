@@ -1,8 +1,14 @@
 # The Glubean Editor Experience
 
-You don't need a GUI. Glubean gives you GUI-level convenience inside the editor you already use — with none of the tradeoffs.
+You do not need a separate request GUI for local authoring. Glubean gives you a
+visual layer inside the editor you already use: run buttons, data navigation,
+environment switching, result inspection, and debugging over source-authored
+checks.
 
-No browser tabs. No cloud-synced workspaces. No context switching. Open a `.ts` file, and everything you need is right there.
+For day-to-day developer work, open a discovered `*.test.ts/js/mjs` file and run
+from the IDE. When the evidence should be shared, upload it to Cloud and review
+it with the team. For **contract/workflow-first** work, keep authoring in source
+and use MCP, package scripts, or the CLI for the full project run.
 
 ---
 
@@ -16,7 +22,6 @@ Glubean injects actionable buttons directly above each test definition:
 - **Pick** — when a test uses `test.pick`, buttons appear for each named case. Run just the one you care about.
 - **Open Data** — jump to the data file backing a `test.each` call. Edit cases without hunting through the file tree.
 - **$(pin) Pin** — bookmark tests you run often. They show up in the Glubean Panel for one-click access.
-- **$(lightbulb) Refactor** — context-aware suggestions when the extension spots improvements (missing assertions, redundant steps).
 - **$(history) Results** — open the history for this specific test. Compare previous runs without leaving the file.
 
 You never leave your code. The test, the action, and the result are all in the same viewport.
@@ -42,7 +47,7 @@ You run a test and immediately know what happened, what failed, and why. No log 
 The Glubean Panel lives in the sidebar and organizes your work:
 
 - **Pinned Tests** — your most-used tests, always one click away. Like browser bookmarks, but for test execution.
-- **Pinned Files** — data files, configs, `.env` files you reference constantly. Click to open.
+- **Pinned Files** — whole test files you run often. Open them or run every test in the file from the panel.
 - **Tasks** — run groups of tests as a batch. Useful for smoke suites or pre-deploy checks.
 
 Pin a test once, run it every day. The panel remembers your workflow so you don't have to.
@@ -51,10 +56,13 @@ Pin a test once, run it every day. The panel remembers your workflow so you don'
 
 ## Environments: switch context in one click
 
-The status bar shows your active environment. Click to switch between `.env.development`, `.env.staging`, `.env.production` — or any custom environment file.
+The status bar shows your active environment. Click to switch between `.env`,
+`.env.staging`, `.env.prod` — or any custom environment file.
 
 - **Hover preview** — hover over a `ctx.vars.require("API_URL")` call and see the resolved value from the current environment. No guessing.
-- **Secret masking** — values from `.env.secrets` are automatically redacted in hover previews, logs, and the Result Viewer. Secrets never leak into screenshots or recordings.
+- **Secret masking** — values from `.env.secrets` are masked in hover previews
+  and redaction-aware result surfaces. Keep real credentials in `.env.secrets`
+  and avoid logging derived credential strings.
 
 Switch from staging to production, rerun the same test, compare results. Two clicks.
 
@@ -72,4 +80,6 @@ The extension checks your project setup, SDK version, environment files, runner 
 
 CodeLens keeps actions next to code. Result Viewer gives instant structured feedback. The Panel organizes your daily workflow. Environments switch context without editing files. Diagnose catches problems before you waste time.
 
-Together: the convenience of Postman, the flexibility of code, the reliability of CI — in the editor you already live in.
+Together: the convenience of editor controls, the flexibility of code, and the
+reliability of CI — in the local plane where developers and coding agents
+already work.

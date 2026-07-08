@@ -2,8 +2,11 @@
 
 `glubean.yaml` at the project root is the canonical config. It declares
 **suites** (where runnable files live) and **profiles** (named run plans you
-select with `--profile`), plus shared **defaults**. `glubean init` scaffolds
-one. Load an alternate file with `--config ./path/to/glubean.yaml`.
+select with `--profile`), plus shared **defaults**. Profiles select `test`,
+`contract`, and `flow` suites for `glubean run` / `glubean ci run`.
+Load plans are selected by `glubean load [target]` instead of profiles.
+`glubean init` scaffolds one. Load an alternate file with
+`--config ./path/to/glubean.yaml` where the command supports it.
 
 Secrets (a cloud `token`, the project's `tokenEnv` *value*) **never** live in
 `glubean.yaml` — they come from `.env.secrets`, environment variables, or
@@ -53,10 +56,12 @@ profiles:
       concurrency: 2
       timeoutMs: 60000
       noSession: false
+    # Capability gates default to false. Turn them on only for profiles that
+    # intentionally run browser, out-of-band, or expensive/side-effecting cases.
     capabilities:
-      browser: true
-      outOfBand: true
-      optIn: true
+      browser: false
+      outOfBand: false
+      optIn: false
     reporters:
       console: summary                   # summary | detailed
       junit: .glubean/results/junit.xml
@@ -92,11 +97,19 @@ A suite points at a directory (or file/glob) of runnable files.
 | `kinds` | Which runnable kinds to include: any of `test`, `contract`, `flow`. |
 | `data` | Optional data-driven inputs directory/config. |
 
+`flow` is the config kind for exported `workflow()` files. The authoring API is
+still `workflow()`; `flow` remains the runner-level kind name.
+
 ## `profiles`
 
 Each profile composes suites + selection + execution + capabilities +
 reporters + thresholds + upload. Every key except `suites` is optional and
 falls back to `defaults`.
+
+For load testing, keep the traffic shape (virtual-user concurrency, duration,
+mix, and thresholds) in exported `loadRunner(...)` plans inside `*.load.ts`
+files, then run them with `glubean load [file|dir|glob]`. `glubean.yaml`
+profiles do not select load plans in the current CLI.
 
 | Key | Meaning |
 |---|---|
@@ -176,8 +189,9 @@ Cloud upload, per profile. Secrets stay out of this file.
 | Key | Meaning |
 |---|---|
 | `enabled` | Turn on upload for this profile (no `--upload` flag needed). |
-| `projectId` | Destination project's short ID (e.g. `prj_abc123`). Overrides `GLUBEAN_PROJECT_ID`; shown in the printed plan. |
-| `tokenEnv` | **Name** of the env var holding this profile's token (value lives in `.env.secrets`). Lets different profiles upload to different projects. |
+| `projectId` | Destination project's short ID (e.g. `prj_abc123`). For profile runs, this wins over `GLUBEAN_PROJECT_ID` unless `--project` is passed; shown in the printed plan. |
+| `targetId` | Destination target's short ID (e.g. `tgt_abc123`). For profile runs, this wins over `GLUBEAN_TARGET_ID` unless `--upload-target` is passed; shown in the printed plan. |
+| `tokenEnv` | **Name** of the env var holding this profile's token (value lives in `.env.secrets`). After an explicit `--token`, this env var is exclusive for the profile; it does not silently fall back to `GLUBEAN_TOKEN`. |
 
 > `upload.projectAlias` is the deprecated former name for `projectId` — still
 > accepted (with a warning), but use `projectId`.
