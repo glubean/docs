@@ -119,12 +119,12 @@ export const getUser = users("get-user", {
   cases: {
     success: {
       description: "Existing user returns a user profile",
-      params: { id: "usr_123" },
+      pathParams: { id: "usr_123" },
       expect: { status: 200, schema: User },
     },
     missing: {
       description: "Missing user returns not found",
-      params: { id: "usr_missing" },
+      pathParams: { id: "usr_missing" },
       expect: { status: 404 },
     },
   },
@@ -213,12 +213,18 @@ export const userLifecycle = workflow({
     out: (_state, res) => ({ userId: res.body.id as string }),
   })
   .call("read-user", getUser.case("success"), {
-    in: (state) => ({ params: { id: state.userId } }),
+    in: (state) => ({ id: state.userId }),
   })
   .call("delete-user", deleteUser.case("success"), {
-    in: (state) => ({ params: { id: state.userId } }),
+    in: (state) => ({ id: state.userId }),
   });
 ```
+
+(An `in` mapping returns the case's **logical input**, not HTTP fields — so a
+case consumed this way declares `needs: z.object({ id: z.string() })` and maps
+it with `pathParams: ({ id }) => ({ id })`, unlike the static
+`pathParams: { id: "usr_123" }` variant shown earlier. See
+[Workflow](/sdk/contract-flow#basic-workflow) for the full pattern.)
 
 - which contract case ran at each step
 - what state moved from one step to the next
