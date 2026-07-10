@@ -18,6 +18,24 @@ For single-endpoint behavior, use [Contract HTTP](/sdk/contract-http). For opaqu
 
 A workflow composes **existing contract cases**. It does not redeclare endpoints — you reference cases already defined in your `contract.http.with()` specs and wire them together with pure mapping functions.
 
+An `in` lens returns the case's **logical input** — the shape declared by the case's `needs` schema — not HTTP fields. The case's own function-valued action fields (`body`, `pathParams`, `query`, `headers`) map that input onto the wire. A case consumed via `in` must declare `needs`:
+
+```typescript
+// users.contract.ts — cases consumed by the workflow declare `needs`
+// and map it with function-valued action fields:
+export const getUser = userApi("get-user", {
+  endpoint: "GET /users/:id",
+  cases: {
+    success: defineHttpCase<{ id: string }>({
+      description: "Existing user returns full profile",
+      needs: z.object({ id: z.string() }),
+      pathParams: ({ id }) => ({ id }),
+      expect: { status: 200, schema: UserSchema },
+    }),
+  },
+});
+```
+
 ```typescript
 import { workflow } from "@glubean/sdk";
 import { createUser, getUser, deleteUser } from "./users.contract.ts";
@@ -31,10 +49,10 @@ export const userLifecycle = workflow({
     out: (_state, res) => ({ userId: res.body.id as string }),
   })
   .call("read-user", getUser.case("success"), {
-    in: (state) => ({ params: { id: state.userId } }),
+    in: (state) => ({ id: state.userId }),
   })
   .call("delete-user", deleteUser.case("success"), {
-    in: (state) => ({ params: { id: state.userId } }),
+    in: (state) => ({ id: state.userId }),
   });
 ```
 
@@ -71,7 +89,8 @@ export const checkout = workflow("checkout")
     tenantId: ctx.vars.require("TENANT_ID"),
   }))
   .call("create-cart", createCart.case("success"), {
-    in: (s) => ({ body: { tenantId: s.tenantId } }),
+    // logical input — the case's `body: ({ tenantId }) => ...` builds the request
+    in: (s) => ({ tenantId: s.tenantId }),
     out: (s, res) => ({ ...s, cartId: res.body.id as string }),
   });
 ```
@@ -82,14 +101,15 @@ Calls an existing contract case. Use `in` to map workflow state to case input an
 
 ```typescript
 .call("pay-order", payOrder.case("success"), {
-  in: (s) => ({ params: { id: s.orderId } }),
+  in: (s) => ({ id: s.orderId }),
   out: (s, res) => ({ ...s, paymentId: res.body.paymentId as string }),
 })
 ```
 
-`in` and `out` must be pure synchronous mapping functions — field lookup and
-repacking only. Do not do I/O or return a Promise from them. Put arbitrary async
-work in `action()`.
+`in` returns the case's `needs`-shaped logical input (see
+[Basic workflow](#basic-workflow)). `in` and `out` must be pure synchronous
+mapping functions — field lookup and repacking only. Do not do I/O or return a
+Promise from them. Put arbitrary async work in `action()`.
 
 ### `compute()`
 
@@ -207,7 +227,7 @@ condition (`timeout` or `maxAttempts`) and a finite per-attempt budget
 
 ```typescript
 .poll("wait-for-export", getExport.case("ready"), {
-  in: (s) => ({ params: { id: s.exportId } }),
+  in: (s) => ({ id: s.exportId }),
   until: (w) => w.when((res: { body: { state: string } }) => res.body.state).eq("ready"),
   timeout: 60_000,
   every: 2_000,
@@ -247,7 +267,9 @@ export const profileJourney = workflow("profile-journey")
   .use(withLogin)
   .group("profile", (b) => b
     .call("read-profile", getProfile.case("authorized"), {
-      in: (s) => ({ headers: { Authorization: `Bearer ${s.token}` } }),
+      // the case declares needs<{ token }> and maps it:
+      // headers: ({ token }) => ({ Authorization: `Bearer ${token}` })
+      in: (s) => ({ token: s.token }),
     })
   );
 ```
@@ -265,7 +287,7 @@ export const checkoutByRegion = workflow.each([
   (wf, row) => wf
     .setup(async () => ({ region: row.region, currency: row.currency }))
     .call("quote", quote.case("success"), {
-      in: (s) => ({ query: { region: s.region } }),
+      in: (s) => ({ region: s.region }),
     }),
 );
 ```
@@ -286,7 +308,7 @@ const { http: api } = configure({
 export const orderLifecycle = workflow("order-lifecycle")
   .setup(async (ctx) => ({ tenantId: ctx.vars.require("TENANT_ID") }))
   .call("create-order", createOrder.case("success"), {
-    in: (s) => ({ body: { tenantId: s.tenantId } }),
+    in: (s) => ({ tenantId: s.tenantId }),
     out: (s, res) => ({ ...s, orderId: res.body.id as string }),
   })
   .teardown(async (ctx, s) => {

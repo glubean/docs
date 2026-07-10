@@ -109,7 +109,8 @@ Per-case `client` is still allowed and overrides the instance's client. `client`
 | `body` | object / fn / FormData / URLSearchParams | No | Request body. Can be a function of logical input: `(input) => ({...})` |
 | `contentType` | `string` | No | Override request body serialization (default: `"application/json"`) |
 | `headers` | object / fn | No | Request headers. Can be a function of logical input |
-| `params` | `Record<string, ParamValue>` | No | URL path parameters |
+| `pathParams` | `Record<string, ParamValue>` / fn | No | URL **path** parameters — fill the endpoint's `:key` segments. Can be a function of logical input |
+| `params` | — | No | **Deprecated alias** of `pathParams` (same type, same behavior). Setting both on one case is a construction-time error |
 | `query` | `Record<string, ParamValue>` | No | Query string parameters |
 | `client` | HTTP client | No | Override instance's client (useful for auth testing) |
 | `verify` | fn | No | Custom assertions after response: `async (ctx, response) => void` |
@@ -157,7 +158,7 @@ export const getUser = userApi("get-user", {
   cases: {
     found: {
       description: "Returns full user profile by ID",
-      params: { id: "user-123" },
+      pathParams: { id: "user-123" },
       expect: { status: 200, schema: UserSchema },
     },
   },
@@ -240,7 +241,7 @@ cases: {
 
 ## Logical input with `defineHttpCase`
 
-Use `defineHttpCase<Needs>()` when a case declares `needs` and has function-valued action fields. It type-locks `needs` to `body`, `headers`, `params`, and `query`.
+Use `defineHttpCase<Needs>()` when a case declares `needs` and has function-valued action fields. It type-locks `needs` to `body`, `headers`, `pathParams`, and `query`.
 
 ```typescript
 import { defineHttpCase } from "@glubean/sdk";
@@ -373,7 +374,7 @@ success: {
 notFound: {
   description: "Unknown product returns 404",
   severity: "info",  // informational — doesn't need alert
-  params: { id: "99999" },
+  pathParams: { id: "99999" },
   expect: { status: 404 },
 },
 ```
@@ -392,19 +393,19 @@ export const deleteUser = userApi("delete-user", {
   cases: {
     success: {
       description: "Admin can delete a user",
-      params: { id: "user-123" },
+      pathParams: { id: "user-123" },
       expect: { status: 204 },
     },
     forbidden: {
       description: "Regular user cannot delete others",
       client: api,  // overrides the admin client from the instance
-      params: { id: "user-123" },
+      pathParams: { id: "user-123" },
       expect: { status: 403 },
     },
     unauthenticated: {
       description: "Anonymous access is rejected",
       client: publicHttp,  // case-level override to public client
-      params: { id: "user-123" },
+      pathParams: { id: "user-123" },
       expect: { status: 401 },
     },
   },
@@ -413,12 +414,12 @@ export const deleteUser = userApi("delete-user", {
 
 ## Parameter schemas
 
-By default `params` and `query` accept `Record<string, string>` — simple key/value. When you need the OpenAPI spec to show the parameter's type (UUID, enum, etc.), use the `ParamValue` object form:
+By default `pathParams` and `query` accept `Record<string, string>` — simple key/value. When you need the OpenAPI spec to show the parameter's type (UUID, enum, etc.), use the `ParamValue` object form:
 
 ```typescript
 success: {
   description: "Fetches user by UUID",
-  params: {
+  pathParams: {
     // String shorthand — no schema in OpenAPI output (defaults to string)
     tenantId: "t_42",
     // Object form — schema and description flow to OpenAPI
