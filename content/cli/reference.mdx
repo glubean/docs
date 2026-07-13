@@ -34,10 +34,12 @@ generate real traffic. Uploaded load runs surface under
 [Benchmarks](/cloud/benchmarks). Thresholds (the pass/fail SLA gate) are
 declared in the `loadRunner(...)`; see [Load Testing](/sdk/load-testing).
 
-`glubean load` uses the dedicated load runner and selects files by explicit
-target (`file`, `dir`, or glob). It does **not** resolve `glubean.yaml` profiles
-for selection; if you need a repeatable profile-like command, put the exact
-`glubean load ...` invocation in `package.json` or CI.
+`glubean load` uses the dedicated load runner. Select files ad hoc by explicit
+target (`file`, `dir`, or glob), or repeatably through `glubean.yaml`: declare
+named plans under the top-level `load:` block, list them in a profile's
+`load.plans`, then run `glubean load --profile <name>` (narrow to one plan with
+`--plan <name>`). The profile's `envFile` and `upload` directive apply, same as
+`glubean run --profile`.
 
 ## Project setup
 
@@ -171,7 +173,9 @@ select with `--profile`). `glubean init` scaffolds one.
 - `glubean run` (no `--profile`) uses `local`; `glubean ci run` uses `ci`.
 - Run a specific profile with `glubean run --profile <name>`, or narrow a
   multi-suite profile to one suite with `--suite <name>`.
-- Load plans are selected by `glubean load [target]`, not by `profiles`.
+- Load plans run by explicit target (`glubean load [target]`) or by profile
+  (`glubean load --profile <name>`, plans declared under the top-level `load:`
+  block and listed in the profile's `load.plans`).
 - Load an alternate config with `--config ./path/to/glubean.yaml`.
 
 See **[Configuration (`glubean.yaml`)](/cli/config)** for the complete schema —

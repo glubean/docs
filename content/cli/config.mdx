@@ -3,8 +3,9 @@
 `glubean.yaml` at the project root is the canonical config. It declares
 **suites** (where runnable files live) and **profiles** (named run plans you
 select with `--profile`), plus shared **defaults**. Profiles select `test`,
-`contract`, and `flow` suites for `glubean run` / `glubean ci run`.
-Load plans are selected by `glubean load [target]` instead of profiles.
+`contract`, and `flow` suites for `glubean run` / `glubean ci run`, and can
+also select named **load plans** (a top-level `load:` block) for
+`glubean load --profile`.
 `glubean init` scaffolds one. Load an alternate file with
 `--config ./path/to/glubean.yaml` where the command supports it.
 
@@ -75,6 +76,17 @@ profiles:
 
   explore:
     suites: [explore]
+
+  # `glubean load --profile perf`. A load-only profile needs no suites.
+  perf:
+    load: { plans: [shop] }
+    envFile: .env.staging
+    upload: { enabled: true, targetId: tgt_abc123 }
+
+# Named load plans referenced by profiles' `load.plans`.
+load:
+  plans:
+    shop: { target: tests/load/shop.load.ts }
 ```
 
 ## Top level
@@ -85,6 +97,7 @@ profiles:
 | `defaults` | Settings inherited by every profile (overridable per profile). |
 | `suites` | Map of suite name → `{ target, kinds, data }`. |
 | `profiles` | Map of profile name → run plan. |
+| `load` | Named load plans (`load.plans.<name> → { target }`) referenced by profiles' `load.plans`. |
 | `mcp` | MCP server options — `mcp.trace.{keepRequestHeaders, keepResponseHeaders}`. |
 
 ## `suites`
@@ -108,12 +121,14 @@ falls back to `defaults`.
 
 For load testing, keep the traffic shape (virtual-user concurrency, duration,
 mix, and thresholds) in exported `loadRunner(...)` plans inside `*.load.ts`
-files, then run them with `glubean load [file|dir|glob]`. `glubean.yaml`
-profiles do not select load plans in the current CLI.
+files. Run them ad hoc with `glubean load [file|dir|glob]`, or declare named
+plans in the top-level [`load:` block](#load--named-load-plans) and select them
+per profile with `load.plans` for `glubean load --profile <name>`.
 
 | Key | Meaning |
 |---|---|
 | `suites` | List of suite names this profile runs. Narrow to one at run time with `--suite <name>`. |
+| `load.plans` | List of top-level `load.plans` names this profile runs under `glubean load --profile <name>`. Narrow to one with `--plan <name>`. A load-only profile may omit `suites`. |
 | `selection` | Filter which runnables execute (see below). |
 | `execution` | How they run (see below). |
 | `capabilities` | Opt-in gates for runnables that need extra setup (see below). |
@@ -198,3 +213,33 @@ Cloud upload, per profile. Secrets stay out of this file.
 
 See [Upload to Cloud](/getting-started/upload-to-cloud) and
 [Tokens](/cloud/tokens) for the project-ID / token resolution order.
+
+## `load` — named load plans
+
+Load plans are deliberately **not** a suite kind — load has its own execution
+model and artifact. Declare each plan under the top-level `load:` block, then
+reference plans by name from a profile's `load.plans`:
+
+```yaml
+load:
+  plans:
+    shop:   { target: tests/load/shop.load.ts }
+    search: { target: tests/load/search.load.ts }
+
+profiles:
+  perf:
+    load: { plans: [shop, search] }
+    envFile: .env.staging
+    upload: { enabled: true, targetId: tgt_abc123 }
+```
+
+| Key | Meaning |
+|---|---|
+| `plans.<name>.target` | File/dir/glob (typically one `.load.ts` module) this plan runs. |
+
+`glubean load --profile perf` runs every listed plan (overlapping targets are
+deduped); `--plan <name>` narrows to one. The profile's `envFile` and `upload`
+directive apply exactly as they do for `glubean run --profile`. The traffic
+shape itself (concurrency, duration, thresholds) always lives in the
+`loadRunner(...)` inside the `.load.ts` file — see
+[Load Testing](/sdk/load-testing).

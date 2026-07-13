@@ -1,8 +1,27 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # Load Testing
 
 Glubean runs **load tests** — concurrent, sustained traffic against an API to measure latency percentiles, throughput, and error rate under pressure — as a first-class primitive alongside `test`, `contract`, and `workflow`. Load plans live in `*.load.ts` files, import from `@glubean/sdk/load`, run with `glubean load`, and upload as `kind=load` runs that produce a rich load artifact (per-endpoint/step breakdown, latency distribution, timeline, threshold pass/fail, bounded failure samples).
 
 This is distinct from recording a single-request [metric](/sdk/test/observability) inside a functional test. Load testing measures **aggregate behavior under concurrency**, not one request in isolation.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Start from zero",
+      text: "Use the Glubean skill and write a load test for «my API endpoint or OpenAPI spec» — 25 virtual users for 20s, with p95 and error-rate thresholds. Run it and walk me through the report.",
+    },
+    {
+      intent: "Async API",
+      text: "My «submit» endpoint is async (202 + poll). Restructure its load test around primaryComplete with releaseProducerSlot, and gate the primary and endToEnd phases separately.",
+    },
+    {
+      intent: "Compare implementations",
+      text: "Set up the same load plan against «two deployments or implementations» as separate targets, so I can compare them in Cloud Benchmarks.",
+    },
+  ]}
+/>
 
 ## When to reach for it
 
@@ -247,6 +266,8 @@ export const regionLoad = loadRunner.each(REGIONS)("region-{region}", (row) => (
 
 ## Run & upload
 
+Ad hoc, by explicit target (`file`, `dir`, or glob):
+
 ```bash
 glubean load                             # Discover and run *.load.ts under the project
 glubean load tests/load/shop.load.ts     # Run one plan ad hoc
@@ -255,21 +276,40 @@ glubean load tests/load/ --upload        # Upload each completed load artifact
 glubean load tests/load/ --upload-target tgt_abc   # Override the upload target
 ```
 
-`glubean load` selects plans by explicit target (`file`, `dir`, or glob). It
-does **not** resolve `glubean.yaml` profiles for load selection in the current
-CLI. The `loadRunner(...)` owns virtual-user concurrency, duration, traffic mix,
-thresholds, and the emitted `LoadArtifact`; the CLI flags own environment and
-upload destination.
+Or repeatably, through `glubean.yaml` **profiles**. Declare named plans in a
+top-level `load:` block and reference them from a profile:
 
-For repeated local or CI use, create a script with the exact command you want:
+```yaml
+load:
+  plans:
+    shop:   { target: tests/load/shop.load.ts }
+    search: { target: tests/load/search.load.ts }
 
-```json
-{
-  "scripts": {
-    "load:perf": "glubean load tests/load --env-file .env.staging --upload"
-  }
-}
+profiles:
+  perf:
+    load: { plans: [shop, search] }      # a load-only profile needs no suites
+    envFile: .env.staging
+    upload:
+      enabled: true                      # auto-upload, no --upload flag needed
+      projectId: prj_abc123
+      targetId: tgt_abc123
+      tokenEnv: GLUBEAN_TOKEN_STAGING
 ```
+
+```bash
+glubean load --profile perf              # Run every plan in the profile
+glubean load --profile perf --plan shop  # Narrow to one named plan
+```
+
+The profile carries `envFile` and the `upload` directive (destination project /
+target / token env var), same as `glubean run --profile`; explicit CLI flags
+still override. Overlapping plan targets are deduped, so a file matched by two
+plans runs once.
+
+Division of labor: the `loadRunner(...)` owns the traffic shape — virtual-user
+concurrency, duration, mix, thresholds, and the emitted `LoadArtifact`.
+`glubean.yaml` owns which plans a profile runs and where their evidence goes.
+CLI flags override per invocation.
 
 See the [CLI Reference](/cli/reference) for command flags and [Upload Your First Run](/getting-started/upload-to-cloud) for auth/upload setup.
 

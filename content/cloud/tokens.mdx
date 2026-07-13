@@ -152,10 +152,10 @@ A token is a secret — it **never** lives in a committed file, and there is no
 3. `GLUBEAN_TARGET_ID` (env var or `.env`)
 4. The project's default target
 
-Profile upload fields apply to `glubean run --profile <name>` and
-`glubean ci run`. `glubean load ... --upload` does not resolve a profile, so it
-uses flags, env/env-file values, saved credentials, and the project default
-target instead.
+Profile upload fields apply to `glubean run --profile <name>`, `glubean ci run`,
+and `glubean load --profile <name>`. A bare `glubean load <target> --upload`
+(no `--profile`) does not resolve a profile, so it uses flags, env/env-file
+values, saved credentials, and the project default target instead.
 
 When a profile declares `upload.tokenEnv`, that env var is exclusive after an
 explicit `--token`; the CLI does not silently fall back to `GLUBEAN_TOKEN`.
