@@ -52,7 +52,7 @@ A load step's `ctx` is a **LoadContext**, not the full `TestContext` from a func
 
 **Kept:** `http`, `vars`, `secrets`, `session`, `expect`, `assert`, `skip`, `fail`, `log`, `warn`, `pollUntil`, `setTimeout`.
 
-**Added for load:** `input` (per-iteration input from feeders), `iteration` (`{ id, index }`), `producerSlot` (`{ id, index }`), `now()`, `report` (checkpoint / primaryComplete), and `metrics` (custom metric handles declared on the runner).
+**Added for load:** `input` (per-iteration input from feeders), `iteration` (`{ id, index }`), `producerSlot` (`{ id, index }`), `now()`, `report` (`checkpoint` / [`primaryComplete`](#async-workloads--primarycomplete-and-the-continuation-phase)), and `metrics` (custom metric handles declared on the runner).
 
 **Removed:** `validate`, `trace`, `metric`, `action`, `event`, `getMemoryUsage`, `retryCount` — these don't fit concurrent load. Use a functional test if you need `ctx.metric()` for a custom business metric.
 
@@ -69,7 +69,7 @@ A load step's `ctx` is a **LoadContext**, not the full `TestContext` from a func
 | `pacing.thinkTime` | Delay between steps (`"100ms"` or a distribution) |
 | `thresholds` | Pass/fail gates (see below) |
 | `metrics` | Custom metric declarations (`rate`, `trend`, `counter`) exposed as `ctx.metrics.*` |
-| `continuation` | Backlog controls for async continuation workloads after `ctx.report.primaryComplete()` |
+| `continuation` | Backlog bounds for async workloads that release producer slots — see [`primaryComplete`](#async-workloads--primarycomplete-and-the-continuation-phase) |
 | `report` | Bounded sample caps: `failureTraces`, `slowTransactionSummaries` |
 | `assertions.onFailure` | `"continue"` \| `"skipRemainingSteps"` \| `"abortIteration"` |
 | `abort` | `"precise"` (default) \| `"coarse"` — how a run abort reaches in-flight requests |
@@ -89,6 +89,72 @@ thresholds: {
 Expressions are comparison strings: `"<400ms"`, `"<5%"`, `">500"`. Each evaluated threshold lands in the artifact's `summary.thresholds[]` with its `actual` value and `pass` verdict.
 
 > A threshold-failed load run is still valid data. Failing a p95 gate turns the run red, but the numbers it measured are real and comparable — [Performance](/cloud/performance) reads it like any other completed run.
+
+Async scenarios that declare a primary/continuation boundary get three more scopes — `primary`, `endToEnd`, and `continuation` — explained next.
+
+## Async workloads — `primaryComplete` and the continuation phase
+
+By default a load run is a **closed loop**: each of the `concurrency` producer slots runs iterations back-to-back, and a slot only starts its next iteration when the previous one finishes. For request/response APIs that's the right model — but for **async APIs** (submit a job, get a `202`, poll until the result is ready) it silently breaks in two ways:
+
+1. **One number conflates two different SLAs.** The iteration's latency is the submit *plus* the whole poll wait, so `p95` measures the backend job's end-to-end time — not the submit endpoint's latency under pressure. You can't gate the two separately.
+2. **The test under-pressures the system.** While a slot sits in a poll loop, it generates no new ingress. The slower the backend drains jobs, the *less* submit traffic the run produces — pressure adapts to the system instead of stressing it, which inverts what a load test is for. (The runtime detects this shape — a long poll with no declared boundary — and emits a `summary.advisories[]` warning.)
+
+`ctx.report.primaryComplete(id)` fixes both. It declares the **measurement boundary** between the *primary phase* (the load you're actually pushing — the submit) and the *continuation phase* (everything after — typically the poll-for-result loop):
+
+```typescript
+const jobScenario = loadScenario("async-job")
+  .step("submit and await", async (ctx) => {
+    const res = await ctx.http.post("jobs", { json: { kind: "export" } });
+    ctx.expect(res).toHaveStatus(202);
+    const { id } = await res.json<{ id: string }>();
+
+    // Primary load delivered — split the metrics here, and free this slot
+    // to submit the next job while this iteration keeps polling.
+    await ctx.report.primaryComplete("submitted", { releaseProducerSlot: true });
+
+    await ctx.pollUntil({ timeoutMs: 30_000, intervalMs: 500 }, async () => {
+      const status = await ctx.http.get(`jobs/${id}`, {
+        context: { glubeanRoute: "GET /jobs/:id" },
+      });
+      return (await status.json<{ done: boolean }>()).done;
+    });
+  });
+```
+
+It has two effects, deliberately separable:
+
+**1. Metric split — always.** From the first `primaryComplete` in an iteration, the runtime tags every request, assertion, and step with `phase: "primary" | "continuation"` (this is a runtime switch, not a user tag). The artifact then reports `summary.primary` (producer side: submit throughput and latency) and `summary.endToEnd` (the full logical iteration) separately, and thresholds gain matching scopes:
+
+```typescript
+thresholds: {
+  primary:      { p95: "<150ms", throughputPerSec: ">200" },  // the ingest SLA
+  endToEnd:     { p95: "<30000ms", errorRate: "<1%" },        // the job SLA
+  continuation: { backlog: "<500", backpressureMs: "<1000" }, // test-health gate
+}
+```
+
+**2. Slot release — opt-in.** Pass `releaseProducerSlot: true` to also free the producer slot immediately: the runner back-fills a new primary iteration on that slot while the continuation finishes in the background. This turns the closed loop into a **bounded-open** model — submit pressure stays constant even when completions are slow, which is exactly the regime where an async system saturates.
+
+"Bounded" is enforced by the runner's `continuation` config. Without a bound, a backend that stops completing jobs would accumulate unbounded in-flight polls:
+
+| Key | Meaning |
+|-----|---------|
+| `maxOutstanding` | Max continuations in flight; unset = unbounded |
+| `onBacklogFull` | `"block-producer"` (default): `primaryComplete` awaits until the backlog frees, so ingress self-throttles to the drain rate. `"fail-iteration"`: the iteration fails with `errorKind: "continuationBacklogFull"` |
+| `drainTimeout` | Cap on how long a blocked producer may park before its iteration is cancelled |
+| `minPollInterval` | Floor for continuation poll cadence |
+
+This is also why `primaryComplete` must always be **awaited**: under `block-producer` with a full backlog, it *is* the backpressure point. It resolves with a receipt — `{ measuredPrimaryComplete, releasedProducerSlot, duplicate, backpressureMs }` — and duplicate calls within one iteration are ignored for scheduling (the first one wins).
+
+When producer release is used, the artifact adds `summary.continuation` (backlog peak, queue wait and backpressure percentiles, release coverage) so a red run can be attributed: was the system slow, or was the test starving itself?
+
+Rules of thumb:
+
+- **Request/response scenario** — don't call it. The closed loop and plain `transaction` thresholds are the correct model.
+- **Async scenario, you care about end-to-end time** — call `primaryComplete` *without* release: you get the metric split; scheduling stays closed.
+- **Async scenario, you're asking a capacity/saturation question** — release the slot and set `continuation.maxOutstanding`, so ingress pressure stays constant and bounded.
+
+(`ctx.report.checkpoint(id)` is the boring sibling: pure report attribution, no effect on phases or scheduling.)
 
 ## Stable endpoint keys
 
