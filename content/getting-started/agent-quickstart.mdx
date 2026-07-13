@@ -1,0 +1,109 @@
+# Start with an Agent
+
+The fastest way to use Glubean is to let your coding agent do the work. Install
+the Glubean skill once, then just tell the agent what you want — it knows the
+patterns, the CLI, and the pitfalls.
+
+**You don't need to memorize anything on this page.** When in doubt, ask the
+agent directly: "How do I run only the smoke tests?", "Why did this upload
+fail?", "What's a contract case?" — the skill answers from the current docs.
+
+## 1. Install the skill
+
+```bash
+npx skills add glubean/skill   # the agent learns Glubean patterns
+npx glubean config mcp         # the agent can run tests and read results
+```
+
+Works with Claude Code, Cursor, Codex, Copilot, Gemini CLI, Windsurf, and 40+
+other agents.
+
+**Recommended: add the VS Code extension** (also works in Cursor and Windsurf)
+for the best experience:
+
+```text
+ext install glubean.glubean
+```
+
+You get a play button above every test and contract case — click to run, click
+a failure to debug it with the full trace, response, and schema inline. The
+agent writes; you watch it pass (or see exactly why it didn't) without leaving
+the editor.
+
+## 2. No API yet? Design contracts first, then generate the code
+
+Describe the API you want to your agent:
+
+```text
+"I need a users API with CRUD — design the contracts before we implement it."
+```
+
+The agent will ask what's unclear (auth, response shapes, error cases — it
+doesn't guess), then write executable contracts in `contracts/`. Review them:
+each case is a plain-language promise about one endpoint.
+
+Once you confirm the contracts, tell the agent to implement:
+
+```text
+"Contracts look good — implement the API and run until everything is green."
+```
+
+The rule from here: **fix the implementation, not the confirmed contracts.**
+When the run is green, the same contracts are your regression suite — nothing
+to rewrite.
+
+## 3. Already have an API? Backfill contracts from the codebase
+
+In a repo that already serves endpoints, tell the agent:
+
+```text
+"Read my API and write contracts for it."
+```
+
+Also works from existing assets:
+
+```text
+"Migrate our Postman collection into Glubean contracts."
+"Generate contracts from this OpenAPI spec."
+```
+
+The agent reads the routes, confirms auth with you before configuring it,
+writes the contracts, runs them against the real API, and iterates until green.
+
+## 4. Upload to Cloud
+
+Local green is good; shared evidence is better. Cloud turns your contracts into
+a reviewable API surface — specs, run history, and failure evidence your team
+can open in a browser.
+
+1. In the Glubean Cloud dashboard, open **Settings → Tokens** and create a
+   scoped token with the `runs:write` scope (it starts with `glb_` and is shown
+   once).
+2. Put it in `.env.secrets` (gitignored), and the project/target IDs in `.env`:
+
+   ```bash
+   # .env.secrets — never committed
+   GLUBEAN_TOKEN=glb_...
+   ```
+
+   ```dotenv
+   # .env — committed
+   GLUBEAN_PROJECT_ID=prj_...
+   GLUBEAN_TARGET_ID=tgt_...
+   ```
+
+3. Tell the agent — or run it yourself:
+
+   ```bash
+   npx glubean run --upload
+   ```
+
+The CLI prints a Cloud URL; open it to see the run, per-test evidence, and your
+contract specs.
+
+## Stuck? Ask the skill
+
+Anything this page doesn't cover, ask the agent in plain words — "set up CI",
+"add load testing", "switch to the staging environment", "why is this case
+failing". The skill routes your question to the right workflow. That's the
+point: the agent carries the manual so you don't have to.
