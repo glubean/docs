@@ -1,6 +1,17 @@
+import { AskAgent } from "../../../components/ask-agent";
+
 # Local Data
 
 Use this page when teammates need personal test data without merge conflicts.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Personal overrides",
+      text: "Set up local overrides so I can point «these tests» at my personal environment and data without touching any committed file.",
+    },
+  ]}
+/>
 
 ## The two recommended patterns
 

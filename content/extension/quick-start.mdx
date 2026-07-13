@@ -3,11 +3,22 @@ title: Quick Start
 description: From zero to a running API test in under a minute.
 ---
 
+import { AskAgent } from "../../components/ask-agent";
+
 # Quick Start
 
 This is the VS Code extension path. For the default product setup, start with
 [Start Here](/getting-started): install the Glubean skill first, then let your
 IDE agent set up or reuse a verification project.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Zero to running",
+      text: "Use the Glubean skill and take me from zero to a running check in this workspace — set up the project so I can use the extension's play buttons.",
+    },
+  ]}
+/>
 
 ## Prerequisites
 

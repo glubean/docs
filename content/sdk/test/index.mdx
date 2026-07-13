@@ -1,3 +1,5 @@
+import { AskAgent } from "../../../components/ask-agent";
+
 # test() API
 
 Use `test()` when you need raw TypeScript without the structure that contracts
@@ -7,6 +9,19 @@ Contracts are built on the same runner and evidence model as `test()`, so this
 is not a lesser API. It is the imperative surface for setup-heavy checks,
 diagnostics, custom polling, unusual flows, or behavior that should not become a
 projected contract.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Write a check",
+      text: "Use the Glubean skill and write a raw test() for «behavior that doesn't fit a contract», using a shared configure() client. Run it.",
+    },
+    {
+      intent: "Contract or test?",
+      text: "Should «this check» be a contract case or a raw test()? Decide, explain the trade-off in one paragraph, and write it.",
+    },
+  ]}
+/>
 
 ## Simple test
 

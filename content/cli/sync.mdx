@@ -1,3 +1,5 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # Sync Projections
 
 Use `glubean sync` when you want Cloud **Specifications** to reflect the current
@@ -13,6 +15,19 @@ This is different from `glubean run --upload`:
 
 Most teams use both: run/upload proves behavior against a Target, while sync
 keeps the project-level API model readable even before someone opens a run.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Sync now",
+      text: "Run glubean sync for this repo and confirm the Cloud Specifications now match the current contracts and workflows.",
+    },
+    {
+      intent: "Sync or upload?",
+      text: "I just changed «contracts / test logic / load plans». Decide whether that calls for sync, run --upload, or both — and do it.",
+    },
+  ]}
+/>
 
 ## Basic usage
 

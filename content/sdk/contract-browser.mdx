@@ -1,9 +1,24 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # Contract Browser
 
 Use `contract.browser.with()` to declare a **browser journey** — a login flow, a
 checkout, a dashboard render — as a named, declarative contract. One journey spec
 is consumed two ways: the runner can **replay** it and judge it authoritatively,
 or an agent can **self-QA** against it and file an attested report.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Declare a journey",
+      text: "Use the Glubean skill and declare «log in and land on the dashboard» as a contract.browser journey, then replay it with glubean run.",
+    },
+    {
+      intent: "Link UI to API",
+      text: "Add expect.calls to my «checkout» journey so it asserts the UI actually hit the contract.http case behind it.",
+    },
+  ]}
+/>
 
 ## When to use
 

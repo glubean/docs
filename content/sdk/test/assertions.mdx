@@ -1,6 +1,21 @@
+import { AskAgent } from "../../../components/ask-agent";
+
 # Assertions
 
 Glubean gives you four verification tools with different failure behavior.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Pick the right tool",
+      text: "Review «my checks» and pick the right tool per assertion — soft expect, .orFail(), assert, or validate — and explain each failure-behavior choice.",
+    },
+    {
+      intent: "Schema-validate",
+      text: "Add ctx.validate with a Zod schema for «this response» so shape drift fails the check with a structured diff.",
+    },
+  ]}
+/>
 
 ## `ctx.expect`
 

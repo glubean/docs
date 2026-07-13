@@ -1,6 +1,21 @@
+import { AskAgent } from "../../../components/ask-agent";
+
 # Logs, Traces, Metrics
 
 Use these APIs when a pass or fail result alone does not explain enough.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Explain the run",
+      text: "My run is green but the evidence doesn't tell me what happened — add logs, actions, and metrics to «this check» so the report explains itself.",
+    },
+    {
+      intent: "Business metric",
+      text: "Record «a business metric, e.g. time-to-first-result» during this test and make it visible in the run report.",
+    },
+  ]}
+/>
 
 ## `ctx.log()`
 

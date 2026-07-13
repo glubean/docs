@@ -1,6 +1,21 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # Debugging
 
 Use the CLI when you want a repeatable terminal-first debug loop.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Triage a failure",
+      text: "«This file» is failing — run it with --verbose, narrow to the failing check, and tell me whether the API or the test is wrong.",
+    },
+    {
+      intent: "Flaky",
+      text: "«This check» fails intermittently — rerun it in a loop, capture the failing traces, and diagnose the pattern.",
+    },
+  ]}
+/>
 
 ## Start with one failing file
 

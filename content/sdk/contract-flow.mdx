@@ -1,8 +1,23 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # Workflow
 
 Use `workflow()` to verify business lifecycles across multiple contract cases — register then login, create then read then delete, request an export then poll until it is ready.
 
 `workflow()` is the current lifecycle API. The old `contract.flow()` API has been **removed** — use `workflow()` instead.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Model a lifecycle",
+      text: "Use the Glubean skill and model «register → login → get profile» as a workflow() over my existing contract cases, then run it.",
+    },
+    {
+      intent: "Async flow",
+      text: "My «export» flow is async — compose a workflow that requests it, then polls the status case until it is ready, with a sensible bound.",
+    },
+  ]}
+/>
 
 ## When to use
 

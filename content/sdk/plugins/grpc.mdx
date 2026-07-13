@@ -1,3 +1,5 @@
+import { AskAgent } from "../../../components/ask-agent";
+
 # gRPC Plugin (`@glubean/grpc`)
 
 `@glubean/grpc` is a first-party gRPC client plugin for Glubean.
@@ -5,6 +7,15 @@
 > **Status:** Experimental (pre-1.0). API may evolve. This page covers setup
 > and the configure-mode client; see the package types for the full contract
 > and matcher surface.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "First gRPC check",
+      text: "Set up @glubean/grpc against «my proto / service» and write a check for «one RPC», including a failing-status case.",
+    },
+  ]}
+/>
 
 ## Install
 

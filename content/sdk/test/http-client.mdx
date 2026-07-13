@@ -1,3 +1,5 @@
+import { AskAgent } from "../../../components/ask-agent";
+
 # HTTP Requests
 
 Glubean's HTTP client is a thin wrapper around [ky](https://github.com/sindresorhus/ky) — a popular, well-tested HTTP client for Node.js. **All ky APIs are available** (retry, timeout, hooks, searchParams, json, etc.). Glubean adds automatic tracing, metrics, and schema validation on top.
@@ -6,6 +8,19 @@ In real projects, prefer creating shared clients with [`configure()`](/sdk/confi
 and importing those clients into tests, contracts, and workflows. `ctx.http`
 still exists as the raw per-test client, and it is useful for scratch probes or
 when a custom client factory needs access to the runtime HTTP layer.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Convert",
+      text: "Convert «this fetch/axios/ky snippet» to the Glubean client so it gets tracing, metrics, and schema validation for free.",
+    },
+    {
+      intent: "Harden",
+      text: "Wire retry, timeout, and hooks into my shared client for «my flaky dependency», and show me what the trace evidence looks like on a retry.",
+    },
+  ]}
+/>
 
 Three differences from vanilla ky:
 

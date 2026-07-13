@@ -1,11 +1,22 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # Run Your First Check
 
 Use this page for the **Human/manual** lane. If you are working agent-first,
-the shorter path is to ask your IDE agent:
+the shorter path is to hand one of these to your IDE agent:
 
-```text
-Use the Glubean skill and add the first runnable API behavior check.
-```
+<AskAgent
+  prompts={[
+    {
+      intent: "First check",
+      text: "Use the Glubean skill and add the first runnable API behavior check for «my API», run it, and show me the result.",
+    },
+    {
+      intent: "From something I have",
+      text: "Turn «this curl command / endpoint / OpenAPI operation» into a contract case with a response schema, and run it.",
+    },
+  ]}
+/>
 
 The goal is not to hand-install the SDK or runner. The Glubean CLI creates a
 runnable verification project, and the template brings the local dependencies it

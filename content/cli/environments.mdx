@@ -1,6 +1,21 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # Environments & Secrets
 
 glubean splits environment data into two files by design: public vars and private secrets.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Set up env files",
+      text: "Set up .env / .env.secrets for this project (plus «staging» variants), move existing credentials into the right file, and gitignore the secrets.",
+    },
+    {
+      intent: "New environment",
+      text: "Add a «staging» environment and show me how to run the whole suite against it without changing any test.",
+    },
+  ]}
+/>
 
 ## File model
 

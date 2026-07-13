@@ -1,3 +1,5 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # Upload Your First Run
 
 Use this page when local checks already work and you want shared evidence in
@@ -11,6 +13,19 @@ links, and agent explanations from the same source.
 If you want Cloud **Specifications** to update from the current source model
 without waiting for a run, use [`glubean sync`](/cli/sync). Sync publishes
 project-level projections; upload publishes target-level execution evidence.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Wire it up",
+      text: "Set up Cloud upload for this project: help me create and store the token, pick a target, run npx glubean run --upload, and confirm the run landed.",
+    },
+    {
+      intent: "Before I turn it on",
+      text: "Explain exactly what leaves my machine when I upload a run, and how redaction applies to «my sensitive fields».",
+    },
+  ]}
+/>
 
 ## Before you start
 

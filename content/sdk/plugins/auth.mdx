@@ -1,8 +1,23 @@
+import { AskAgent } from "../../../components/ask-agent";
+
 # Auth Helpers (`@glubean/auth`)
 
 `@glubean/auth` provides first-party authentication helpers for common API verification scenarios. It is not an `installPlugin(...)` manifest package; use its helpers directly in `configure()` or `test().use(...)`.
 
 > **Status:** Experimental (pre-1.0). API may evolve.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Wire auth once",
+      text: "Set up @glubean/auth for «my auth scheme — OAuth2 / API key / bearer» in configure() so every check authenticates the same way, with the credential in secrets.",
+    },
+    {
+      intent: "Token lifecycle",
+      text: "My token expires mid-run — wire refresh handling into the shared client and prove it with a check that outlives one token.",
+    },
+  ]}
+/>
 
 ## Install
 

@@ -1,4 +1,19 @@
+import { AskAgent } from "../../../components/ask-agent";
+
 # Data-Driven Testing
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Split code from data",
+      text: "Split «my hardcoded test» into one verification function plus a JSON/YAML data file of cases, and run the matrix.",
+    },
+    {
+      intent: "Grow the cases",
+      text: "Add edge cases to «this data file» — boundary values, invalid inputs, auth failures — without touching the verification code.",
+    },
+  ]}
+/>
 
 ## Why separate code from data?
 

@@ -3,9 +3,20 @@ title: Writing Tests
 description: Snippets, CodeLens buttons, data-driven patterns, and project structure.
 ---
 
+import { AskAgent } from "../../components/ask-agent";
+
 # Writing Tests
 
 The extension provides in-editor tools that make writing tests faster: code snippets, CodeLens buttons, and full support for data-driven patterns.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Scaffold",
+      text: "Scaffold a data-driven test() file for «my endpoint» following this project's structure, ready for the extension's CodeLens runs.",
+    },
+  ]}
+/>
 
 This page is about the extension's raw `test()` authoring surface. For durable
 API behavior that should become specs, docs, reports, and agent context, start

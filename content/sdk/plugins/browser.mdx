@@ -1,8 +1,23 @@
+import { AskAgent } from "../../../components/ask-agent";
+
 # Browser Testing
 
 Glubean supports browser automation through the `@glubean/browser` plugin, powered
 by [puppeteer-core](https://pptr.dev). It brings Glubean's observability layer —
 traces, metrics, console forwarding, and auto-screenshots — to browser testing.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "First browser check",
+      text: "Add @glubean/browser and write a check that «opens my app and verifies a page renders», with auto-screenshots and console forwarding on.",
+    },
+    {
+      intent: "Raw test or journey?",
+      text: "For «this UI flow», decide between a raw browser test() and a declarative contract.browser journey, and scaffold the one that fits.",
+    },
+  ]}
+/>
 
 ## Quick Setup
 

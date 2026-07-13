@@ -1,3 +1,5 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # CLI
 
 The `glubean` CLI is the command surface for the local runner. Use it for local
@@ -8,6 +10,19 @@ In a project, keep the authoring API and runner explicit:
 - `@glubean/sdk` — what tests, contracts, workflows, and load plans import.
 - `@glubean/runner` — what executes them and emits structured evidence.
 - `glubean` — the CLI wrapper you call from your terminal or CI.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Which command?",
+      text: "I want to «run only smoke checks / debug one file / upload evidence». Show me the right glubean command and run it.",
+    },
+    {
+      intent: "Scripts",
+      text: "Add package.json scripts for this project's common glubean commands — local run, CI run, filtered debug, upload — using the profiles in glubean.yaml.",
+    },
+  ]}
+/>
 
 ## Start
 

@@ -1,3 +1,5 @@
+import { AskAgent } from "../../../components/ask-agent";
+
 # Shared State
 
 Glubean provides two scopes for sharing runtime state between raw tests:
@@ -9,6 +11,15 @@ Use these deliberately. For durable business lifecycles, prefer
 the escape hatch when separate exported tests need to cooperate.
 
 Session scope is **per run**. It exists only for a single `glubean run` execution and is not persisted across runs.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Share setup properly",
+      text: "The tests in «this file» duplicate expensive setup — decide between module state, session state, or a test() builder with steps, and refactor.",
+    },
+  ]}
+/>
 
 ## Module scope — within a file
 

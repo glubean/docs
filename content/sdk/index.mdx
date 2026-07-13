@@ -1,3 +1,5 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # SDK & Plugins
 
 The SDK is the code authoring layer of Glubean.
@@ -5,6 +7,19 @@ The SDK is the code authoring layer of Glubean.
 Use it when API truth belongs in the repo: tests, contracts, workflows, browser
 checks, load plans, shared configuration, and plugins. The SDK produces the
 structured evidence that Targets and the webapp Agent read later.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Set up the SDK",
+      text: "Use the Glubean skill and set up the SDK in this repo — decide the project shape, install dependencies, and seed one contract, one workflow, and one raw test.",
+    },
+    {
+      intent: "Pick the right surface",
+      text: "I want to verify «this behavior». Decide which authoring surface fits — contract, workflow, raw test, browser journey, or load plan — and scaffold it.",
+    },
+  ]}
+/>
 
 The intended setup path is skill first:
 

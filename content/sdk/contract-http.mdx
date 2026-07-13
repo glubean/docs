@@ -1,6 +1,25 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # Contract HTTP
 
 Use `contract.http.with()` to declare endpoint behavior as named cases. Each case becomes a runnable test — no `test()` wrapper needed.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Start from zero",
+      text: "Use the Glubean skill and write a contract.http spec for «my endpoint» covering the success, validation-error, and auth-failure cases. Run it and show me the results.",
+    },
+    {
+      intent: "From something I have",
+      text: "Convert «this OpenAPI operation / curl / Postman request» into a contract case with a Zod response schema.",
+    },
+    {
+      intent: "Tighten",
+      text: "Review my contract for «endpoint» and tighten it: pin fields the API actually returns, add a needs schema, and cover the missing error cases.",
+    },
+  ]}
+/>
 
 ## When to use
 

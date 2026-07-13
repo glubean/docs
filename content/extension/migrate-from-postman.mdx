@@ -1,4 +1,5 @@
 import { Callout, Steps, Tabs } from 'nextra/components'
+import { AskAgent } from "../../components/ask-agent";
 
 # Migrate Existing API Assets into Glubean
 
@@ -15,6 +16,19 @@ The right workflow is:
 5. batch-convert from that pattern
 
 That works for Postman, Apifox, OpenAPI, `.http` files, cURL snippets, and legacy test code.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Migrate",
+      text: "Use the Glubean skill and migrate «my Postman collection / OpenAPI spec / .http files» — scan the assets, convert one representative pattern for my review, then batch-convert the rest.",
+    },
+    {
+      intent: "Small batch",
+      text: "Convert «these curl commands» into contract cases, keeping environment values as {{KEY}} placeholders instead of hardcoded hosts.",
+    },
+  ]}
+/>
 
 For stable API promises, migrate toward contracts and workflows when possible.
 Use raw `test()` for migration slices, custom setup, diagnostics, or behavior

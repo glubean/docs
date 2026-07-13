@@ -1,3 +1,5 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # Configuration
 
 Use `configure()` when several Glubean assets in one file need the same runtime
@@ -5,6 +7,19 @@ setup.
 
 This keeps repeated environment access, headers, and client wiring out of each
 individual contract, workflow, or raw `test()` check.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Shared client",
+      text: "Set up configure() for «my API» with the base URL from vars and auth from secrets, and show one check importing the shared client.",
+    },
+    {
+      intent: "Refactor",
+      text: "My test files each build their own HTTP setup — refactor them to share one configure() client with {{KEY}} placeholders.",
+    },
+  ]}
+/>
 
 ## File-level setup
 

@@ -1,4 +1,5 @@
 import { Callout } from 'nextra/components'
+import { AskAgent } from "../../components/ask-agent";
 
 # Generate with AI
 
@@ -12,6 +13,19 @@ source or the check.
 Most API tools were built for humans clicking buttons. AI agents cannot rely on
 that workflow. They need source files, stable project context, executable
 evidence, and machine-readable failures. Glubean is built around those surfaces.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Author",
+      text: "Use the Glubean skill and author «a contract / workflow / test» for my API, run it through MCP or the CLI, and iterate until it's green.",
+    },
+    {
+      intent: "Triage",
+      text: "Read the latest failed run and explain the root cause — then fix whichever is wrong, the source or the check.",
+    },
+  ]}
+/>
 
 **The AI closed-loop is already real today:**
 

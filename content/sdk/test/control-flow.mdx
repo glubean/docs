@@ -1,3 +1,5 @@
+import { AskAgent } from "../../../components/ask-agent";
+
 # Control Flow
 
 These APIs help when real systems are asynchronous, environment-specific, or occasionally flaky.
@@ -5,6 +7,19 @@ These APIs help when real systems are asynchronous, environment-specific, or occ
 Use this page for raw `test()` control flow. If the lifecycle is a durable API
 promise that should project into Specifications and agent context, model it
 with [`workflow()`](/sdk/contract-flow) instead.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "De-flake",
+      text: "My test for «an async operation» is flaky — restructure it with pollUntil and proper timeouts instead of sleeps and retries.",
+    },
+    {
+      intent: "Environment-aware",
+      text: "Add environment-specific skips to «these checks» so they only run where they make sense, and record the skip reason in the evidence.",
+    },
+  ]}
+/>
 
 The examples assume a shared HTTP client:
 

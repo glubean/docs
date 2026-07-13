@@ -1,8 +1,22 @@
 import { Tabs } from 'nextra/components'
+import { AskAgent } from "../../components/ask-agent";
 
 # Start Here
 
 Start with the setup lane that matches how you want to work.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Set up from zero",
+      text: "Use the Glubean skill and set up a verification project for «my app repo». Decide whether to create a separate project or reuse one, wire up MCP, and write the first small check.",
+    },
+    {
+      intent: "First evidence",
+      text: "Use the Glubean skill and add a contract for «one important endpoint», run it locally, and walk me through the evidence it produced.",
+    },
+  ]}
+/>
 
 <Tabs items={['Agent first', 'Human/manual']}>
 

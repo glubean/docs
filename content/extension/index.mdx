@@ -3,6 +3,8 @@ title: VS Code Extension
 description: Run, inspect, and debug Glubean work from the IDE plane.
 ---
 
+import { AskAgent } from "../../components/ask-agent";
+
 # VS Code Extension
 
 The VS Code extension is part of the IDE and local plane.
@@ -11,6 +13,15 @@ Use it when you want a visual layer over source-authored Glubean work: gutter
 runs, Test Explorer, environment switching, result inspection, and debugging.
 It is no longer the center of the product narrative; it is one way power users
 operate the same SDK and CLI workflow.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Get runnable in VS Code",
+      text: "Use the Glubean skill and get this project runnable in VS Code — verification project wired, environments set, gutter run buttons working.",
+    },
+  ]}
+/>
 
 The most complete extension surface today is local `test()` authoring and
 inspection in `*.test.ts/js/mjs` files. Contracts and workflows remain the

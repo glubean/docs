@@ -1,6 +1,21 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # Install & Verify
 
 Use this page when you want a working Node-based Glubean setup in a few minutes.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Set up",
+      text: "Use the Glubean skill and set this project up — install what's needed, then verify the generated suite actually runs.",
+    },
+    {
+      intent: "Something's broken",
+      text: "My Glubean setup isn't working. Check the Node version, dependencies, MCP wiring, and glubean.yaml, and fix what's wrong.",
+    },
+  ]}
+/>
 
 ## What you need
 

@@ -1,3 +1,5 @@
+import { AskAgent } from "../../components/ask-agent";
+
 # Connect CI
 
 CI should run the **same authored assets** you run locally: contracts,
@@ -7,6 +9,19 @@ Use the same profile locally and in CI. Define a `ci` profile in `glubean.yaml`
 once, then run it with one command everywhere. The point is simple: CI should
 produce fresh evidence from the same source of truth, not a second hand-authored
 workflow.
+
+<AskAgent
+  prompts={[
+    {
+      intent: "Connect CI",
+      text: "Add a ci profile to glubean.yaml and a «GitHub Actions» workflow that runs glubean ci run on every PR, uploading evidence on main.",
+    },
+    {
+      intent: "Red in CI, green locally",
+      text: "My CI run fails but the same suite passes locally — compare the two runs' evidence and find what differs (env, secrets, data, timing).",
+    },
+  ]}
+/>
 
 ## The `ci` profile
 
