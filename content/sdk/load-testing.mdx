@@ -27,6 +27,55 @@ This is distinct from recording a single-request [metric](/sdk/test/observabilit
 
 Write a load test when you're asking about performance under load, capacity, throughput/RPS, p95/p99 latency, "can this handle N concurrent users," soak/stress behavior, or gating a performance SLO in CI. Load is **opt-in** — it generates real concurrent traffic, so don't add it as part of routine functional/contract coverage.
 
+## The load generator — what it is and isn't
+
+Glubean's local load engine is a **single Node.js process** driving all virtual
+users on one event loop (the artifact records this as
+`runtime.processModel: "single-process-async-producer-slot"`). Know what that
+model buys you and where its limits are — a saturated generator produces
+numbers that look exactly like real measurements but describe the generator,
+not your API.
+
+**IO-intense: yes.** An event loop excels at concurrent IO — thousands of
+in-flight HTTP requests on one core is the normal regime. High `concurrency`
+values are fine as long as each iteration spends its time *waiting* on the
+network.
+
+**CPU-intense: no.** Every millisecond of synchronous compute in a scenario
+step — heavy crypto, large JSON transforms, compression, image work — runs on
+the same single core that schedules *all* virtual users. CPU-heavy iterations
+stall the event loop, which throttles your own ingress **and inflates every
+measured latency**: the recorded p95 silently becomes generator queueing time,
+indistinguishable from backend latency in the report. If an iteration genuinely
+needs heavy computation:
+
+- pre-compute data once at module load and feed it through `feeders`, instead of
+  generating per iteration;
+- move the computation behind a service and call it over the wire — that turns
+  CPU work into IO the generator handles well;
+- keep scenario bodies thin: request, assert status/shape, record, done.
+
+**One core today.** Concurrency (in-flight requests) can go high, but total
+generator throughput is bounded by a single core. Multi-core and distributed
+load generation are on the roadmap; until then, treat very-high-RPS targets as
+a generator capacity question, not just a backend one.
+
+**The host matters too.** Load generation leans on the whole machine, not just
+the CPU:
+
+- **Memory** — every in-flight iteration holds request/response buffers;
+  RSS scales with `concurrency` × response size. Watch it on soak runs.
+- **File descriptors** — each concurrent connection is an open fd. High
+  concurrency on default limits exhausts them (`EMFILE`); raise `ulimit -n`
+  before blaming the backend for connection errors.
+- **Network path** — ephemeral ports, keep-alive reuse, VPN/proxy hops, and
+  plain bandwidth all cap what the generator can deliver. Run it close to the
+  system under test, not through a corporate VPN.
+
+Rule of thumb: keep an eye on the generator host (CPU, memory, fd count)
+during a run. If the generator is saturated, fix that before reading the
+numbers.
+
 ## Define a load plan
 
 A load plan is a **scenario** (the workload, reused across runs) plus a **runner** (concurrency, duration, thresholds). Import load authoring APIs from `@glubean/sdk/load`:
@@ -363,6 +412,7 @@ For cleaner benchmark deltas, keep the load shape consistent across sources: sam
 - **Start small.** Default to modest `concurrency` and a short `duration` (e.g. 25 virtual users / `"20s"`) and scale up from there — don't open with 1000 VUs.
 - **Always set thresholds** so the run has a pass/fail verdict and can gate CI. Base them on your SLOs, or start conservative and tighten over time.
 - **Reuse functional knowledge.** A load scenario makes the same `http` calls as a functional test, just without per-request assertions beyond status/shape.
+- **Keep iterations IO-thin.** No heavy synchronous compute inside scenario steps — see [the generator model](#the-load-generator--what-it-is-and-isnt) for why CPU work poisons the measurements.
 - **Don't call `ctx.metric()` in a load step** — it isn't available there. For a custom business metric, use a [functional test](/sdk/test/observability) instead.
 
 ## Next
