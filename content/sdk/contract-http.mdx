@@ -262,6 +262,90 @@ export const getMe = userApi("get-me", {
 
 Tradeoff: inline cases preserve more precise `workflow().call(...).out` body typing from `expect.schema`; `defineHttpCase` prioritizes input-shape drift prevention.
 
+## Satisfying `needs` — `contract.bootstrap()` overlays
+
+A case that declares `needs` cannot run bare: the runner has no value to hand its
+function-valued fields. A **bootstrap overlay** supplies that value. It runs
+*before* the case, does whatever setup the input requires (log in, seed a record,
+create a project), and returns a value matching the case's `needs` schema.
+
+Overlays live in a sibling `*.bootstrap.ts` file. The harness eager-loads every
+`*.bootstrap.ts` in the project before discovery, so an overlay registers even
+though nothing imports it. Colocation next to the `.contract.ts` is the convention:
+
+```
+contracts/
+  me.contract.ts     # defineHttpCase<{ token }> + getMe (above)
+  me.bootstrap.ts    # contract.bootstrap(getMe.case("authorized"), ...)
+```
+
+```typescript
+// me.bootstrap.ts
+import { contract } from "@glubean/sdk";
+import { getMe } from "./me.contract.ts";
+
+export const authorizedOverlay = contract.bootstrap(
+  getMe.case("authorized"),
+  async (ctx) => {
+    const { accessToken } = await ctx.http
+      .post("https://api.example.com/login", {
+        json: { username: "emilys", password: "emilyspass" },
+      })
+      .json<{ accessToken: string }>();
+
+    ctx.cleanup(async () => {
+      // optional teardown — runs LIFO after the case, on success or failure
+      await ctx.http.post("https://api.example.com/logout");
+    });
+
+    return { token: accessToken }; // must match the case's `needs` shape
+  },
+);
+```
+
+- The first argument is a **case reference** (`getMe.case("authorized")`). The
+  overlay's return type is checked against that case's `needs` at compile time,
+  and validated again at runtime before the case runs.
+- The returned value feeds every function-valued field of the case — `headers`,
+  `body`, `pathParams`, `query`. Need a project id in the URL? Return it here and
+  read it with `pathParams: ({ projectId }) => ({ projectId })`.
+- `ctx.cleanup(fn)` registers teardown that runs in LIFO order after the case.
+  `ctx.http`, `ctx.vars`, and `ctx.secrets` are available for setup.
+- **One overlay per case.** Registering a second for the same case is a load-time
+  error.
+
+For input that varies per run (a different account, a CI flag), use the structured
+`{ params, run }` form. `params` is a schema; `run` receives the validated params:
+
+```typescript
+export const authorizedOverlay = contract.bootstrap(
+  getMe.case("authorized"),
+  {
+    params: z.object({ username: z.string(), password: z.string() }),
+    run: async (ctx, { username, password }) => {
+      const { accessToken } = await ctx.http
+        .post("https://api.example.com/login", { json: { username, password } })
+        .json<{ accessToken: string }>();
+      return { token: accessToken };
+    },
+  },
+);
+```
+
+Supply params at run time with `--bootstrap-json`; `{{VAR}}` interpolates against
+env vars and secrets first:
+
+```bash
+glubean run me.contract.ts --filter get-me.authorized \
+  --bootstrap-json '{"username":"{{TEST_USER}}","password":"{{TEST_PASS}}"}'
+```
+
+The file must end in `.bootstrap.ts` — a dot, not a dash. The harness only
+eager-loads that exact suffix, so `me-bootstrap.ts` silently never registers and
+the case hard-errors with "declares `needs` but has no overlay". For a one-off run
+without the overlay, pass input directly with `--input-json '<JSON>'`; the two
+flags are mutually exclusive.
+
 ## `given` and runnability
 
 Use `given` for semantic preconditions and `runnability` for execution gates:
