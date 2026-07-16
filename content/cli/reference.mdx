@@ -113,6 +113,33 @@ glubean patch openapi.yaml               # Apply .patch.yaml overlay
 glubean spec split openapi.yaml          # Split spec into per-endpoint files
 ```
 
+## Generate a client SDK
+
+`glubean` stops at a verified OpenAPI projection — turning it into a client
+SDK is a mature, crowded space, so pick the generator that fits your stack
+rather than one we picked for you. The upside is specific to Glubean: because
+the projection is backed by passing contracts, whichever tool you choose, the
+SDK is generated from a spec that provably matches your API — it can't quietly
+drift.
+
+```bash
+glubean contracts --format openapi > openapi.json   # the verified spec to feed downstream
+```
+
+Then hand `openapi.json` to any generator:
+
+| Tool | Best for | License |
+| --- | --- | --- |
+| [openapi-typescript](https://github.com/openapi-ts/openapi-typescript) / [Hey API](https://heyapi.dev/) | TypeScript only, tiny footprint, zero-config | MIT (OSS) |
+| [OpenAPI Generator](https://openapi-generator.tech/) | 50+ languages, free, rougher output | Apache-2.0 (OSS) |
+| [Kiota](https://learn.microsoft.com/openapi/kiota/) | CLI + VS Code, strong typed/.NET story | MIT (OSS) |
+| [Speakeasy](https://speakeasy.com/) | Polished multi-language, standalone binary, air-gapped | Commercial |
+| [Fern](https://buildwithfern.com/) | Multi-language SDKs + hosted docs | Commercial (Apache-2.0 core) |
+| [Stainless](https://www.stainless.com/) | Polished SDKs behind large public APIs | Commercial |
+
+Each runs as a single CLI step you can drop into CI next to `glubean run`, so
+your SDK regenerates from a spec that stays honest.
+
 ## Environment and secret selection
 
 ```bash
