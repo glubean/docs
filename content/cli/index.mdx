@@ -19,7 +19,7 @@ In a project, keep the authoring API and runner explicit:
     },
     {
       intent: "Scripts",
-      text: "Add package.json scripts for this project's common glubean commands — local run, CI run, filtered debug, upload — using the profiles in glubean.yaml.",
+      text: "Add package.json scripts for this project's common glubean commands — discover, doctor, local run, CI run, sync, and upload — using the profiles in glubean.yaml.",
     },
   ]}
 />
@@ -43,6 +43,10 @@ npx glubean init --no-interactive
 # Run the generated local profile through package scripts
 npm test
 
+# Inventory assets, then check sync/upload readiness
+npm run discover
+npm run doctor
+
 # Or call the project CLI directly
 npx glubean run --profile local
 
@@ -60,6 +64,7 @@ npx glubean run -h          # Options for a specific command
 ## Pages in this section
 
 - [Usage Scenarios](/cli/reference) — common commands organized by workflow
+- [Discover & Doctor](/cli/discover) — asset catalog, diagnostics, and Cloud readiness
 - [Sync Projections](/cli/sync) — publish source-derived Specifications to Cloud
 - [Configuration](/cli/config) — `glubean.yaml` suites, profiles, reporters, upload, and gates
 - [Environments & Secrets](/cli/environments) — env files, secrets, switching environments

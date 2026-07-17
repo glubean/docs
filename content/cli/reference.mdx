@@ -50,6 +50,15 @@ glubean init --contract-first            # Contract-first scaffold (contracts/ +
 glubean init --hooks --github-actions    # With git hooks and CI workflow
 ```
 
+Every init template includes stable package scripts:
+
+```bash
+npm run discover                        # Generate catalog.yml
+npm run doctor                          # Diagnose assets and Cloud readiness
+npm run sync                            # Sync projections with explicit .env
+npm run upload                          # Run the local profile + upload evidence
+```
+
 ## AI tool integration
 
 ```bash
@@ -76,6 +85,20 @@ glubean scan                             # Generate metadata.json
 glubean validate-metadata                # Check metadata is in sync (CI gate)
 ```
 
+## Project inventory and readiness
+
+```bash
+glubean discover                         # Write catalog.yml + print counts/readiness
+glubean discover --filter type:contract  # Filter catalog assets
+glubean discover --format json --out catalog.json
+glubean doctor                           # Actionable diagnostics; exit 1 when blocked
+glubean doctor --filter env:production   # Check one Cloud environment
+```
+
+Both commands are read-only. When credentials exist, they validate token,
+project, `runs:write` capability, target selection, and the canonical Cloud URL
+without syncing or uploading. See [Discover & Doctor](/cli/discover).
+
 ## Contract projections
 
 ```bash
@@ -96,6 +119,7 @@ glubean sync                             # Sync source projections to Cloud Spec
 glubean sync --env-file .env.staging     # Load a specific env file for project/token vars
 glubean sync --project prj_abc123        # Override destination project
 glubean sync --allow-empty               # Intentionally clear project projections
+npm run sync                            # Generated init script
 ```
 
 `glubean sync` does not run tests. It projects the whole repo's test,
@@ -104,7 +128,8 @@ Specifications, OpenAPI-shaped output, and agent/spec context. This is
 different from `glubean run --upload`, which uploads execution evidence to a
 Target. See [Sync Projections](/cli/sync).
 
-To upload run results to Cloud, add `--upload` to a run (see [Upload your first run](/getting-started/upload-to-cloud)).
+To upload run results to Cloud, add `--upload` to a run or use the generated
+`npm run upload` script (see [Upload your first run](/getting-started/upload-to-cloud)).
 
 ## OpenAPI tools
 

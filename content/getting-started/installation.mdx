@@ -58,8 +58,13 @@ install. For a runnable default project, use the non-interactive template:
 npx glubean init --no-interactive
 ```
 
-This scaffolds a Node project with `package.json`, project dependencies, test
-scripts, `tests/`, `contracts/`, `glubean.yaml`, `GLUBEAN.md`, and env files.
+This scaffolds a Node project with `package.json`, project dependencies,
+`tests/`, `contracts/`, `glubean.yaml`, `GLUBEAN.md`, env files, and stable npm
+scripts for `discover`, `doctor`, `sync`, and `upload`.
+
+The generated `.env` names the full non-secret Cloud configuration surface:
+`GLUBEAN_PROJECT_ID`, `GLUBEAN_TARGET_ID`, and `GLUBEAN_API_URL`. The gitignored
+`.env.secrets` contains the `GLUBEAN_TOKEN` placeholder.
 
 Prefer doing this in a dedicated verification project when you are testing a
 real app end-to-end. Glubean is closer to an external API test workspace than to
@@ -83,6 +88,19 @@ npm test
 That runs both generated raw `test()` checks and executable contracts. If
 dependency installation was interrupted, run `npm install` and retry
 `npm test`.
+
+You can also inventory the generated assets immediately:
+
+```bash
+npm run discover
+```
+
+After Cloud project/token configuration is present, check readiness before the
+first publication:
+
+```bash
+npm run doctor
+```
 
 ## 5. Verify the CLI entry
 

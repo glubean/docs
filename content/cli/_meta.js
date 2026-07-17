@@ -1,6 +1,7 @@
 export default {
   index: 'Overview',
   reference: 'Usage Scenarios',
+  discover: 'Discover & Doctor',
   sync: 'Sync Projections',
   config: 'Configuration (glubean.yaml)',
   environments: 'Environments & Secrets',

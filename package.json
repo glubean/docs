@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start -p 4500",
     "check:links": "node scripts/check-doc-links.mjs",
-    "check:docs": "npm run check:links && npm run build"
+    "check:docs": "pnpm run check:links && pnpm run build"
   },
   "repository": {
     "type": "git",

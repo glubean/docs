@@ -93,6 +93,13 @@ The project and target IDs are in `.env`, so no second secret is needed.
 ## 3. Upload a run
 
 ```bash
+npm run doctor    # verify token/project/scope/target without writing
+npm run upload    # generated script: local profile + upload
+```
+
+For CI evidence, continue to use the CI profile explicitly:
+
+```bash
 npx glubean ci run --upload
 ```
 

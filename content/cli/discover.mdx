@@ -1,0 +1,109 @@
+# Discover & Doctor
+
+Use `glubean discover` to see what the CLI can project from the current
+project, and `glubean doctor` to decide whether those assets and environments
+are ready for Cloud sync or run upload. Both commands use the same scanner;
+neither command syncs definitions, runs tests, or uploads evidence.
+
+New projects created by `glubean init` expose the workflow as package scripts:
+
+```bash
+npm run discover   # write catalog.yml
+npm run doctor     # print actionable diagnostics; non-zero when blocked
+npm run sync       # glubean sync --env-file .env
+npm run upload     # run the local profile and upload its evidence
+```
+
+## Asset catalog
+
+Running `discover` writes `<project>/catalog.yml` by default and prints a
+summary containing file, test, contract/case, workflow, load-plan, and OpenAPI
+path counts.
+
+```bash
+glubean discover
+glubean discover --out catalog.json
+glubean discover --out - --format yaml
+```
+
+The catalog includes:
+
+- recognized Glubean source files and the assets produced by each file
+- tests, contracts and their cases, workflows, load plans, and OpenAPI paths
+- projection completeness and source diagnostics
+- discovered `.env` / `.env.<name>` environments
+- project and target IDs, canonical Cloud project URLs, and separate sync and
+  upload readiness
+
+The catalog records `tokenPresent: true|false`; it never serializes the token
+value.
+
+## Filters
+
+Filters are repeatable. Asset filters are combined with AND; environment
+filters narrow the environment list independently.
+
+```bash
+glubean discover --filter type:contract
+glubean discover --filter file:'contracts/**' --filter tag:public
+glubean discover --filter id:'create-*'
+glubean discover --filter env:production
+glubean discover --filter type:contract --filter env:production --format json
+```
+
+Supported selectors are `type:`, `file:`, `tag:`, `id:`, and `env:`. `*`,
+`**`, and `?` wildcards are supported.
+
+## Readiness
+
+When a token and project ID are available, discovery calls a read-only
+Platform API readiness endpoint. The endpoint applies the same writable-role
+and `runs:write` checks as sync/upload, resolves the upload target, and returns
+the canonical project URL. It does not create a projection or run.
+
+Each environment reports one of:
+
+| Status | Meaning |
+| --- | --- |
+| `ready` | Credential, project, scope, and required target checks passed. |
+| `blocked` | A concrete problem such as missing config, invalid token, insufficient scope, or missing target prevents the operation. |
+| `unverified` | Local configuration exists, but exact Cloud write capability was not checked (for example, `--offline` or an older server). |
+
+Use local-only mode when network validation is unwanted:
+
+```bash
+glubean discover --offline
+glubean doctor --offline
+```
+
+## Doctor behavior
+
+`doctor` prints the same inventory and readiness information but does not write
+a catalog unless `--out` is provided. Asset/import failures and concrete Cloud
+readiness failures exit with code 1.
+
+```bash
+npm run doctor
+npm run doctor -- --filter env:production
+glubean doctor --out doctor.json
+```
+
+`discover` is non-blocking by default so it can always produce the catalog.
+Add `--strict` when it should exit non-zero on the same blocking issues:
+
+```bash
+glubean discover --strict
+```
+
+## Recommended Cloud flow
+
+```bash
+npm run doctor -- --filter env:production
+npm run sync -- --env-file .env.production
+npm run upload -- --env-file .env.production
+```
+
+Sync remains project-scoped source publication. Upload runs the generated
+`local` profile and sends target-scoped execution evidence. See
+[Sync Projections](/cli/sync) and
+[Upload Your First Run](/getting-started/upload-to-cloud).

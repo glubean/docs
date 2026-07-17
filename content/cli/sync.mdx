@@ -32,7 +32,8 @@ keeps the project-level API model readable even before someone opens a run.
 ## Basic usage
 
 ```bash
-glubean sync
+npm run doctor    # read-only readiness check
+npm run sync      # generated command: glubean sync --env-file .env
 ```
 
 `--dir` only helps the CLI locate the project root. Sync always projects the
